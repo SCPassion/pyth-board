@@ -1,103 +1,120 @@
-import Image from "next/image";
+"use client"
 
-export default function Home() {
+import { useState } from "react"
+import { Sidebar } from "@/components/sidebar"
+import { TopHeader } from "@/components/top-header"
+import { PortfolioSummary } from "@/components/portfolio-summary"
+import { MetricCards } from "@/components/metric-cards"
+import { WalletSection } from "@/components/wallet-section"
+
+// Mock data
+const mockWallets = [
+  {
+    id: "1",
+    address: "8xhM...j9dk",
+    name: "Main Wallet",
+    totalStaked: 2540,
+    stakingApy: 12.8,
+    rewardsEarned: 157.34,
+    validators: 2,
+  },
+  {
+    id: "2",
+    address: "3ahN...k2dF",
+    name: "Secondary Wallet",
+    totalStaked: 970,
+    stakingApy: 14.1,
+    rewardsEarned: 82.45,
+    validators: 2,
+  },
+]
+
+const mockValidators = [
+  {
+    id: "1",
+    name: "Validator Alpha",
+    status: "active",
+    yourStake: 1500,
+    commission: "5%",
+    apy: "12.5%",
+  },
+  {
+    id: "2",
+    name: "Validator Beta",
+    status: "active",
+    yourStake: 1040,
+    commission: "7%",
+    apy: "14.2%",
+  },
+]
+
+export default function Dashboard() {
+  const [currentView, setCurrentView] = useState<"dashboard" | "wallets">("dashboard")
+  const [selectedWallet, setSelectedWallet] = useState("Main Wallet")
+  const [wallets, setWallets] = useState(mockWallets)
+
+  const totalStaked = wallets.reduce((sum, wallet) => sum + wallet.totalStaked, 0)
+  const totalUnstaking = 120
+  const totalRewards = wallets.reduce((sum, wallet) => sum + wallet.rewardsEarned, 0)
+  const connectedWallets = wallets.length
+  const activeValidators = 4
+
+  const handleAddWallet = (address: string, name: string) => {
+    const newWallet = {
+      id: Date.now().toString(),
+      address: address.slice(0, 4) + "..." + address.slice(-4),
+      name,
+      totalStaked: 0,
+      stakingApy: 0,
+      rewardsEarned: 0,
+      validators: 0,
+    }
+    setWallets([...wallets, newWallet])
+  }
+
+  const handleRemoveWallet = (walletId: string) => {
+    setWallets(wallets.filter((w) => w.id !== walletId))
+    const removedWallet = wallets.find((w) => w.id === walletId)
+    if (removedWallet && selectedWallet === removedWallet.name) {
+      const remainingWallets = wallets.filter((w) => w.id !== walletId)
+      if (remainingWallets.length > 0) {
+        setSelectedWallet(remainingWallets[0].name)
+      }
+    }
+  }
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div className="flex h-screen bg-[#0f1419]">
+      <Sidebar currentView={currentView} onViewChange={setCurrentView} />
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      <div className="flex-1 flex flex-col">
+        <TopHeader
+          selectedWallet={selectedWallet}
+          onWalletChange={setSelectedWallet}
+          wallets={wallets}
+          onAddWallet={handleAddWallet}
+          onRemoveWallet={handleRemoveWallet}
+        />
+
+        <main className="flex-1 overflow-auto p-6 space-y-6">
+          {currentView === "dashboard" ? (
+            <>
+              <PortfolioSummary
+                connectedWallets={connectedWallets}
+                totalStaked={totalStaked}
+                activeValidators={activeValidators}
+              />
+              <MetricCards totalStaked={totalStaked} totalUnstaking={totalUnstaking} totalRewards={totalRewards} />
+            </>
+          ) : (
+            <div className="space-y-6">
+              {wallets.map((wallet) => (
+                <WalletSection key={wallet.id} wallet={wallet} validators={mockValidators} />
+              ))}
+            </div>
+          )}
+        </main>
+      </div>
     </div>
-  );
+  )
 }
