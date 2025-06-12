@@ -4,19 +4,8 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronDown } from "lucide-react";
 import { WalletDropdown } from "@/components/wallet-dropdown";
-import { WalletInfo } from "@/types/pythTypes";
 
-interface TopHeaderProps {
-  walletInfos: WalletInfo[];
-  onAddWallet: (address: string, name: string) => void;
-  onRemoveWallet: (walletId: string) => void;
-}
-
-export function TopHeader({
-  walletInfos,
-  onAddWallet,
-  onRemoveWallet,
-}: TopHeaderProps) {
+export function TopHeader() {
   const [showWalletDropdown, setShowWalletDropdown] = useState(false);
 
   return (
@@ -40,9 +29,6 @@ export function TopHeader({
           <WalletDropdown
             isOpen={showWalletDropdown}
             onClose={() => setShowWalletDropdown(false)}
-            walletInfos={walletInfos}
-            onAddWallet={onAddWallet}
-            onRemoveWallet={onRemoveWallet}
           />
         </div>
       </div>

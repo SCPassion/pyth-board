@@ -9,22 +9,15 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Trash2, X } from "lucide-react";
 import { WalletInfo } from "@/types/pythTypes";
+import { useWalletInfosStore } from "@/store/store";
 
 interface WalletDropdownProps {
   isOpen: boolean;
   onClose: () => void;
-  walletInfos: WalletInfo[];
-  onAddWallet: (address: string, name: string) => void;
-  onRemoveWallet: (walletId: string) => void;
 }
 
-export function WalletDropdown({
-  isOpen,
-  onClose,
-  walletInfos,
-  onAddWallet,
-  onRemoveWallet,
-}: WalletDropdownProps) {
+export function WalletDropdown({ isOpen, onClose }: WalletDropdownProps) {
+  const { wallets, addWallet, removeWallet } = useWalletInfosStore();
   const [showAddForm, setShowAddForm] = useState(false);
 
   if (!isOpen) return null;
@@ -37,8 +30,6 @@ export function WalletDropdown({
     console.log({ name, address, stakingAddress });
     setShowAddForm(false);
   }
-
-  const handleRemoveWallet = (walletId: string, e: React.MouseEvent) => {};
 
   return (
     <>
@@ -63,7 +54,7 @@ export function WalletDropdown({
         <CardContent className="space-y-4">
           {/* Wallet List */}
           <div className="space-y-2 max-h-64 overflow-y-auto">
-            {walletInfos.map((wallet) => (
+            {wallets.map((wallet) => (
               <div
                 key={wallet.id}
                 className={`p-3 rounded-lg border cursor-pointer transition-all ${"bg-[#1a1f2e] border-gray-700 hover:border-gray-600"}`}
@@ -87,7 +78,7 @@ export function WalletDropdown({
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={(e) => handleRemoveWallet(wallet.id, e)}
+                      onClick={(e) => removeWallet(wallet.id)}
                       className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
                     >
                       <Trash2 className="h-4 w-4" />
