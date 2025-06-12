@@ -7,9 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Trash2, X } from "lucide-react";
-import { WalletInfo } from "@/types/pythTypes";
+import { Loader, Plus, Trash2, X } from "lucide-react";
+import { PythStakingInfo } from "@/types/pythTypes";
 import { useWalletInfosStore } from "@/store/store";
+import { getOISStakingInfo } from "@/action/pythActions";
 
 interface WalletDropdownProps {
   isOpen: boolean;
@@ -19,29 +20,58 @@ interface WalletDropdownProps {
 export function WalletDropdown({ isOpen, onClose }: WalletDropdownProps) {
   const { wallets, addWallet, removeWallet } = useWalletInfosStore();
   const [showAddForm, setShowAddForm] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   if (!isOpen) return null;
 
-  function handleAddWallet(formData: FormData) {
+  console.log(showAddForm, "showAddForm state");
+  // Change handleAddWallet to a client-side handler
+  function handleAddWallet(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
     const name = formData.get("wallet-name") as string;
     const address = formData.get("wallet-address") as string;
     const stakingAddress = formData.get("staking-address") as string;
+    fetchPythStakingInfo(address, stakingAddress);
+  }
 
-    console.log({ name, address, stakingAddress });
-    setShowAddForm(false);
+  async function fetchPythStakingInfo(
+    walletAddress: string,
+    stakingAddress: string
+  ) {
+    setIsLoading(true);
+    try {
+      const {
+        StakeForEachPublisher,
+        totalStakedPyth,
+        claimableRewards,
+        generalStats,
+      }: PythStakingInfo = await getOISStakingInfo(
+        walletAddress,
+        stakingAddress
+      );
+
+      console.log("StakeForEachPublisher:", StakeForEachPublisher);
+      console.log("Total Staked PYTH:", totalStakedPyth);
+      console.log("Claimable Rewards:", claimableRewards);
+      console.log("General Stats:", generalStats);
+    } catch (error) {
+      console.error("Error fetching Pyth staking info:", error);
+      alert(
+        "Failed to fetch staking info. Please check the wallet address and try again."
+      );
+    } finally {
+      setIsLoading(false);
+      setShowAddForm(false);
+    }
   }
 
   return (
     <>
-      {/* Backdrop */}
-      <div className="fixed inset-0 z-40" onClick={onClose} />
-
       {/* Dropdown */}
       <Card className="absolute top-full right-0 mt-2 w-96 bg-[#2a2f3e] border-gray-700 z-50">
         <CardHeader className="flex flex-row items-center justify-between pb-3">
-          <CardTitle className="text-white text-lg">
-            Manage walletInfos
-          </CardTitle>
+          <CardTitle className="text-white text-lg">Manage wallets</CardTitle>
           <Button
             variant="ghost"
             size="sm"
@@ -51,8 +81,8 @@ export function WalletDropdown({ isOpen, onClose }: WalletDropdownProps) {
             <X className="h-4 w-4" />
           </Button>
         </CardHeader>
+
         <CardContent className="space-y-4">
-          {/* Wallet List */}
           <div className="space-y-2 max-h-64 overflow-y-auto">
             {wallets.map((wallet) => (
               <div
@@ -95,7 +125,7 @@ export function WalletDropdown({ isOpen, onClose }: WalletDropdownProps) {
           {/* Add Wallet Form */}
           {showAddForm ? (
             <form
-              action={handleAddWallet}
+              onSubmit={handleAddWallet}
               className="space-y-3 p-3 bg-[#1a1f2e] rounded-lg border border-gray-700"
             >
               <div>
@@ -125,7 +155,7 @@ export function WalletDropdown({ isOpen, onClose }: WalletDropdownProps) {
                 />
               </div>
               <div>
-                <Label htmlFor="wallet-address" className="text-gray-300">
+                <Label htmlFor="staking-address" className="text-gray-300">
                   Staking Account Address
                 </Label>
                 <Input
@@ -137,12 +167,16 @@ export function WalletDropdown({ isOpen, onClose }: WalletDropdownProps) {
                   required
                 />
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 items-center">
                 <Button
                   type="submit"
                   size="sm"
                   className="bg-purple-600 hover:bg-purple-700"
+                  disabled={isLoading}
                 >
+                  {isLoading ? (
+                    <Loader className="animate-spin h-4 w-4 mr-2" />
+                  ) : null}
                   Add Wallet
                 </Button>
                 <Button
@@ -151,6 +185,7 @@ export function WalletDropdown({ isOpen, onClose }: WalletDropdownProps) {
                   size="sm"
                   onClick={() => setShowAddForm(false)}
                   className="border-gray-600 text-gray-300"
+                  disabled={isLoading}
                 >
                   Cancel
                 </Button>
