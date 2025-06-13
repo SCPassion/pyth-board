@@ -37,16 +37,11 @@ export function MetricCards({
         <CardContent className="p-6 space-y-4">
           <div className="flex items-center justify-between">
             <p className="text-gray-400 text-sm">Total Staked</p>
-            <TrendingUp className="h-4 w-4 text-purple-400" />
           </div>
           <p className="text-3xl font-bold text-white">
             {totalStaked.toLocaleString()} PYTH
           </p>
-          <div className="flex items-center gap-2 text-sm">
-            <TrendingUp className="h-4 w-4 text-green-400" />
-            <span className="text-green-400">12.5%</span>
-            <span className="text-gray-400">vs. last month</span>
-          </div>
+
           <div className="flex gap-1 h-12 items-end">
             {heights.staked.map((h, i) => (
               <div
@@ -66,14 +61,9 @@ export function MetricCards({
         <CardContent className="p-6 space-y-4">
           <div className="flex items-center justify-between">
             <p className="text-gray-400 text-sm">Total Unstaking</p>
-            <TrendingDown className="h-4 w-4 text-orange-400" />
           </div>
           <p className="text-3xl font-bold text-white">{totalUnstaking} PYTH</p>
-          <div className="flex items-center gap-2 text-sm">
-            <TrendingDown className="h-4 w-4 text-red-400" />
-            <span className="text-red-400">8.3%</span>
-            <span className="text-gray-400">vs. last month</span>
-          </div>
+
           <div className="flex gap-1 h-12 items-end">
             {heights.unstaking.map((h, i) => (
               <div
@@ -93,16 +83,11 @@ export function MetricCards({
         <CardContent className="p-6 space-y-4">
           <div className="flex items-center justify-between">
             <p className="text-gray-400 text-sm">Total Rewards</p>
-            <TrendingUp className="h-4 w-4 text-green-400" />
           </div>
           <p className="text-3xl font-bold text-white">
             {totalRewards.toFixed(0)} PYTH
           </p>
-          <div className="flex items-center gap-2 text-sm">
-            <TrendingUp className="h-4 w-4 text-green-400" />
-            <span className="text-green-400">15.8%</span>
-            <span className="text-gray-400">vs. last month</span>
-          </div>
+
           <div className="flex gap-1 h-12 items-end">
             {heights.rewards.map((h, i) => (
               <div

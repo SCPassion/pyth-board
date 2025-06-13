@@ -6,6 +6,7 @@ import { TopHeader } from "@/components/top-header";
 import { PortfolioSummary } from "@/components/portfolio-summary";
 import { MetricCards } from "@/components/metric-cards";
 import { useWalletInfosStore } from "@/store/store";
+import { GeneralSummary } from "@/components/general-summary";
 // Mock data
 
 export default function Dashboard() {
@@ -24,6 +25,7 @@ export default function Dashboard() {
   }, 0);
 
   const connectedWallets = wallets.length;
+
   const activeValidators = 4;
 
   return (
@@ -40,12 +42,30 @@ export default function Dashboard() {
                 connectedWallets={connectedWallets}
                 totalStaked={totalStaked}
                 activeValidators={activeValidators}
-              />
+              >
+                PortfolioSummary
+              </PortfolioSummary>
               <MetricCards
                 totalStaked={totalStaked}
                 totalUnstaking={totalUnstaking}
                 totalRewards={totalRewards}
               />
+              <GeneralSummary
+                totalGovernance={
+                  wallets[wallets.length - 1]?.stakingInfo?.generalStats
+                    ?.totalGovernance || 0
+                }
+                oisTotalStaked={
+                  wallets[wallets.length - 1]?.stakingInfo?.generalStats
+                    ?.totalStaked || 0
+                }
+                rewardsDistributed={
+                  wallets[wallets.length - 1]?.stakingInfo?.generalStats
+                    ?.rewardsDistributed || 0
+                }
+              >
+                General Information
+              </GeneralSummary>
             </>
           ) : (
             <div className="space-y-6">
