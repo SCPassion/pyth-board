@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { WalletInfo } from "@/types/pythTypes";
 import { useWalletInfosStore } from "@/store/store";
+import { useEffect, useState } from "react";
 
 interface WalletSectionProps {
   wallet: WalletInfo;
@@ -13,6 +14,19 @@ interface WalletSectionProps {
 
 export function WalletSection({ wallet }: WalletSectionProps) {
   const { removeWallet } = useWalletInfosStore();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [throttleQuery, setThrottleQuery] = useState("");
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setThrottleQuery(searchQuery);
+    }, 300); // Adjust the delay as needed
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [searchQuery]);
+
   const sumApy = wallet.stakingInfo?.StakeForEachPublisher.reduce(
     (sum, publisher) => sum + publisher.apy,
     0
@@ -97,7 +111,12 @@ export function WalletSection({ wallet }: WalletSectionProps) {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
                   placeholder="Search validators..."
+                  value={searchQuery}
                   className="pl-10 bg-[#1a1f2e] border-gray-600 text-white w-64"
+                  onChange={(e) => {
+                    // Handle search logic here
+                    setSearchQuery(e.target.value);
+                  }}
                 />
               </div>
             </div>
@@ -111,30 +130,40 @@ export function WalletSection({ wallet }: WalletSectionProps) {
               </div>
 
               {wallet.stakingInfo?.StakeForEachPublisher.map(
-                (validator, id) => (
-                  <div
-                    key={id}
-                    className="grid grid-cols-3 gap-4 items-center py-3 hover:bg-gray-800/50 rounded-lg px-2 text-center"
-                  >
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 bg-blue-500/20 rounded-full flex items-center justify-center">
-                        <span className="text-blue-400 text-sm font-bold">
-                          V
+                (validator, id) => {
+                  if (
+                    throttleQuery &&
+                    !validator.publisherKey
+                      .toLowerCase()
+                      .includes(throttleQuery.toLowerCase())
+                  ) {
+                    return null; // Skip this validator if it doesn't match the search query
+                  }
+                  return (
+                    <div
+                      key={id}
+                      className="grid grid-cols-3 gap-4 items-center py-3 hover:bg-gray-800/50 rounded-lg px-2 text-center"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 bg-blue-500/20 rounded-full flex items-center justify-center">
+                          <span className="text-blue-400 text-sm font-bold">
+                            V
+                          </span>
+                        </div>
+                        <span className="text-white">
+                          {validator.publisherKey}
                         </span>
                       </div>
-                      <span className="text-white">
-                        {validator.publisherKey}
-                      </span>
-                    </div>
 
-                    <div className="text-white font-medium">
-                      {validator.stakedAmount.toLocaleString()} PYTH
+                      <div className="text-white font-medium">
+                        {validator.stakedAmount.toLocaleString()} PYTH
+                      </div>
+                      <div className="text-green-400 font-medium">
+                        {validator.apy}
+                      </div>
                     </div>
-                    <div className="text-green-400 font-medium">
-                      {validator.apy}
-                    </div>
-                  </div>
-                )
+                  );
+                }
               )}
             </div>
           </div>
