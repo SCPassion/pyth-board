@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Sidebar } from "@/components/sidebar";
 import { TopHeader } from "@/components/top-header";
 import { PortfolioSummary } from "@/components/portfolio-summary";
@@ -15,7 +15,19 @@ export default function Dashboard() {
   const [currentView, setCurrentView] = useState<"dashboard" | "wallets">(
     "dashboard"
   );
-  const { wallets } = useWalletInfosStore();
+  const { wallets, setWallets } = useWalletInfosStore();
+
+  useEffect(() => {
+    if (localStorage.getItem("wallets")) {
+      const storedWallets = localStorage.getItem("wallets");
+      if (storedWallets) {
+        const parsedWallets = JSON.parse(storedWallets);
+        setWallets(parsedWallets);
+      }
+    } else {
+      localStorage.setItem("wallets", JSON.stringify(wallets));
+    }
+  }, []);
 
   const totalStaked = wallets.reduce((sum, wallet) => {
     return sum + (wallet.stakingInfo?.totalStakedPyth || 0);

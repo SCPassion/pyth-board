@@ -70,6 +70,20 @@ export function WalletDropdown({ isOpen, onClose }: WalletDropdownProps) {
         stakingAddress: stakingAddress,
         stakingInfo: pythStakingInfo,
       });
+
+      localStorage.setItem(
+        "wallets",
+        JSON.stringify([
+          ...wallets,
+          {
+            id: walletAddress,
+            name: name,
+            address: walletAddress,
+            stakingAddress: stakingAddress,
+            stakingInfo: pythStakingInfo,
+          },
+        ])
+      );
     } catch (error) {
       console.error("Error fetching Pyth staking info:", error);
       alert(
@@ -134,7 +148,16 @@ export function WalletDropdown({ isOpen, onClose }: WalletDropdownProps) {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={(e) => removeWallet(wallet.id)}
+                      onClick={() => {
+                        removeWallet(wallet.id);
+                        localStorage.setItem(
+                          "wallets",
+                          JSON.stringify(
+                            wallets.filter((w) => w.id !== wallet.id)
+                          )
+                        );
+                        onClose();
+                      }}
                       className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
                     >
                       <Trash2 className="h-4 w-4" />

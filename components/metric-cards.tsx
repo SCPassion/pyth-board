@@ -2,7 +2,6 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import { useWalletInfosStore } from "@/store/store";
-import { WalletInfo } from "@/types/pythTypes";
 import React, { useEffect, useState } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 

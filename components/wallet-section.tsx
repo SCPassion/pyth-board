@@ -44,6 +44,14 @@ export function WalletSection({ wallet }: WalletSectionProps) {
                 className="border-red-500 text-red-400 hover:bg-red-500/10 mb-2"
                 onClick={() => {
                   removeWallet(wallet.id);
+                  localStorage.setItem(
+                    "wallets",
+                    JSON.stringify(
+                      useWalletInfosStore
+                        .getState()
+                        .wallets.filter((w) => w.id !== wallet.id)
+                    )
+                  );
                   // Handle wallet removal logic here
                   console.log(`Removing wallet: ${wallet.id}`);
                 }}
