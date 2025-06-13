@@ -33,7 +33,7 @@ export function Sidebar({ currentView, onViewChange }: SidebarProps) {
           <Button
             variant="ghost"
             className={cn(
-              "w-full justify-start gap-3 text-gray-300 hover:text-white hover:bg-purple-500/10",
+              "w-full justify-start gap-3 text-gray-300 hover:text-white hover:bg-purple-500/10 cursor-pointer",
               currentView === "dashboard" &&
                 "bg-purple-500/20 text-white border-r-2 border-purple-500"
             )}
@@ -46,7 +46,7 @@ export function Sidebar({ currentView, onViewChange }: SidebarProps) {
           <Button
             variant="ghost"
             className={cn(
-              "w-full justify-start gap-3 text-gray-300 hover:text-white hover:bg-purple-500/10",
+              "w-full justify-start gap-3 text-gray-300 hover:text-white hover:bg-purple-500/10 cursor-pointer",
               currentView === "wallets" &&
                 "bg-purple-500/20 text-white border-r-2 border-purple-500"
             )}
@@ -70,7 +70,12 @@ export function Sidebar({ currentView, onViewChange }: SidebarProps) {
             </p>
           </CardHeader>
           <CardContent className="pt-0">
-            <Button className="w-full bg-purple-600 hover:bg-purple-700">
+            <Button
+              className="w-full bg-purple-600 hover:bg-purple-700 cursor-pointer hover:shadow-lg transition-all duration-200"
+              onClick={() =>
+                window.open("https://staking.pyth.network/", "_blank")
+              }
+            >
               Start Staking
             </Button>
           </CardContent>

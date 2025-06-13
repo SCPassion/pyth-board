@@ -3,19 +3,19 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Wallet, TrendingUp, Users } from "lucide-react";
 
-interface PortfolioSummaryProps {
-  connectedWallets: number;
-  totalStaked: number;
-  uniqueValidatorSize: number;
+interface GeneralSummaryProps {
+  totalGovernance: string;
+  oisTotalStaked: string;
+  rewardsDistributed: string;
   children?: React.ReactNode;
 }
 
-export function PortfolioSummary({
-  connectedWallets,
-  totalStaked,
-  uniqueValidatorSize,
+export function GeneralSummary({
+  totalGovernance,
+  oisTotalStaked,
+  rewardsDistributed,
   children,
-}: PortfolioSummaryProps) {
+}: GeneralSummaryProps) {
   return (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold text-white">{children}</h2>
@@ -28,9 +28,9 @@ export function PortfolioSummary({
                 <Wallet className="h-6 w-6 text-purple-400" />
               </div>
               <div>
-                <p className="text-gray-400 text-sm">Connected Wallets</p>
+                <p className="text-gray-400 text-sm">OIS Total Staked</p>
                 <p className="text-3xl font-bold text-white">
-                  {connectedWallets}
+                  {oisTotalStaked}M PYTH
                 </p>
               </div>
             </div>
@@ -44,9 +44,9 @@ export function PortfolioSummary({
                 <TrendingUp className="h-6 w-6 text-blue-400" />
               </div>
               <div>
-                <p className="text-gray-400 text-sm">Total Staked</p>
+                <p className="text-gray-400 text-sm">OIS Rewards Distributed</p>
                 <p className="text-3xl font-bold text-white">
-                  {totalStaked.toLocaleString()} PYTH
+                  {rewardsDistributed}M PYTH
                 </p>
               </div>
             </div>
@@ -60,11 +60,9 @@ export function PortfolioSummary({
                 <Users className="h-6 w-6 text-green-400" />
               </div>
               <div>
-                <p className="text-gray-400 text-sm">
-                  Unique Number of Validators{" "}
-                </p>
+                <p className="text-gray-400 text-sm">Governance Total Staked</p>
                 <p className="text-3xl font-bold text-white">
-                  {uniqueValidatorSize}
+                  {totalGovernance}B PYTH
                 </p>
               </div>
             </div>

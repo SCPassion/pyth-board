@@ -1,100 +1,78 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Sidebar } from "@/components/sidebar"
-import { TopHeader } from "@/components/top-header"
-import { PortfolioSummary } from "@/components/portfolio-summary"
-import { MetricCards } from "@/components/metric-cards"
-import { WalletSection } from "@/components/wallet-section"
+import { useEffect, useState } from "react";
+import { Sidebar } from "@/components/sidebar";
+import { TopHeader } from "@/components/top-header";
+import { PortfolioSummary } from "@/components/portfolio-summary";
+import { MetricCards } from "@/components/metric-cards";
+import { useWalletInfosStore } from "@/store/store";
+import { GeneralSummary } from "@/components/general-summary";
+import { WalletSection } from "@/components/wallet-section";
 
 // Mock data
-const mockWallets = [
-  {
-    id: "1",
-    address: "8xhM...j9dk",
-    name: "Main Wallet",
-    totalStaked: 2540,
-    stakingApy: 12.8,
-    rewardsEarned: 157.34,
-    validators: 2,
-  },
-  {
-    id: "2",
-    address: "3ahN...k2dF",
-    name: "Secondary Wallet",
-    totalStaked: 970,
-    stakingApy: 14.1,
-    rewardsEarned: 82.45,
-    validators: 2,
-  },
-]
-
-const mockValidators = [
-  {
-    id: "1",
-    name: "Validator Alpha",
-    status: "active",
-    yourStake: 1500,
-    commission: "5%",
-    apy: "12.5%",
-  },
-  {
-    id: "2",
-    name: "Validator Beta",
-    status: "active",
-    yourStake: 1040,
-    commission: "7%",
-    apy: "14.2%",
-  },
-]
 
 export default function Dashboard() {
-  const [currentView, setCurrentView] = useState<"dashboard" | "wallets">("dashboard")
-  const [selectedWallet, setSelectedWallet] = useState("Main Wallet")
-  const [wallets, setWallets] = useState(mockWallets)
+  const [currentView, setCurrentView] = useState<"dashboard" | "wallets">(
+    "dashboard"
+  );
+  const { wallets, setWallets } = useWalletInfosStore();
 
-  const totalStaked = wallets.reduce((sum, wallet) => sum + wallet.totalStaked, 0)
-  const totalUnstaking = 120
-  const totalRewards = wallets.reduce((sum, wallet) => sum + wallet.rewardsEarned, 0)
-  const connectedWallets = wallets.length
-  const activeValidators = 4
-
-  const handleAddWallet = (address: string, name: string) => {
-    const newWallet = {
-      id: Date.now().toString(),
-      address: address.slice(0, 4) + "..." + address.slice(-4),
-      name,
-      totalStaked: 0,
-      stakingApy: 0,
-      rewardsEarned: 0,
-      validators: 0,
-    }
-    setWallets([...wallets, newWallet])
-  }
-
-  const handleRemoveWallet = (walletId: string) => {
-    setWallets(wallets.filter((w) => w.id !== walletId))
-    const removedWallet = wallets.find((w) => w.id === walletId)
-    if (removedWallet && selectedWallet === removedWallet.name) {
-      const remainingWallets = wallets.filter((w) => w.id !== walletId)
-      if (remainingWallets.length > 0) {
-        setSelectedWallet(remainingWallets[0].name)
+  useEffect(() => {
+    if (localStorage.getItem("wallets")) {
+      const storedWallets = localStorage.getItem("wallets");
+      if (storedWallets) {
+        const parsedWallets = JSON.parse(storedWallets);
+        setWallets(parsedWallets);
       }
+    } else {
+      localStorage.setItem("wallets", JSON.stringify(wallets));
     }
-  }
+  }, []);
+
+  const totalStaked = wallets.reduce((sum, wallet) => {
+    return sum + (wallet.stakingInfo?.totalStakedPyth || 0);
+  }, 0);
+
+  const totalUnstaking = 120;
+  const totalRewards = wallets.reduce((sum, wallet) => {
+    return sum + (wallet.stakingInfo?.claimableRewards || 0);
+  }, 0);
+
+  const connectedWallets = wallets.length;
+
+  const validatorSets = wallets.map(
+    (wallet) =>
+      wallet.stakingInfo?.StakeForEachPublisher.map(
+        (publisher) => publisher.publisherKey
+      ) || []
+  );
+  const uniqueValidators = new Set(
+    validatorSets.flat().filter((v) => v !== "")
+  );
+  const uniqueValidatorSize = uniqueValidators.size;
+
+  const totalGovernance =
+    (wallets[wallets.length - 1]?.stakingInfo?.generalStats?.totalGovernance ||
+      0) / 1e9;
+
+  const oisTotalStaked =
+    (wallets[wallets.length - 1]?.stakingInfo?.generalStats?.totalStaked || 0) /
+    1e6;
+  const rewardsDistributed =
+    (wallets[wallets.length - 1]?.stakingInfo?.generalStats
+      ?.rewardsDistributed || 0) / 1e6;
+
+  console.log(
+    { totalGovernance, oisTotalStaked, rewardsDistributed },
+    "General Stats"
+  );
 
   return (
     <div className="flex h-screen bg-[#0f1419]">
       <Sidebar currentView={currentView} onViewChange={setCurrentView} />
 
       <div className="flex-1 flex flex-col">
-        <TopHeader
-          selectedWallet={selectedWallet}
-          onWalletChange={setSelectedWallet}
-          wallets={wallets}
-          onAddWallet={handleAddWallet}
-          onRemoveWallet={handleRemoveWallet}
-        />
+        <TopHeader />
 
         <main className="flex-1 overflow-auto p-6 space-y-6">
           {currentView === "dashboard" ? (
@@ -102,19 +80,38 @@ export default function Dashboard() {
               <PortfolioSummary
                 connectedWallets={connectedWallets}
                 totalStaked={totalStaked}
-                activeValidators={activeValidators}
+                uniqueValidatorSize={uniqueValidatorSize}
+              >
+                {wallets.length === 0
+                  ? "Please add a wallet to view details."
+                  : "Portfolio Summary"}
+              </PortfolioSummary>
+              <MetricCards
+                totalStaked={totalStaked}
+                totalRewards={totalRewards}
               />
-              <MetricCards totalStaked={totalStaked} totalUnstaking={totalUnstaking} totalRewards={totalRewards} />
+              <GeneralSummary
+                totalGovernance={totalGovernance.toFixed(1)}
+                oisTotalStaked={oisTotalStaked.toFixed(0)}
+                rewardsDistributed={rewardsDistributed.toFixed(1)}
+              >
+                General Information
+              </GeneralSummary>
             </>
           ) : (
             <div className="space-y-6">
               {wallets.map((wallet) => (
-                <WalletSection key={wallet.id} wallet={wallet} validators={mockValidators} />
+                <WalletSection key={wallet.id} wallet={wallet} />
               ))}
+              {wallets.length === 0 && (
+                <div className="text-center text-gray-400">
+                  No wallets found. Please add a wallet to view details.
+                </div>
+              )}
             </div>
           )}
         </main>
       </div>
     </div>
-  )
+  );
 }
