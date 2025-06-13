@@ -7,6 +7,7 @@ import { PortfolioSummary } from "@/components/portfolio-summary";
 import { MetricCards } from "@/components/metric-cards";
 import { useWalletInfosStore } from "@/store/store";
 import { GeneralSummary } from "@/components/general-summary";
+import { WalletSection } from "@/components/wallet-section";
 // Mock data
 
 export default function Dashboard() {
@@ -78,13 +79,9 @@ export default function Dashboard() {
             </>
           ) : (
             <div className="space-y-6">
-              {/* {wallets.map((wallet) => (
-                <WalletSection
-                  key={wallet.id}
-                  wallet={wallet}
-                  validators={mockValidators}
-                />
-              ))} */}
+              {wallets.map((wallet) => (
+                <WalletSection key={wallet.id} wallet={wallet} />
+              ))}
               hi
             </div>
           )}
