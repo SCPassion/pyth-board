@@ -1,16 +1,6 @@
 # 🐍 Pyth Board
 
-Welcome to **Pyth Board** – an innovative, open-source project designed to bring your ideas to life! Whether you're a developer, designer, or enthusiast, Pyth Board offers a flexible platform for building, sharing, and collaborating on interactive boards powered by Python.
-
----
-
-## 🚀 Features
-
-- **Intuitive Interface:** Create and organize boards with ease.
-- **Python-Powered:** Leverage the power and flexibility of Python for custom logic and automation.
-- **Real-Time Collaboration:** Work together with others in real time (coming soon!).
-- **Extensible:** Easily add plugins and integrations to suit your workflow.
-- **Open Source:** Transparent, community-driven development.
+Welcome to **Pyth Board** – an innovative, open-source project designed to visualize your pyth OIS staking statistics. 
 
 ---
 
