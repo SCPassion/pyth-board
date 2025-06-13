@@ -105,7 +105,7 @@ export function WalletDropdown({ isOpen, onClose }: WalletDropdownProps) {
             variant="ghost"
             size="sm"
             onClick={onClose}
-            className="text-gray-400 hover:text-white"
+            className="text-gray-400 hover:text-white cursor-pointer"
           >
             <X className="h-4 w-4" />
           </Button>
@@ -158,7 +158,7 @@ export function WalletDropdown({ isOpen, onClose }: WalletDropdownProps) {
                         );
                         onClose();
                       }}
-                      className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                      className="text-red-400 hover:text-red-300 hover:bg-red-500/10 cursor-pointer"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -243,7 +243,7 @@ export function WalletDropdown({ isOpen, onClose }: WalletDropdownProps) {
           ) : (
             <Button
               onClick={() => setShowAddForm(true)}
-              className="w-full bg-purple-600 hover:bg-purple-700 gap-2"
+              className="w-full bg-purple-600 hover:bg-purple-700 gap-2 cursor-pointer"
             >
               <Plus className="h-4 w-4" />
               Add New Wallet

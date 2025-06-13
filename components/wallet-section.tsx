@@ -25,7 +25,7 @@ export function WalletSection({ wallet }: WalletSectionProps) {
       <Card className="bg-[#2a2f3e] border-gray-700">
         <CardContent className="p-6">
           <div className="flex items-center justify-between mb-6">
-            <div>
+            <div className="space-y-2">
               <h3 className="text-2xl font-bold text-white">
                 {" "}
                 Wallet Name: {wallet.name}
@@ -41,7 +41,7 @@ export function WalletSection({ wallet }: WalletSectionProps) {
               <Button
                 variant="outline"
                 size="sm"
-                className="border-red-500 text-red-400 hover:bg-red-500/10 mb-2"
+                className="border-red-500 text-red-400 hover:bg-red-500/10 mb-2 cursor-pointer"
                 onClick={() => {
                   removeWallet(wallet.id);
                   localStorage.setItem(
