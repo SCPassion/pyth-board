@@ -65,7 +65,9 @@ export function WalletSection({ wallet }: WalletSectionProps) {
               </p>
             </div>
             <div>
-              <p className="text-gray-400 text-sm">Validators</p>
+              <p className="text-gray-400 text-sm">
+                Number of Delegated Validators
+              </p>
               <p className="text-2xl font-bold text-white">
                 {wallet.stakingInfo?.StakeForEachPublisher.length || 0}
               </p>
@@ -87,48 +89,39 @@ export function WalletSection({ wallet }: WalletSectionProps) {
             </div>
 
             <div className="space-y-2">
-              <div className="grid grid-cols-6 gap-4 text-gray-400 text-sm font-medium pb-2 border-b border-gray-700">
-                <div>Name</div>
-                <div>Status</div>
+              <div className="grid grid-cols-3 gap-4 text-gray-400 text-sm font-medium pb-2 border-b border-gray-700 text-center">
+                <div>Validator's public key</div>
                 <div>Your Stake</div>
-                <div>Commission</div>
                 <div>APY</div>
                 <div></div>
               </div>
 
-              {/* {validators.map((validator) => (
-                <div
-                  key={validator.id}
-                  className="grid grid-cols-6 gap-4 items-center py-3 hover:bg-gray-800/50 rounded-lg px-2"
-                >
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-blue-500/20 rounded-full flex items-center justify-center">
-                      <span className="text-blue-400 text-sm font-bold">V</span>
+              {wallet.stakingInfo?.StakeForEachPublisher.map(
+                (validator, id) => (
+                  <div
+                    key={id}
+                    className="grid grid-cols-3 gap-4 items-center py-3 hover:bg-gray-800/50 rounded-lg px-2 text-center"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 bg-blue-500/20 rounded-full flex items-center justify-center">
+                        <span className="text-blue-400 text-sm font-bold">
+                          V
+                        </span>
+                      </div>
+                      <span className="text-white">
+                        {validator.publisherKey}
+                      </span>
                     </div>
-                    <span className="text-white">{validator.name}</span>
+
+                    <div className="text-white font-medium">
+                      {validator.stakedAmount.toLocaleString()} PYTH
+                    </div>
+                    <div className="text-green-400 font-medium">
+                      {validator.apy}
+                    </div>
                   </div>
-                  <div>
-                    <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
-                      {validator.status}
-                    </Badge>
-                  </div>
-                  <div className="text-white font-medium">
-                    {validator.yourStake.toLocaleString()} PYTH
-                  </div>
-                  <div className="text-white">{validator.commission}</div>
-                  <div className="text-green-400 font-medium">
-                    {validator.apy}
-                  </div>
-                  <div>
-                    <Button
-                      size="sm"
-                      className="bg-purple-600 hover:bg-purple-700"
-                    >
-                      Manage
-                    </Button>
-                  </div>
-                </div>
-              ))} */}
+                )
+              )}
             </div>
           </div>
         </CardContent>
