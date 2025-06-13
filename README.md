@@ -22,30 +22,6 @@ Welcome to **Pyth Board** – an innovative, open-source project designed to bri
 
 ---
 
-## 📦 Getting Started
-
-1. **Clone the repo:**
-   ```bash
-   git clone https://github.com/yourusername/pyth-board.git
-   ```
-2. **Install dependencies:**
-   ```bash
-   # Example for Python projects
-   pip install -r requirements.txt
-   ```
-3. **Run the app:**
-   ```bash
-   python main.py
-   ```
-
----
-
-## 🤝 Contributing
-
-We welcome contributions! Check out the [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
----
-
 ## 📣 Stay Connected
 
 - **Star** this repo to show your support!
