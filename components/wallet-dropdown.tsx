@@ -58,13 +58,9 @@ export function WalletDropdown({ isOpen, onClose }: WalletDropdownProps) {
         stakingAddress
       );
 
-      console.log(
-        "StakeForEachPublisher:",
-        pythStakingInfo.StakeForEachPublisher
-      );
-      console.log("Total Staked PYTH:", pythStakingInfo.totalStakedPyth);
-      console.log("Claimable Rewards:", pythStakingInfo.claimableRewards);
-      console.log("General Stats:", pythStakingInfo.generalStats);
+      if (!pythStakingInfo) {
+        throw new Error("Failed to fetch Pyth staking info");
+      }
 
       // add wallets
       addWallet({
@@ -116,10 +112,21 @@ export function WalletDropdown({ isOpen, onClose }: WalletDropdownProps) {
                     <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center">
                       {/* Wallet Icon */}
                     </div>
-                    <div>
-                      <p className="text-white font-medium">{wallet.name}</p>
+                    <div className="flex flex-col gap-2">
+                      <p className="text-white font-medium">
+                        Name: {wallet.name}
+                      </p>
                       <p className="text-gray-400 text-sm font-mono">
-                        {wallet.address}
+                        Solana address:{" "}
+                        {wallet.address.slice(0, 5) +
+                          "..." +
+                          wallet.address.slice(-4)}
+                      </p>
+                      <p className="text-gray-400 text-sm font-mono">
+                        Staking account:{" "}
+                        {wallet.stakingAddress.slice(0, 5) +
+                          "..." +
+                          wallet.stakingAddress.slice(-4)}
                       </p>
                     </div>
                   </div>
@@ -135,7 +142,7 @@ export function WalletDropdown({ isOpen, onClose }: WalletDropdownProps) {
                   </div>
                 </div>
                 <div className="mt-2 text-sm text-gray-400">
-                  {wallet.stakingInfo?.totalStakedPyth} PYTH staked
+                  Staked $PYTH: {wallet.stakingInfo?.totalStakedPyth.toFixed(2)}
                 </div>
               </div>
             ))}
@@ -147,7 +154,7 @@ export function WalletDropdown({ isOpen, onClose }: WalletDropdownProps) {
               onSubmit={handleAddWallet}
               className="space-y-3 p-3 bg-[#1a1f2e] rounded-lg border border-gray-700"
             >
-              <div>
+              <div className="space-y-4">
                 <Label htmlFor="wallet-name" className="text-gray-300">
                   Wallet Name
                 </Label>
@@ -160,7 +167,7 @@ export function WalletDropdown({ isOpen, onClose }: WalletDropdownProps) {
                   required
                 />
               </div>
-              <div>
+              <div className="space-y-4">
                 <Label htmlFor="wallet-address" className="text-gray-300">
                   Solana Wallet Address
                 </Label>
@@ -173,7 +180,7 @@ export function WalletDropdown({ isOpen, onClose }: WalletDropdownProps) {
                   required
                 />
               </div>
-              <div>
+              <div className="space-y-4">
                 <Label htmlFor="staking-address" className="text-gray-300">
                   Staking Account Address
                 </Label>
