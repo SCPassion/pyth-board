@@ -21,17 +21,6 @@ export function MetricCards({ totalStaked, totalRewards }: MetricCardsProps) {
     ).toFixed(1),
   }));
 
-  wallets.forEach((wallet) => {
-    console.log(wallet.name);
-    console.log(wallet.stakingInfo?.totalStakedPyth || 0);
-    console.log(totalStaked);
-    console.log(
-      ((wallet.stakingInfo?.totalStakedPyth as number) / totalStaked) * 100
-    );
-  });
-
-  console.log(walletData);
-
   const WALLET_COLORS = walletData.map((_, index) => {
     // Generate a color based on the index
     const hue = (index * 137.508) % 360; // Golden angle approximation

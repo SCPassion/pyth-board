@@ -51,6 +51,22 @@ export default function Dashboard() {
   );
   const uniqueValidatorSize = uniqueValidators.size;
 
+  const totalGovernance =
+    (wallets[wallets.length - 1]?.stakingInfo?.generalStats?.totalGovernance ||
+      0) / 1e9;
+
+  const oisTotalStaked =
+    (wallets[wallets.length - 1]?.stakingInfo?.generalStats?.totalStaked || 0) /
+    1e6;
+  const rewardsDistributed =
+    (wallets[wallets.length - 1]?.stakingInfo?.generalStats
+      ?.rewardsDistributed || 0) / 1e6;
+
+  console.log(
+    { totalGovernance, oisTotalStaked, rewardsDistributed },
+    "General Stats"
+  );
+
   return (
     <div className="flex h-screen bg-[#0f1419]">
       <Sidebar currentView={currentView} onViewChange={setCurrentView} />
@@ -75,18 +91,9 @@ export default function Dashboard() {
                 totalRewards={totalRewards}
               />
               <GeneralSummary
-                totalGovernance={
-                  wallets[wallets.length - 1]?.stakingInfo?.generalStats
-                    ?.totalGovernance || 0
-                }
-                oisTotalStaked={
-                  wallets[wallets.length - 1]?.stakingInfo?.generalStats
-                    ?.totalStaked || 0
-                }
-                rewardsDistributed={
-                  wallets[wallets.length - 1]?.stakingInfo?.generalStats
-                    ?.rewardsDistributed || 0
-                }
+                totalGovernance={totalGovernance.toFixed(1)}
+                oisTotalStaked={oisTotalStaked.toFixed(0)}
+                rewardsDistributed={rewardsDistributed.toFixed(1)}
               >
                 General Information
               </GeneralSummary>

@@ -4,9 +4,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Wallet, TrendingUp, Users } from "lucide-react";
 
 interface GeneralSummaryProps {
-  totalGovernance: number;
-  oisTotalStaked: number;
-  rewardsDistributed: number;
+  totalGovernance: string;
+  oisTotalStaked: string;
+  rewardsDistributed: string;
   children?: React.ReactNode;
 }
 
@@ -30,7 +30,7 @@ export function GeneralSummary({
               <div>
                 <p className="text-gray-400 text-sm">OIS Total Staked</p>
                 <p className="text-3xl font-bold text-white">
-                  {oisTotalStaked.toFixed(0)} PYTH
+                  {oisTotalStaked}M PYTH
                 </p>
               </div>
             </div>
@@ -46,7 +46,7 @@ export function GeneralSummary({
               <div>
                 <p className="text-gray-400 text-sm">OIS Rewards Distributed</p>
                 <p className="text-3xl font-bold text-white">
-                  {rewardsDistributed.toFixed(0)} PYTH
+                  {rewardsDistributed}M PYTH
                 </p>
               </div>
             </div>
@@ -62,7 +62,7 @@ export function GeneralSummary({
               <div>
                 <p className="text-gray-400 text-sm">Governance Total Staked</p>
                 <p className="text-3xl font-bold text-white">
-                  {totalGovernance.toFixed(0)} PYTH
+                  {totalGovernance}B PYTH
                 </p>
               </div>
             </div>
