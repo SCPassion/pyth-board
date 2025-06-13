@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { LayoutDashboard, Wallet } from "lucide-react";
+import { Github, LayoutDashboard, Twitter, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 
@@ -80,6 +80,30 @@ export function Sidebar({ currentView, onViewChange }: SidebarProps) {
             </Button>
           </CardContent>
         </Card>
+
+        {/* Social Links */}
+        <div className="flex items-center justify-center gap-3 pt-2 border-t border-gray-800">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-gray-400 hover:text-white hover:bg-gray-800/50 p-2 cursor-pointer"
+            onClick={() =>
+              window.open("https://github.com/SCPassion/pyth-board", "_blank")
+            }
+          >
+            <Github className="h-10 w-10" />
+            <span className="sr-only">GitHub</span>
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-gray-400 hover:text-white hover:bg-gray-800/50 p-2 cursor-pointer"
+            onClick={() => window.open("https://x.com/KaiCryptohk", "_blank")}
+          >
+            <Twitter className="h-10 w-10" />
+            <span className="sr-only">Twitter</span>
+          </Button>
+        </div>
       </div>
     </div>
   );
