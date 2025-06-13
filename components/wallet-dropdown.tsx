@@ -24,6 +24,8 @@ export function WalletDropdown({ isOpen, onClose }: WalletDropdownProps) {
 
   if (!isOpen) return null;
 
+  console.log(wallets, "wallets from store");
+
   console.log(showAddForm, "showAddForm state");
   // Change handleAddWallet to a client-side handler
   function handleAddWallet(e: React.FormEvent<HTMLFormElement>) {
@@ -32,29 +34,46 @@ export function WalletDropdown({ isOpen, onClose }: WalletDropdownProps) {
     const name = formData.get("wallet-name") as string;
     const address = formData.get("wallet-address") as string;
     const stakingAddress = formData.get("staking-address") as string;
-    fetchPythStakingInfo(address, stakingAddress);
+
+    if (
+      wallets.some((wallet) => wallet.address === address) ||
+      wallets.some((wallet) => wallet.stakingAddress === stakingAddress)
+    ) {
+      onClose();
+      alert("This wallet address is already added.");
+      return;
+    }
+    fetchPythStakingInfo(address, stakingAddress, name);
   }
 
   async function fetchPythStakingInfo(
     walletAddress: string,
-    stakingAddress: string
+    stakingAddress: string,
+    name: string
   ) {
     setIsLoading(true);
     try {
-      const {
-        StakeForEachPublisher,
-        totalStakedPyth,
-        claimableRewards,
-        generalStats,
-      }: PythStakingInfo = await getOISStakingInfo(
+      const pythStakingInfo: PythStakingInfo = await getOISStakingInfo(
         walletAddress,
         stakingAddress
       );
 
-      console.log("StakeForEachPublisher:", StakeForEachPublisher);
-      console.log("Total Staked PYTH:", totalStakedPyth);
-      console.log("Claimable Rewards:", claimableRewards);
-      console.log("General Stats:", generalStats);
+      console.log(
+        "StakeForEachPublisher:",
+        pythStakingInfo.StakeForEachPublisher
+      );
+      console.log("Total Staked PYTH:", pythStakingInfo.totalStakedPyth);
+      console.log("Claimable Rewards:", pythStakingInfo.claimableRewards);
+      console.log("General Stats:", pythStakingInfo.generalStats);
+
+      // add wallets
+      addWallet({
+        id: walletAddress,
+        name: name,
+        address: walletAddress,
+        stakingAddress: stakingAddress,
+        stakingInfo: pythStakingInfo,
+      });
     } catch (error) {
       console.error("Error fetching Pyth staking info:", error);
       alert(
