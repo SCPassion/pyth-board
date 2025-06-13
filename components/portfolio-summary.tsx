@@ -6,14 +6,14 @@ import { Wallet, TrendingUp, Users } from "lucide-react";
 interface PortfolioSummaryProps {
   connectedWallets: number;
   totalStaked: number;
-  activeValidators: number;
+  uniqueValidatorSize: number;
   children?: React.ReactNode;
 }
 
 export function PortfolioSummary({
   connectedWallets,
   totalStaked,
-  activeValidators,
+  uniqueValidatorSize,
   children,
 }: PortfolioSummaryProps) {
   return (
@@ -60,9 +60,11 @@ export function PortfolioSummary({
                 <Users className="h-6 w-6 text-green-400" />
               </div>
               <div>
-                <p className="text-gray-400 text-sm">Active Validators</p>
+                <p className="text-gray-400 text-sm">
+                  Unique Number of Validators{" "}
+                </p>
                 <p className="text-3xl font-bold text-white">
-                  {activeValidators}
+                  {uniqueValidatorSize}
                 </p>
               </div>
             </div>

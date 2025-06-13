@@ -26,7 +26,16 @@ export default function Dashboard() {
 
   const connectedWallets = wallets.length;
 
-  const activeValidators = 4;
+  const validatorSets = wallets.map(
+    (wallet) =>
+      wallet.stakingInfo?.StakeForEachPublisher.map(
+        (publisher) => publisher.publisherKey
+      ) || []
+  );
+  const uniqueValidators = new Set(
+    validatorSets.flat().filter((v) => v !== "")
+  );
+  const uniqueValidatorSize = uniqueValidators.size;
 
   return (
     <div className="flex h-screen bg-[#0f1419]">
@@ -41,7 +50,7 @@ export default function Dashboard() {
               <PortfolioSummary
                 connectedWallets={connectedWallets}
                 totalStaked={totalStaked}
-                activeValidators={activeValidators}
+                uniqueValidatorSize={uniqueValidatorSize}
               >
                 PortfolioSummary
               </PortfolioSummary>
