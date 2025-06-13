@@ -6,12 +6,14 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { WalletInfo } from "@/types/pythTypes";
+import { useWalletInfosStore } from "@/store/store";
 
 interface WalletSectionProps {
   wallet: WalletInfo;
 }
 
 export function WalletSection({ wallet }: WalletSectionProps) {
+  const { removeWallet } = useWalletInfosStore();
   const sumApy = wallet.stakingInfo?.StakeForEachPublisher.reduce(
     (sum, publisher) => sum + publisher.apy,
     0
@@ -41,6 +43,11 @@ export function WalletSection({ wallet }: WalletSectionProps) {
                 variant="outline"
                 size="sm"
                 className="border-red-500 text-red-400 hover:bg-red-500/10 mb-2"
+                onClick={() => {
+                  removeWallet(wallet.id);
+                  // Handle wallet removal logic here
+                  console.log(`Removing wallet: ${wallet.id}`);
+                }}
               >
                 Remove Wallet
               </Button>
