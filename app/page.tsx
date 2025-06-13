@@ -8,6 +8,7 @@ import { MetricCards } from "@/components/metric-cards";
 import { useWalletInfosStore } from "@/store/store";
 import { GeneralSummary } from "@/components/general-summary";
 import { WalletSection } from "@/components/wallet-section";
+
 // Mock data
 
 export default function Dashboard() {
@@ -57,7 +58,7 @@ export default function Dashboard() {
               </PortfolioSummary>
               <MetricCards
                 totalStaked={totalStaked}
-                totalUnstaking={totalUnstaking}
+                wallets={wallets}
                 totalRewards={totalRewards}
               />
               <GeneralSummary

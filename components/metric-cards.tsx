@@ -1,20 +1,40 @@
 "use client";
 
 import { Card, CardContent } from "@/components/ui/card";
-import { TrendingUp, TrendingDown } from "lucide-react";
+import { WalletInfo } from "@/types/pythTypes";
 import React, { useEffect, useState } from "react";
+import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 
-interface MetricCardsProps {
+type MetricCardsProps = {
+  wallets: WalletInfo[];
   totalStaked: number;
-  totalUnstaking: number;
   totalRewards: number;
-}
-
+};
 export function MetricCards({
+  wallets,
   totalStaked,
-  totalUnstaking,
   totalRewards,
 }: MetricCardsProps) {
+  const WALLET_COLORS = [
+    "#8b5cf6",
+    "#06b6d4",
+    "#10b981",
+    "#f59e0b",
+    "#ef4444",
+    "#f472b6",
+    "#6366f1",
+    "#a855f7",
+    "#22c55e",
+    "#ec4899",
+  ];
+  // Process wallet data for pie chart
+  const walletData = wallets.map((wallet) => ({
+    name: wallet.name,
+    value: wallet.stakingInfo?.totalStakedPyth || 0,
+    percentage: (
+      (wallet.stakingInfo?.totalStakedPyth || 0 / totalStaked) * 100
+    ).toFixed(1),
+  }));
   // Generate deterministic default heights for SSR
   const defaultHeights = {
     staked: Array.from({ length: 24 }, () => 50),
@@ -60,20 +80,57 @@ export function MetricCards({
       <Card className="bg-[#2a2f3e] border-gray-700">
         <CardContent className="p-6 space-y-4">
           <div className="flex items-center justify-between">
-            <p className="text-gray-400 text-sm">Total Unstaking</p>
+            <p className="text-gray-400 text-sm">Wallet Distribution</p>
           </div>
-          <p className="text-3xl font-bold text-white">{totalUnstaking} PYTH</p>
-
-          <div className="flex gap-1 h-12 items-end">
-            {heights.unstaking.map((h, i) => (
+          <p className="text-3xl font-bold text-white">
+            {wallets.length} Wallets
+          </p>
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-blue-400">Balanced</span>
+            <span className="text-gray-400">portfolio</span>
+          </div>
+          <div className="h-32 flex items-center justify-center">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={walletData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={30}
+                  outerRadius={60}
+                  paddingAngle={2}
+                  dataKey="value"
+                >
+                  {walletData.map((entry, index) => (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={WALLET_COLORS[index % WALLET_COLORS.length]}
+                    />
+                  ))}
+                </Pie>
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="space-y-1">
+            {walletData.map((wallet, index) => (
               <div
-                key={i}
-                className="flex-1 bg-gradient-to-t from-orange-600 to-orange-400 rounded-full transition-all duration-300 ease-out"
-                style={{
-                  height: `${h}%`,
-                  animationDelay: `${i * 50}ms`,
-                }}
-              />
+                key={wallet.name}
+                className="flex items-center justify-between text-sm"
+              >
+                <div className="flex items-center gap-2">
+                  <div
+                    className="w-3 h-3 rounded-full"
+                    style={{
+                      backgroundColor:
+                        WALLET_COLORS[index % WALLET_COLORS.length],
+                    }}
+                  />
+                  <span className="text-gray-300">{wallet.name}</span>
+                </div>
+                <span className="text-white font-medium">
+                  {wallet.percentage}%
+                </span>
+              </div>
             ))}
           </div>
         </CardContent>
