@@ -15,26 +15,33 @@ export function MetricCards({
   totalStaked,
   totalRewards,
 }: MetricCardsProps) {
-  const WALLET_COLORS = [
-    "#8b5cf6",
-    "#06b6d4",
-    "#10b981",
-    "#f59e0b",
-    "#ef4444",
-    "#f472b6",
-    "#6366f1",
-    "#a855f7",
-    "#22c55e",
-    "#ec4899",
-  ];
   // Process wallet data for pie chart
   const walletData = wallets.map((wallet) => ({
     name: wallet.name,
-    value: wallet.stakingInfo?.totalStakedPyth || 0,
+    value: wallet.stakingInfo?.totalStakedPyth as number,
     percentage: (
-      (wallet.stakingInfo?.totalStakedPyth || 0 / totalStaked) * 100
+      ((wallet.stakingInfo?.totalStakedPyth as number) / totalStaked) *
+      100
     ).toFixed(1),
   }));
+
+  wallets.forEach((wallet) => {
+    console.log(wallet.name);
+    console.log(wallet.stakingInfo?.totalStakedPyth || 0);
+    console.log(totalStaked);
+    console.log(
+      ((wallet.stakingInfo?.totalStakedPyth as number) / totalStaked) * 100
+    );
+  });
+
+  console.log(walletData);
+
+  const WALLET_COLORS = walletData.map((_, index) => {
+    // Generate a color based on the index
+    const hue = (index * 137.508) % 360; // Golden angle approximation
+    return `hsl(${hue}, 30%, 30%)`; // HSL color format
+  });
+
   // Generate deterministic default heights for SSR
   const defaultHeights = {
     staked: Array.from({ length: 24 }, () => 50),
