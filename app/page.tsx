@@ -58,7 +58,6 @@ export default function Dashboard() {
               </PortfolioSummary>
               <MetricCards
                 totalStaked={totalStaked}
-                wallets={wallets}
                 totalRewards={totalRewards}
               />
               <GeneralSummary

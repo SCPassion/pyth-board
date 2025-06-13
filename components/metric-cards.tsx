@@ -1,20 +1,17 @@
 "use client";
 
 import { Card, CardContent } from "@/components/ui/card";
+import { useWalletInfosStore } from "@/store/store";
 import { WalletInfo } from "@/types/pythTypes";
 import React, { useEffect, useState } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 
 type MetricCardsProps = {
-  wallets: WalletInfo[];
   totalStaked: number;
   totalRewards: number;
 };
-export function MetricCards({
-  wallets,
-  totalStaked,
-  totalRewards,
-}: MetricCardsProps) {
+export function MetricCards({ totalStaked, totalRewards }: MetricCardsProps) {
+  const wallets = useWalletInfosStore((state) => state.wallets);
   // Process wallet data for pie chart
   const walletData = wallets.map((wallet) => ({
     name: wallet.name,
