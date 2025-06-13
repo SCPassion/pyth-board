@@ -2,6 +2,8 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import { useWalletInfosStore } from "@/store/store";
+import { BadgeDollarSign, Beef } from "lucide-react";
+import Image from "next/image";
 import React, { useEffect, useState } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 
@@ -54,17 +56,8 @@ export function MetricCards({ totalStaked, totalRewards }: MetricCardsProps) {
             {totalStaked.toLocaleString()} PYTH
           </p>
 
-          <div className="flex gap-1 h-12 items-end">
-            {heights.staked.map((h, i) => (
-              <div
-                key={i}
-                className="flex-1 bg-gradient-to-t from-purple-600 to-purple-400 rounded-full transition-all duration-300 ease-out"
-                style={{
-                  height: `${h}%`,
-                  animationDelay: `${i * 50}ms`,
-                }}
-              />
-            ))}
+          <div className="flex justify-center items-center">
+            <Beef className="w-20 h-20" />
           </div>
         </CardContent>
       </Card>
@@ -134,17 +127,8 @@ export function MetricCards({ totalStaked, totalRewards }: MetricCardsProps) {
             {totalRewards.toFixed(0)} PYTH
           </p>
 
-          <div className="flex gap-1 h-12 items-end">
-            {heights.rewards.map((h, i) => (
-              <div
-                key={i}
-                className="flex-1 bg-gradient-to-t from-green-600 to-green-400 rounded-full transition-all duration-300 ease-out"
-                style={{
-                  height: `${h}%`,
-                  animationDelay: `${i * 50}ms`,
-                }}
-              />
-            ))}
+          <div className="flex justify-center items-center">
+            <BadgeDollarSign className="w-20 h-20" />
           </div>
         </CardContent>
       </Card>

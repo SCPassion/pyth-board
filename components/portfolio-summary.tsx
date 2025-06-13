@@ -46,7 +46,7 @@ export function PortfolioSummary({
               <div>
                 <p className="text-gray-400 text-sm">Total Staked</p>
                 <p className="text-3xl font-bold text-white">
-                  {totalStaked.toLocaleString()} PYTH
+                  {totalStaked.toFixed(0)} PYTH
                 </p>
               </div>
             </div>
