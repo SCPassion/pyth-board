@@ -88,10 +88,7 @@ export function MetricCards({ totalStaked, totalRewards }: MetricCardsProps) {
           <p className="text-3xl font-bold text-white">
             {wallets.length} Wallets
           </p>
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-blue-400">Balanced</span>
-            <span className="text-gray-400">portfolio</span>
-          </div>
+
           <div className="h-32 flex items-center justify-center">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>

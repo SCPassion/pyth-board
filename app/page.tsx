@@ -66,7 +66,9 @@ export default function Dashboard() {
                 totalStaked={totalStaked}
                 uniqueValidatorSize={uniqueValidatorSize}
               >
-                PortfolioSummary
+                {wallets.length === 0
+                  ? "Please add a wallet to view details."
+                  : "Portfolio Summary"}
               </PortfolioSummary>
               <MetricCards
                 totalStaked={totalStaked}
@@ -94,7 +96,11 @@ export default function Dashboard() {
               {wallets.map((wallet) => (
                 <WalletSection key={wallet.id} wallet={wallet} />
               ))}
-              hi
+              {wallets.length === 0 && (
+                <div className="text-center text-gray-400">
+                  No wallets found. Please add a wallet to view details.
+                </div>
+              )}
             </div>
           )}
         </main>
