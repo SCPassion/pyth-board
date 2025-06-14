@@ -159,3 +159,26 @@ async function getPublisherPoolData(client: PythStakingClient) {
     })
   );
 }
+
+/**
+ * Fetches the latest Pyth price for a specific asset.
+ * @returns {Promise<number>} - A promise that resolves to the latest Pyth price in base units.
+ * @throws {Error} - Throws an error if the fetch operation fails or if the response is not ok.
+ */
+export async function getPythPrice() {
+  try {
+    const response = await fetch(
+      "https://hermes.pyth.network/v2/updates/price/latest?ids%5B%5D=0bbf28e9a841a1cc788f6a361b17ca072d0ea3098a1e5df1c3922d06719579ff"
+    );
+    if (!response.ok) {
+      throw new Error("Failed to fetch Pyth price data");
+    }
+    const data = await response.json();
+    return Number(data.parsed[0].price.price) * 1e-8; // Convert from micro to base units
+  } catch (error) {
+    if (error instanceof Error) {
+      alert("Error fetching Pyth price: " + error.message);
+      throw new Error("Failed to fetch Pyth price");
+    }
+  }
+}

@@ -3,15 +3,19 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { useWalletInfosStore } from "@/store/store";
 import { BadgeDollarSign, Beef } from "lucide-react";
-import Image from "next/image";
 import React, { useEffect, useState } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 
 type MetricCardsProps = {
+  pythPrice: number | null;
   totalStaked: number;
   totalRewards: number;
 };
-export function MetricCards({ totalStaked, totalRewards }: MetricCardsProps) {
+export function MetricCards({
+  pythPrice,
+  totalStaked,
+  totalRewards,
+}: MetricCardsProps) {
   const wallets = useWalletInfosStore((state) => state.wallets);
   // Process wallet data for pie chart
   const walletData = wallets.map((wallet) => ({
@@ -50,10 +54,10 @@ export function MetricCards({ totalStaked, totalRewards }: MetricCardsProps) {
       <Card className="bg-[#2a2f3e] border-gray-700">
         <CardContent className="p-6 space-y-4">
           <div className="flex items-center justify-between">
-            <p className="text-gray-400 text-sm">Total Staked</p>
+            <p className="text-gray-400 text-sm">Pyth Price</p>
           </div>
           <p className="text-3xl font-bold text-white">
-            {totalStaked.toLocaleString()} PYTH
+            {pythPrice ? pythPrice.toFixed(4) : "..."} PYTH
           </p>
 
           <div className="flex justify-center items-center">

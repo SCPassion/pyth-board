@@ -8,6 +8,7 @@ import { MetricCards } from "@/components/metric-cards";
 import { useWalletInfosStore } from "@/store/store";
 import { GeneralSummary } from "@/components/general-summary";
 import { WalletSection } from "@/components/wallet-section";
+import { getPythPrice } from "@/action/pythActions";
 
 // Mock data
 
@@ -16,6 +17,7 @@ export default function Dashboard() {
     "dashboard"
   );
   const { wallets, setWallets } = useWalletInfosStore();
+  const [pythPrice, setPythPrice] = useState<number | null>(null);
 
   useEffect(() => {
     if (localStorage.getItem("wallets")) {
@@ -29,11 +31,19 @@ export default function Dashboard() {
     }
   }, []);
 
+  useEffect(() => {
+    async function getPrice() {
+      const price = await getPythPrice();
+      price && setPythPrice(price);
+    }
+
+    getPrice();
+  }, []);
+
   const totalStaked = wallets.reduce((sum, wallet) => {
     return sum + (wallet.stakingInfo?.totalStakedPyth || 0);
   }, 0);
 
-  const totalUnstaking = 120;
   const totalRewards = wallets.reduce((sum, wallet) => {
     return sum + (wallet.stakingInfo?.claimableRewards || 0);
   }, 0);
@@ -62,11 +72,6 @@ export default function Dashboard() {
     (wallets[wallets.length - 1]?.stakingInfo?.generalStats
       ?.rewardsDistributed || 0) / 1e6;
 
-  console.log(
-    { totalGovernance, oisTotalStaked, rewardsDistributed },
-    "General Stats"
-  );
-
   return (
     <div className="flex h-screen bg-[#0f1419]">
       <Sidebar currentView={currentView} onViewChange={setCurrentView} />
@@ -87,6 +92,7 @@ export default function Dashboard() {
                   : "Portfolio Summary"}
               </PortfolioSummary>
               <MetricCards
+                pythPrice={pythPrice}
                 totalStaked={totalStaked}
                 totalRewards={totalRewards}
               />
