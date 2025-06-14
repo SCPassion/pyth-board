@@ -11,6 +11,7 @@ import { Loader, Plus, Trash2, X } from "lucide-react";
 import { PythStakingInfo } from "@/types/pythTypes";
 import { useWalletInfosStore } from "@/store/store";
 import { getOISStakingInfo } from "@/action/pythActions";
+import { StakingHelpPopup } from "@/components/staking-help-popup";
 
 interface WalletDropdownProps {
   isOpen: boolean;
@@ -204,9 +205,12 @@ export function WalletDropdown({ isOpen, onClose }: WalletDropdownProps) {
                 />
               </div>
               <div className="space-y-4">
-                <Label htmlFor="staking-address" className="text-gray-300">
-                  Staking Account Address
-                </Label>
+                <div className="flex items-center gap-2 mb-2">
+                  <Label htmlFor="staking-address" className="text-gray-300">
+                    Staking Account Address
+                  </Label>
+                  <StakingHelpPopup />
+                </div>
                 <Input
                   id="staking-address"
                   name="staking-address"
