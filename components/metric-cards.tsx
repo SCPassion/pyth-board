@@ -57,7 +57,7 @@ export function MetricCards({
             <p className="text-gray-400 text-sm">Pyth Price</p>
           </div>
           <p className="text-3xl font-bold text-white">
-            {pythPrice ? pythPrice.toFixed(4) : "..."} PYTH
+            ${pythPrice ? pythPrice.toFixed(4) : "..."} USD
           </p>
 
           <div className="flex justify-center items-center">
