@@ -25,9 +25,6 @@ export function WalletDropdown({ isOpen, onClose }: WalletDropdownProps) {
 
   if (!isOpen) return null;
 
-  console.log(wallets, "wallets from store");
-
-  console.log(showAddForm, "showAddForm state");
   // Change handleAddWallet to a client-side handler
   function handleAddWallet(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
