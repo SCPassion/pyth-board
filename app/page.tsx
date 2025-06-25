@@ -8,7 +8,7 @@ import { MetricCards } from "@/components/metric-cards";
 import { useWalletInfosStore } from "@/store/store";
 import { GeneralSummary } from "@/components/general-summary";
 import { WalletSection } from "@/components/wallet-section";
-import { getPythPrice } from "@/action/pythActions";
+import { getPythPrice, getOISStakingInfo } from "@/action/pythActions";
 
 // Mock data
 
@@ -38,6 +38,32 @@ export default function Dashboard() {
     }
 
     getPrice();
+  }, []);
+
+  useEffect(() => {
+    async function refreshWallets() {
+      const storedWallets = localStorage.getItem("wallets");
+      if (storedWallets) {
+        const parsedWallets = JSON.parse(storedWallets);
+        // Fetch latest staking info for each wallet
+        const updatedWallets = await Promise.all(
+          parsedWallets.map(async (wallet: any) => {
+            try {
+              const stakingInfo = await getOISStakingInfo(
+                wallet.address,
+                wallet.stakingAddress
+              );
+              return { ...wallet, stakingInfo };
+            } catch (e) {
+              return wallet; // fallback to old info if fetch fails
+            }
+          })
+        );
+        setWallets(updatedWallets);
+        localStorage.setItem("wallets", JSON.stringify(updatedWallets));
+      }
+    }
+    refreshWallets();
   }, []);
 
   const totalStaked = wallets.reduce((sum, wallet) => {
