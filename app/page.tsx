@@ -112,6 +112,7 @@ export default function Dashboard() {
                 connectedWallets={connectedWallets}
                 totalStaked={totalStaked}
                 uniqueValidatorSize={uniqueValidatorSize}
+                pythPrice={pythPrice}
               >
                 {wallets.length === 0
                   ? "Please add a wallet to view details."
