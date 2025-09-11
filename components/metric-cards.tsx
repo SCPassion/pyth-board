@@ -50,40 +50,42 @@ export function MetricCards({
   }, []);
 
   return (
-    <div className="grid grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
       <Card className="bg-[#2a2f3e] border-gray-700">
-        <CardContent className="p-6 space-y-4">
+        <CardContent className="p-4 sm:p-6 space-y-3 sm:space-y-4">
           <div className="flex items-center justify-between">
-            <p className="text-gray-400 text-sm">Pyth Price</p>
+            <p className="text-gray-400 text-xs sm:text-sm">Pyth Price</p>
           </div>
-          <p className="text-3xl font-bold text-white">
+          <p className="text-2xl sm:text-3xl font-bold text-white">
             ${pythPrice ? pythPrice.toFixed(4) : "..."} USD
           </p>
 
           <div className="flex justify-center items-center">
-            <Beef className="w-20 h-20" />
+            <Beef className="w-16 h-16 sm:w-20 sm:h-20" />
           </div>
         </CardContent>
       </Card>
 
       <Card className="bg-[#2a2f3e] border-gray-700">
-        <CardContent className="p-6 space-y-4">
+        <CardContent className="p-4 sm:p-6 space-y-3 sm:space-y-4">
           <div className="flex items-center justify-between">
-            <p className="text-gray-400 text-sm">Wallet Distribution</p>
+            <p className="text-gray-400 text-xs sm:text-sm">
+              Wallet Distribution
+            </p>
           </div>
-          <p className="text-3xl font-bold text-white">
+          <p className="text-2xl sm:text-3xl font-bold text-white">
             {wallets.length} Wallets
           </p>
 
-          <div className="h-32 flex items-center justify-center">
+          <div className="h-24 sm:h-32 flex items-center justify-center">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={walletData}
                   cx="50%"
                   cy="50%"
-                  innerRadius={30}
-                  outerRadius={60}
+                  innerRadius={20}
+                  outerRadius={40}
                   paddingAngle={2}
                   dataKey="value"
                 >
@@ -101,17 +103,17 @@ export function MetricCards({
             {walletData.map((wallet, index) => (
               <div
                 key={wallet.name}
-                className="flex items-center justify-between text-sm"
+                className="flex items-center justify-between text-xs sm:text-sm"
               >
                 <div className="flex items-center gap-2">
                   <div
-                    className="w-3 h-3 rounded-full"
+                    className="w-2 h-2 sm:w-3 sm:h-3 rounded-full"
                     style={{
                       backgroundColor:
                         WALLET_COLORS[index % WALLET_COLORS.length],
                     }}
                   />
-                  <span className="text-gray-300">{wallet.name}</span>
+                  <span className="text-gray-300 truncate">{wallet.name}</span>
                 </div>
                 <span className="text-white font-medium">
                   {wallet.percentage}%
@@ -123,16 +125,16 @@ export function MetricCards({
       </Card>
 
       <Card className="bg-[#2a2f3e] border-gray-700">
-        <CardContent className="p-6 space-y-4">
+        <CardContent className="p-4 sm:p-6 space-y-3 sm:space-y-4">
           <div className="flex items-center justify-between">
-            <p className="text-gray-400 text-sm">Total Rewards</p>
+            <p className="text-gray-400 text-xs sm:text-sm">Total Rewards</p>
           </div>
-          <p className="text-3xl font-bold text-white">
+          <p className="text-2xl sm:text-3xl font-bold text-white">
             {totalRewards.toFixed(0)} PYTH
           </p>
 
           <div className="flex justify-center items-center">
-            <BadgeDollarSign className="w-20 h-20" />
+            <BadgeDollarSign className="w-16 h-16 sm:w-20 sm:h-20" />
           </div>
         </CardContent>
       </Card>

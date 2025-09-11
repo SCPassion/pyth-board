@@ -96,9 +96,11 @@ export function WalletDropdown({ isOpen, onClose }: WalletDropdownProps) {
   return (
     <>
       {/* Dropdown */}
-      <Card className="absolute top-full right-0 mt-2 w-96 bg-[#2a2f3e] border-gray-700 z-50">
+      <Card className="absolute top-full right-0 mt-2 w-80 sm:w-96 bg-[#2a2f3e] border-gray-700 z-50 max-h-96 overflow-y-auto">
         <CardHeader className="flex flex-row items-center justify-between pb-3">
-          <CardTitle className="text-white text-lg">Manage wallets</CardTitle>
+          <CardTitle className="text-white text-base sm:text-lg">
+            Manage wallets
+          </CardTitle>
           <Button
             variant="ghost"
             size="sm"
@@ -110,7 +112,7 @@ export function WalletDropdown({ isOpen, onClose }: WalletDropdownProps) {
         </CardHeader>
 
         <CardContent className="space-y-4">
-          <div className="space-y-2 max-h-64 overflow-y-auto">
+          <div className="space-y-2 max-h-48 sm:max-h-64 overflow-y-auto">
             {wallets.map((wallet) => (
               <div
                 key={wallet.id}
@@ -119,34 +121,39 @@ export function WalletDropdown({ isOpen, onClose }: WalletDropdownProps) {
                   onClose();
                 }}
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start gap-3 flex-1 min-w-0">
+                    <div className="w-6 h-6 sm:w-8 sm:h-8 bg-blue-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
                       {/* Wallet Icon */}
                     </div>
-                    <div className="flex flex-col gap-2">
-                      <p className="text-white font-medium">
-                        Name: {wallet.name}
+                    <div className="flex flex-col gap-1 sm:gap-2 min-w-0 flex-1">
+                      <p className="text-white font-medium text-sm sm:text-base">
+                        {wallet.name}
                       </p>
-                      <p className="text-gray-400 text-sm font-mono">
-                        Solana address:{" "}
+                      <p className="text-gray-400 text-xs sm:text-sm font-mono break-all">
+                        Solana:{" "}
                         {wallet.address.slice(0, 5) +
                           "..." +
                           wallet.address.slice(-4)}
                       </p>
-                      <p className="text-gray-400 text-sm font-mono">
-                        Staking account:{" "}
+                      <p className="text-gray-400 text-xs sm:text-sm font-mono break-all">
+                        Staking:{" "}
                         {wallet.stakingAddress.slice(0, 5) +
                           "..." +
                           wallet.stakingAddress.slice(-4)}
                       </p>
+                      <p className="text-gray-400 text-xs sm:text-sm">
+                        Staked: {wallet.stakingInfo?.totalStakedPyth.toFixed(2)}{" "}
+                        PYTH
+                      </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-shrink-0">
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation();
                         removeWallet(wallet.id);
                         localStorage.setItem(
                           "wallets",
@@ -156,14 +163,11 @@ export function WalletDropdown({ isOpen, onClose }: WalletDropdownProps) {
                         );
                         onClose();
                       }}
-                      className="text-red-400 hover:text-red-300 hover:bg-red-500/10 cursor-pointer"
+                      className="text-red-400 hover:text-red-300 hover:bg-red-500/10 cursor-pointer p-1"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
                     </Button>
                   </div>
-                </div>
-                <div className="mt-2 text-sm text-gray-400">
-                  Staked $PYTH: {wallet.stakingInfo?.totalStakedPyth.toFixed(2)}
                 </div>
               </div>
             ))}
@@ -175,8 +179,8 @@ export function WalletDropdown({ isOpen, onClose }: WalletDropdownProps) {
               onSubmit={handleAddWallet}
               className="space-y-3 p-3 bg-[#1a1f2e] rounded-lg border border-gray-700"
             >
-              <div className="space-y-4">
-                <Label htmlFor="wallet-name" className="text-gray-300">
+              <div className="space-y-2 sm:space-y-4">
+                <Label htmlFor="wallet-name" className="text-gray-300 text-sm">
                   Wallet Name
                 </Label>
                 <Input
@@ -184,12 +188,15 @@ export function WalletDropdown({ isOpen, onClose }: WalletDropdownProps) {
                   name="wallet-name"
                   type="text"
                   placeholder="e.g., Trading Wallet"
-                  className="bg-[#2a2f3e] border-gray-600 text-white"
+                  className="bg-[#2a2f3e] border-gray-600 text-white text-sm"
                   required
                 />
               </div>
-              <div className="space-y-4">
-                <Label htmlFor="wallet-address" className="text-gray-300">
+              <div className="space-y-2 sm:space-y-4">
+                <Label
+                  htmlFor="wallet-address"
+                  className="text-gray-300 text-sm"
+                >
                   Solana Wallet Address
                 </Label>
                 <Input
@@ -197,13 +204,16 @@ export function WalletDropdown({ isOpen, onClose }: WalletDropdownProps) {
                   name="wallet-address"
                   type="text"
                   placeholder="Enter Solana wallet address"
-                  className="bg-[#2a2f3e] border-gray-600 text-white font-mono text-sm"
+                  className="bg-[#2a2f3e] border-gray-600 text-white font-mono text-xs sm:text-sm"
                   required
                 />
               </div>
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <Label htmlFor="staking-address" className="text-gray-300">
+              <div className="space-y-2 sm:space-y-4">
+                <div className="flex items-center gap-2 mb-1 sm:mb-2">
+                  <Label
+                    htmlFor="staking-address"
+                    className="text-gray-300 text-sm"
+                  >
                     Staking Account Address
                   </Label>
                   <StakingHelpPopup />
@@ -213,15 +223,15 @@ export function WalletDropdown({ isOpen, onClose }: WalletDropdownProps) {
                   name="staking-address"
                   type="text"
                   placeholder="Enter your pyth staking address"
-                  className="bg-[#2a2f3e] border-gray-600 text-white font-mono text-sm"
+                  className="bg-[#2a2f3e] border-gray-600 text-white font-mono text-xs sm:text-sm"
                   required
                 />
               </div>
-              <div className="flex gap-2 items-center">
+              <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
                 <Button
                   type="submit"
                   size="sm"
-                  className="bg-purple-600 hover:bg-purple-700"
+                  className="bg-purple-600 hover:bg-purple-700 w-full sm:w-auto"
                   disabled={isLoading}
                 >
                   {isLoading ? (
@@ -234,7 +244,7 @@ export function WalletDropdown({ isOpen, onClose }: WalletDropdownProps) {
                   variant="outline"
                   size="sm"
                   onClick={() => setShowAddForm(false)}
-                  className="border-gray-600 text-gray-300"
+                  className="border-gray-600 text-gray-300 w-full sm:w-auto"
                   disabled={isLoading}
                 >
                   Cancel

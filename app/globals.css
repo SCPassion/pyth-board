@@ -67,6 +67,14 @@
     /* fallback for dark mode background */
     background-color: #0f1419;
   }
+
+  /* Mobile-specific improvements */
+  @media (max-width: 640px) {
+    body {
+      -webkit-text-size-adjust: 100%;
+      -webkit-tap-highlight-color: transparent;
+    }
+  }
 }
 
 /* Custom scrollbar */
