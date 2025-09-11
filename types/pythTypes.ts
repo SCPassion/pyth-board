@@ -28,3 +28,12 @@ export type WalletInfo = {
   name: string;
   stakingInfo: PythStakingInfo | null;
 };
+
+export type NFTRole = {
+  id: string;
+  name: string;
+  description: string;
+  image: string;
+  projectUrl: string;
+  discordInviteUrl: string;
+};

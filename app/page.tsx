@@ -8,16 +8,16 @@ import { MetricCards } from "@/components/metric-cards";
 import { useWalletInfosStore } from "@/store/store";
 import { GeneralSummary } from "@/components/general-summary";
 import { WalletSection } from "@/components/wallet-section";
+import { NFTRoles } from "@/components/nft-roles";
 import { getPythPrice, getOISStakingInfo } from "@/action/pythActions";
-
-// Mock data
+import { rolesNFT } from "@/data/nftRoleInfo";
 
 export default function Dashboard() {
   console.log("Dashboard component rendered");
 
-  const [currentView, setCurrentView] = useState<"dashboard" | "wallets">(
-    "dashboard"
-  );
+  const [currentView, setCurrentView] = useState<
+    "dashboard" | "wallets" | "nft-roles"
+  >("dashboard");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { wallets, setWallets } = useWalletInfosStore();
@@ -173,7 +173,7 @@ export default function Dashboard() {
                 General Information
               </GeneralSummary>
             </>
-          ) : (
+          ) : currentView === "wallets" ? (
             <div className="space-y-6">
               {wallets.map((wallet) => (
                 <WalletSection key={wallet.id} wallet={wallet} />
@@ -184,6 +184,8 @@ export default function Dashboard() {
                 </div>
               )}
             </div>
+          ) : (
+            <NFTRoles nftRoles={rolesNFT} />
           )}
         </main>
       </div>

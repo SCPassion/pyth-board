@@ -2,13 +2,19 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Github, LayoutDashboard, Twitter, Wallet } from "lucide-react";
+import {
+  Github,
+  LayoutDashboard,
+  Twitter,
+  Wallet,
+  Image as ImageIcon,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 
 interface SidebarProps {
-  currentView: "dashboard" | "wallets";
-  onViewChange: (view: "dashboard" | "wallets") => void;
+  currentView: "dashboard" | "wallets" | "nft-roles";
+  onViewChange: (view: "dashboard" | "wallets" | "nft-roles") => void;
   isMobileMenuOpen: boolean;
   onMobileMenuToggle: () => void;
 }
@@ -84,6 +90,22 @@ export function Sidebar({
             >
               <Wallet className="h-5 w-5" />
               Wallets
+            </Button>
+
+            <Button
+              variant="ghost"
+              className={cn(
+                "w-full justify-start gap-3 text-gray-300 hover:text-white hover:bg-purple-500/10 cursor-pointer",
+                currentView === "nft-roles" &&
+                  "bg-purple-500/20 text-white border-r-2 border-purple-500"
+              )}
+              onClick={() => {
+                onViewChange("nft-roles");
+                onMobileMenuToggle();
+              }}
+            >
+              <ImageIcon className="h-5 w-5" />
+              Pythenians
             </Button>
           </nav>
         </div>
