@@ -8,7 +8,7 @@ export const rolesNFT: NFTRole[] = [
       "Community-based NFT Marketplace & Launchpad Powered by Poply Otters NFT Collection.",
     image: "/poply.jpg",
     projectUrl: "https://x.com/poply_xyz?lang=en",
-    discordInviteUrl: "https://discord.gg/apQQETnG",
+    discordInviteUrl: "https://discord.com/invite/xzYSg4dxzb",
   },
   {
     id: "2",
