@@ -11,20 +11,25 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 interface SidebarProps {
-  currentView: "dashboard" | "wallets" | "nft-roles";
-  onViewChange: (view: "dashboard" | "wallets" | "nft-roles") => void;
   isMobileMenuOpen: boolean;
   onMobileMenuToggle: () => void;
 }
 
 export function Sidebar({
-  currentView,
-  onViewChange,
   isMobileMenuOpen,
   onMobileMenuToggle,
 }: SidebarProps) {
+  const pathname = usePathname();
+
+  const isActive = (path: string) => {
+    if (path === "/" && pathname === "/") return true;
+    if (path !== "/" && pathname.startsWith(path)) return true;
+    return false;
+  };
   return (
     <>
       {/* Mobile overlay */}
@@ -60,53 +65,47 @@ export function Sidebar({
 
         <div className="p-4">
           <nav className="space-y-2">
-            <Button
-              variant="ghost"
-              className={cn(
-                "w-full justify-start gap-3 text-gray-300 hover:text-white hover:bg-purple-500/10 cursor-pointer",
-                currentView === "dashboard" &&
-                  "bg-purple-500/20 text-white border-r-2 border-purple-500"
-              )}
-              onClick={() => {
-                onViewChange("dashboard");
-                onMobileMenuToggle();
-              }}
-            >
-              <LayoutDashboard className="h-5 w-5" />
-              Dashboard
-            </Button>
+            <Link href="/" onClick={() => onMobileMenuToggle()}>
+              <Button
+                variant="ghost"
+                className={cn(
+                  "w-full justify-start gap-3 text-gray-300 hover:text-white hover:bg-purple-500/10 cursor-pointer",
+                  isActive("/") &&
+                    "bg-purple-500/20 text-white border-r-2 border-purple-500"
+                )}
+              >
+                <LayoutDashboard className="h-5 w-5" />
+                Dashboard
+              </Button>
+            </Link>
 
-            <Button
-              variant="ghost"
-              className={cn(
-                "w-full justify-start gap-3 text-gray-300 hover:text-white hover:bg-purple-500/10 cursor-pointer",
-                currentView === "wallets" &&
-                  "bg-purple-500/20 text-white border-r-2 border-purple-500"
-              )}
-              onClick={() => {
-                onViewChange("wallets");
-                onMobileMenuToggle();
-              }}
-            >
-              <Wallet className="h-5 w-5" />
-              Wallets
-            </Button>
+            <Link href="/wallets" onClick={() => onMobileMenuToggle()}>
+              <Button
+                variant="ghost"
+                className={cn(
+                  "w-full justify-start gap-3 text-gray-300 hover:text-white hover:bg-purple-500/10 cursor-pointer",
+                  isActive("/wallets") &&
+                    "bg-purple-500/20 text-white border-r-2 border-purple-500"
+                )}
+              >
+                <Wallet className="h-5 w-5" />
+                Wallets
+              </Button>
+            </Link>
 
-            <Button
-              variant="ghost"
-              className={cn(
-                "w-full justify-start gap-3 text-gray-300 hover:text-white hover:bg-purple-500/10 cursor-pointer",
-                currentView === "nft-roles" &&
-                  "bg-purple-500/20 text-white border-r-2 border-purple-500"
-              )}
-              onClick={() => {
-                onViewChange("nft-roles");
-                onMobileMenuToggle();
-              }}
-            >
-              <ImageIcon className="h-5 w-5" />
-              Pythenians
-            </Button>
+            <Link href="/pythenians" onClick={() => onMobileMenuToggle()}>
+              <Button
+                variant="ghost"
+                className={cn(
+                  "w-full justify-start gap-3 text-gray-300 hover:text-white hover:bg-purple-500/10 cursor-pointer",
+                  isActive("/pythenians") &&
+                    "bg-purple-500/20 text-white border-r-2 border-purple-500"
+                )}
+              >
+                <ImageIcon className="h-5 w-5" />
+                Pythenians
+              </Button>
+            </Link>
           </nav>
         </div>
 

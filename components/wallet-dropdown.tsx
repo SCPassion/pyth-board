@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,6 +22,27 @@ export function WalletDropdown({ isOpen, onClose }: WalletDropdownProps) {
   const { wallets, addWallet, removeWallet } = useWalletInfosStore();
   const [showAddForm, setShowAddForm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Handle click outside to close dropdown
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        onClose();
+      }
+    }
+
+    if (isOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -96,7 +117,10 @@ export function WalletDropdown({ isOpen, onClose }: WalletDropdownProps) {
   return (
     <>
       {/* Dropdown */}
-      <Card className="absolute top-full right-0 mt-2 w-80 sm:w-96 bg-[#2a2f3e] border-gray-700 z-50 max-h-96 overflow-y-auto">
+      <Card
+        ref={dropdownRef}
+        className="absolute top-full right-0 mt-2 w-80 sm:w-96 bg-[#2a2f3e] border-gray-700 z-50 max-h-96 overflow-y-auto"
+      >
         <CardHeader className="flex flex-row items-center justify-between pb-3">
           <CardTitle className="text-white text-base sm:text-lg">
             Manage wallets
