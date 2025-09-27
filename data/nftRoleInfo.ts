@@ -86,4 +86,12 @@ export const rolesNFT: NFTRole[] = [
     projectUrl: "",
     discordInviteUrl: "",
   },
+  {
+    id: "11",
+    name: "Fogalio",
+    description: "The first PFP NFT on FogoChain",
+    image: "",
+    projectUrl: "https://x.com/FogalioFG",
+    discordInviteUrl: "https://discord.gg/fogalio",
+  },
 ];
