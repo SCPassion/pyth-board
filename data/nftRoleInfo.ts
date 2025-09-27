@@ -93,6 +93,7 @@ export const rolesNFT: NFTRole[] = [
     image: "",
     projectUrl: "https://x.com/FogalioFG",
     discordInviteUrl: "https://discord.gg/fogalio",
+    extraInfo: "https://x.com/PytheniansNFT/status/1964000493849428400"
   },
   {
     id: "12",
