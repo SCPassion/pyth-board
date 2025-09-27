@@ -94,4 +94,12 @@ export const rolesNFT: NFTRole[] = [
     projectUrl: "https://x.com/FogalioFG",
     discordInviteUrl: "https://discord.gg/fogalio",
   },
+  {
+    id: "12",
+    name: "Nitrograph",
+    description: "The economic layer for AI Agents",
+    image: "",
+    projectUrl: "https://x.com/Nitrograph",
+    discordInviteUrl: "https://discord.com/invite/nitrograph",
+  },
 ];
