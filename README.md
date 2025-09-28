@@ -40,21 +40,24 @@ Visit `http://localhost:3000` to see the application.
 ```
 pyth-board/
 ├── app/                    # Next.js 15 App Router
-│   ├── page.tsx           # Dashboard (/) - Main page with portfolio overview
+│   ├── page.tsx           # Dashboard (/) - Portfolio overview only
 │   ├── wallets/           # Wallets route (/wallets)
 │   │   └── page.tsx       # Wallets page - Display all wallet sections
 │   ├── pythenians/        # Pythenians route (/pythenians)
 │   │   └── page.tsx       # NFT roles page
-│   └── layout.tsx         # Root layout
+│   └── layout.tsx         # Root layout with shared AppLayout
 ├── components/            # Reusable UI components
 │   ├── ui/               # Base UI components (shadcn/ui)
-│   ├── sidebar.tsx       # Navigation sidebar
-│   ├── top-header.tsx    # Top navigation bar
+│   ├── app-layout.tsx    # Shared layout with sidebar, header, and data fetching
+│   ├── sidebar.tsx       # Navigation sidebar with Next.js routing
+│   ├── top-header.tsx    # Top navigation bar with wallet dropdown
 │   ├── metric-cards.tsx  # Dashboard metrics with pie charts
 │   ├── portfolio-summary.tsx # Portfolio overview
 │   ├── wallet-section.tsx # Individual wallet display
 │   ├── wallet-dropdown.tsx # Wallet management modal
 │   └── nft-roles.tsx     # NFT partnerships display
+├── hooks/                # Custom React hooks
+│   └── use-pyth-price.ts # Pyth price fetching hook
 ├── store/                # State management
 │   └── store.ts          # Zustand store for wallet data
 ├── action/               # Server actions
@@ -69,6 +72,10 @@ pyth-board/
 
 ## 🏗️ Architecture
 
+### Shared Layout Architecture
+
+The application uses a **shared layout pattern** where the sidebar and top header are rendered once and persist across all routes, eliminating unnecessary re-renders and providing a consistent user experience.
+
 ### Routing Structure
 
 - **`/`** - Dashboard: Portfolio summary, metrics, and general information
@@ -79,28 +86,45 @@ pyth-board/
 
 - **Zustand Store**: Centralized state for wallet data
 - **Local Storage**: Persistence layer for wallet information
-- **Real-time Updates**: Dashboard refreshes data, other pages use cached data
+- **Smart Data Updates**: Only refreshes on initial load and when new wallets are added
+- **Shared State**: All pages access the same wallet data from the store
 
 ### Key Components
 
+#### Shared Layout (`components/app-layout.tsx`)
+
+- **Single source of truth** for sidebar, header, and data fetching
+- **Wallet data management** - Loads from localStorage and fetches fresh data
+- **Loading states** - Global loading indicator for data refresh
+- **Mobile menu** - Handles mobile navigation state
+- **No re-rendering** - Layout components stay mounted across route changes
+
 #### Dashboard (`app/page.tsx`)
 
-- Fetches and displays portfolio summary
-- Shows Pyth price and staking metrics
-- Handles data refresh on page reload
-- Displays interactive pie charts
+- **Content only** - No layout code, just dashboard components
+- **Uses shared data** - Reads from Zustand store
+- **Pyth price hook** - Uses `usePythPrice` for price data
+- **Portfolio calculations** - Computes totals and metrics
 
 #### Wallets Page (`app/wallets/page.tsx`)
 
-- Displays all wallet sections
-- Uses cached data (no API calls)
-- Fast navigation and instant loading
+- **Content only** - No layout code, just wallet sections
+- **Cached data** - Uses existing wallet data from store
+- **Fast loading** - No API calls, instant display
+- **Simple structure** - Just maps over wallet data
+
+#### Pythenians Page (`app/pythenians/page.tsx`)
+
+- **Minimal code** - Just renders NFT roles component
+- **No data fetching** - Uses static NFT data
+- **Clean structure** - Single component render
 
 #### Sidebar (`components/sidebar.tsx`)
 
-- Next.js Link-based navigation
-- Active route detection
-- Mobile-responsive with overlay
+- **Next.js routing** - Uses Link components for navigation
+- **Active detection** - Uses `usePathname` to highlight current route
+- **Mobile responsive** - Overlay and toggle functionality
+- **Persistent** - Stays mounted across all routes
 
 ## 🛠️ Development
 
@@ -143,10 +167,12 @@ npm run lint     # Run ESLint
 
 ### Data Flow
 
-1. **Dashboard**: Fetches fresh data from Pyth Network APIs
-2. **Store**: Updates Zustand store with new data
-3. **Persistence**: Saves to localStorage
-4. **Other Pages**: Read from store (cached data)
+1. **App Layout**: Loads wallets from localStorage on mount
+2. **Data Refresh**: Fetches fresh staking data from Pyth Network APIs (production only)
+3. **Store Update**: Updates Zustand store with fresh data
+4. **Persistence**: Saves updated data to localStorage
+5. **New Wallet Detection**: Listens for localStorage changes and refreshes data
+6. **All Pages**: Read from shared store (consistent data across routes)
 
 ### Responsive Design
 
@@ -218,6 +244,8 @@ No environment variables required for basic functionality. The app uses public P
 - **Performance**: Optimize API calls, caching strategies
 - **Testing**: Add unit and integration tests
 - **Documentation**: Improve code comments and guides
+- **Layout Enhancements**: Additional shared components, better state management
+- **Route Optimization**: New pages following the established pattern
 
 ## 📊 Data Sources
 
