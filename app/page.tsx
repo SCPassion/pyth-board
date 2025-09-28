@@ -3,14 +3,20 @@
 import { PortfolioSummary } from "@/components/portfolio-summary";
 import { MetricCards } from "@/components/metric-cards";
 import { GeneralSummary } from "@/components/general-summary";
+import { DashboardSkeleton } from "@/components/dashboard-skeleton";
+import { useAppLoading } from "@/components/app-layout";
 import { useWalletInfosStore } from "@/store/store";
 import { usePythPrice } from "@/hooks/use-pyth-price";
 
 export default function Dashboard() {
-  console.log("Dashboard component rendered");
-
   const { wallets } = useWalletInfosStore();
   const pythPrice = usePythPrice();
+  const { isLoading } = useAppLoading();
+
+  // Show skeleton while loading
+  if (isLoading) {
+    return <DashboardSkeleton />;
+  }
 
   const totalStaked = wallets.reduce((sum, wallet) => {
     return sum + (wallet.stakingInfo?.totalStakedPyth || 0);

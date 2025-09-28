@@ -66,7 +66,6 @@ export function WalletSection({ wallet }: WalletSectionProps) {
                     )
                   );
                   // Handle wallet removal logic here
-                  console.log(`Removing wallet: ${wallet.id}`);
                 }}
               >
                 Remove Wallet

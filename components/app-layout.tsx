@@ -1,10 +1,23 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import {
+  useEffect,
+  useState,
+  useCallback,
+  createContext,
+  useContext,
+} from "react";
 import { Sidebar } from "@/components/sidebar";
 import { TopHeader } from "@/components/top-header";
 import { useWalletInfosStore } from "@/store/store";
 import { getPythPrice, getOISStakingInfo } from "@/action/pythActions";
+
+// Create loading context
+const LoadingContext = createContext<{
+  isLoading: boolean;
+}>({ isLoading: false });
+
+export const useAppLoading = () => useContext(LoadingContext);
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -12,12 +25,12 @@ interface AppLayoutProps {
 
 export function AppLayout({ children }: AppLayoutProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
   const { wallets, setWallets } = useWalletInfosStore();
   const [pythPrice, setPythPrice] = useState<number | null>(null);
 
   const toggleMobileMenu = useCallback(() => {
-    console.log("Mobile menu toggled");
     setIsMobileMenuOpen((prev) => !prev);
   }, []);
 
@@ -30,9 +43,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         setWallets(parsedWallets);
 
         // Only refresh data if not in development mode
-        if (process.env.NODE_ENV !== "development" && !isLoading) {
-          console.log("Refreshing wallet data...");
-          setIsLoading(true);
+        if (process.env.NODE_ENV !== "development") {
           try {
             // Fetch latest staking info for each wallet
             const updatedWallets = await Promise.all(
@@ -54,13 +65,19 @@ export function AppLayout({ children }: AppLayoutProps) {
             );
             setWallets(updatedWallets);
             localStorage.setItem("wallets", JSON.stringify(updatedWallets));
-          } finally {
-            setIsLoading(false);
+          } catch (error) {
+            console.error("Error refreshing wallet data:", error);
           }
         }
       } else {
         localStorage.setItem("wallets", JSON.stringify([]));
       }
+
+      // Add a small delay to ensure skeleton is visible
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      // Set loading to false after data is loaded
+      setIsLoading(false);
     }
 
     loadAndRefreshWallets();
@@ -70,7 +87,6 @@ export function AppLayout({ children }: AppLayoutProps) {
   useEffect(() => {
     function handleStorageChange(event: StorageEvent) {
       if (event.key === "wallets" && event.newValue) {
-        console.log("New wallet detected in localStorage, refreshing...");
         const parsedWallets = JSON.parse(event.newValue);
         setWallets(parsedWallets);
 
@@ -117,27 +133,29 @@ export function AppLayout({ children }: AppLayoutProps) {
   }, []);
 
   return (
-    <div className="flex h-screen bg-[#0f1419]">
-      <Sidebar
-        isMobileMenuOpen={isMobileMenuOpen}
-        onMobileMenuToggle={toggleMobileMenu}
-      />
-
-      <div className="flex-1 flex flex-col md:ml-0">
-        <TopHeader
+    <LoadingContext.Provider value={{ isLoading }}>
+      <div className="flex h-screen bg-[#0f1419]">
+        <Sidebar
           isMobileMenuOpen={isMobileMenuOpen}
           onMobileMenuToggle={toggleMobileMenu}
         />
 
-        <main className="flex-1 overflow-auto p-3 sm:p-6 space-y-4 sm:space-y-6">
-          {isLoading && (
-            <div className="fixed top-4 right-4 bg-blue-500 text-white px-4 py-2 rounded-lg z-50">
-              Loading wallet data...
-            </div>
-          )}
-          {children}
-        </main>
+        <div className="flex-1 flex flex-col md:ml-0">
+          <TopHeader
+            isMobileMenuOpen={isMobileMenuOpen}
+            onMobileMenuToggle={toggleMobileMenu}
+          />
+
+          <main className="flex-1 overflow-auto p-3 sm:p-6 space-y-4 sm:space-y-6">
+            {isLoading && (
+              <div className="fixed top-4 right-4 bg-blue-500 text-white px-4 py-2 rounded-lg z-50">
+                Loading wallet data...
+              </div>
+            )}
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
+    </LoadingContext.Provider>
   );
 }

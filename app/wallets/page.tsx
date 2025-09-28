@@ -4,8 +4,6 @@ import { useWalletInfosStore } from "@/store/store";
 import { WalletSection } from "@/components/wallet-section";
 
 export default function WalletsPage() {
-  console.log("Wallets page rendered");
-
   const { wallets } = useWalletInfosStore();
 
   return (

@@ -10,6 +10,7 @@ A comprehensive dashboard for tracking Pyth Network OIS (Oracle Incentive Scheme
 - **NFT Roles**: View and manage Pythenians NFT partnerships
 - **Responsive Design**: Mobile-first approach with dark theme
 - **Data Persistence**: Local storage for wallet data and preferences
+- **Production Ready**: Clean, optimized codebase with no debug statements
 
 ## 🚀 Quick Start
 
@@ -55,9 +56,13 @@ pyth-board/
 │   ├── portfolio-summary.tsx # Portfolio overview
 │   ├── wallet-section.tsx # Individual wallet display
 │   ├── wallet-dropdown.tsx # Wallet management modal
-│   └── nft-roles.tsx     # NFT partnerships display
+│   ├── nft-roles.tsx     # NFT partnerships display
+│   ├── dashboard-skeleton.tsx # Loading skeleton for dashboard
+│   └── icons/            # Custom icon components
+│       └── twitter-icon.tsx # Custom Twitter/X icon
 ├── hooks/                # Custom React hooks
-│   └── use-pyth-price.ts # Pyth price fetching hook
+│   ├── use-pyth-price.ts # Pyth price fetching hook
+│   └── use-loading-state.ts # Loading state management
 ├── store/                # State management
 │   └── store.ts          # Zustand store for wallet data
 ├── action/               # Server actions
@@ -105,6 +110,7 @@ The application uses a **shared layout pattern** where the sidebar and top heade
 - **Uses shared data** - Reads from Zustand store
 - **Pyth price hook** - Uses `usePythPrice` for price data
 - **Portfolio calculations** - Computes totals and metrics
+- **Skeleton loading** - Shows loading state during data fetch
 
 #### Wallets Page (`app/wallets/page.tsx`)
 
@@ -125,6 +131,7 @@ The application uses a **shared layout pattern** where the sidebar and top heade
 - **Active detection** - Uses `usePathname` to highlight current route
 - **Mobile responsive** - Overlay and toggle functionality
 - **Persistent** - Stays mounted across all routes
+- **Custom icons** - Uses custom Twitter/X icon component
 
 ## 🛠️ Development
 
@@ -145,7 +152,7 @@ npm run lint     # Run ESLint
 - **State**: Zustand
 - **Charts**: Recharts
 - **UI Components**: Radix UI + shadcn/ui
-- **Icons**: Lucide React
+- **Icons**: Lucide React + Custom SVG components
 - **Blockchain**: Solana Web3.js, Pyth Network SDK
 
 ### Code Style
@@ -155,6 +162,7 @@ npm run lint     # Run ESLint
 - **Components**: Functional components with hooks
 - **Styling**: Tailwind CSS with responsive design
 - **State**: Zustand for global state management
+- **Production Ready**: No debug statements, clean code
 
 ## 🔧 Key Features Implementation
 
@@ -195,6 +203,7 @@ npm run lint     # Run ESLint
 - Loading states for data fetching
 - Smooth transitions and animations
 - Mobile menu with overlay
+- Skeleton loading for smooth transitions
 
 ### Charts and Visualizations
 
@@ -236,6 +245,7 @@ No environment variables required for basic functionality. The app uses public P
 - Test on mobile and desktop
 - Follow existing code style
 - Update documentation for new features
+- Keep code clean and production-ready
 
 ### Areas for Contribution
 
