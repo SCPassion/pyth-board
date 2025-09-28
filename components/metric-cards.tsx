@@ -99,22 +99,20 @@ export function MetricCards({
               </PieChart>
             </ResponsiveContainer>
           </div>
-          <div className="space-y-1">
+          <div className="flex flex-wrap gap-x-2 sm:gap-x-3 gap-y-1 justify-center">
             {walletData.map((wallet, index) => (
               <div
                 key={wallet.name}
-                className="flex items-center justify-between text-xs sm:text-sm"
+                className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm bg-gray-800/50 px-2 py-1 rounded-md"
               >
-                <div className="flex items-center gap-2">
-                  <div
-                    className="w-2 h-2 sm:w-3 sm:h-3 rounded-full"
-                    style={{
-                      backgroundColor:
-                        WALLET_COLORS[index % WALLET_COLORS.length],
-                    }}
-                  />
-                  <span className="text-gray-300 truncate">{wallet.name}</span>
-                </div>
+                <div
+                  className="w-2 h-2 sm:w-3 sm:h-3 rounded-full flex-shrink-0"
+                  style={{
+                    backgroundColor:
+                      WALLET_COLORS[index % WALLET_COLORS.length],
+                  }}
+                />
+                <span className="text-gray-300 truncate">{wallet.name}</span>
                 <span className="text-white font-medium">
                   {wallet.percentage}%
                 </span>
