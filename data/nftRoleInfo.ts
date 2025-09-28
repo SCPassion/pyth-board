@@ -80,27 +80,27 @@ export const rolesNFT: NFTRole[] = [
   },
   {
     id: "10",
+    name: "Fogalio",
+    description: "The first PFP NFT on FogoChain",
+    image: "/folgalio.jpg",
+    projectUrl: "https://x.com/FogalioFG",
+    discordInviteUrl: "https://discord.gg/fogalio",
+    // extraInfo: "https://x.com/PytheniansNFT/status/1964000493849428400"
+  },
+  {
+    id: "11",
+    name: "Nitrograph",
+    description: "The economic layer for AI Agents",
+    image: "/nitrograph.jpg",
+    projectUrl: "https://x.com/Nitrograph",
+    discordInviteUrl: "https://discord.com/invite/nitrograph",
+  },
+  {
+    id: "12",
     name: "Divinity",
     description: "No information available yet. Stay tuned!",
     image: "",
     projectUrl: "",
     discordInviteUrl: "",
-  },
-  {
-    id: "11",
-    name: "Fogalio",
-    description: "The first PFP NFT on FogoChain",
-    image: "",
-    projectUrl: "https://x.com/FogalioFG",
-    discordInviteUrl: "https://discord.gg/fogalio",
-    extraInfo: "https://x.com/PytheniansNFT/status/1964000493849428400"
-  },
-  {
-    id: "12",
-    name: "Nitrograph",
-    description: "The economic layer for AI Agents",
-    image: "",
-    projectUrl: "https://x.com/Nitrograph",
-    discordInviteUrl: "https://discord.com/invite/nitrograph",
   },
 ];
