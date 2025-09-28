@@ -5,10 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Github,
   LayoutDashboard,
-  Twitter,
   Wallet,
   Image as ImageIcon,
 } from "lucide-react";
+import { TwitterIcon } from "@/components/icons/twitter-icon";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
@@ -151,7 +151,7 @@ export function Sidebar({
               className="text-gray-400 hover:text-white hover:bg-gray-800/50 p-2 cursor-pointer"
               onClick={() => window.open("https://x.com/KaiCryptohk", "_blank")}
             >
-              <Twitter className="h-10 w-10" />
+              <TwitterIcon className="h-10 w-10" />
               <span className="sr-only">Twitter</span>
             </Button>
           </div>
