@@ -97,6 +97,14 @@ export const rolesNFT: NFTRole[] = [
   },
   {
     id: "12",
+    name: "Monad Nomads",
+    description: "the 1st community driven NFT initiative on Monad",
+    image: "/monadNomads.jpg",
+    projectUrl: "https://x.com/MonadNomadsNFT",
+    discordInviteUrl: "https://discord.gg/monadnomads",
+  },
+  {
+    id: "13",
     name: "Divinity",
     description: "No information available yet. Stay tuned!",
     image: "",
