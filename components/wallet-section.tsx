@@ -7,6 +7,7 @@ import { Search } from "lucide-react";
 import { WalletInfo } from "@/types/pythTypes";
 import { useWalletInfosStore } from "@/store/store";
 import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 
 interface WalletSectionProps {
   wallet: WalletInfo;
@@ -65,7 +66,19 @@ export function WalletSection({ wallet }: WalletSectionProps) {
                         .wallets.filter((w) => w.id !== wallet.id)
                     )
                   );
-                  // Handle wallet removal logic here
+
+                  // Success toast for wallet removal
+                  toast.success(
+                    `Wallet "${wallet.name}" removed successfully!`,
+                    {
+                      duration: 3000,
+                      style: {
+                        background: "#065f46",
+                        color: "#f1f5f9",
+                        border: "1px solid #047857",
+                      },
+                    }
+                  );
                 }}
               >
                 Remove Wallet

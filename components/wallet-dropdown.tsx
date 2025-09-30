@@ -12,6 +12,7 @@ import { PythStakingInfo } from "@/types/pythTypes";
 import { useWalletInfosStore } from "@/store/store";
 import { getOISStakingInfo } from "@/action/pythActions";
 import { StakingHelpPopup } from "@/components/staking-help-popup";
+import toast from "react-hot-toast";
 
 interface WalletDropdownProps {
   isOpen: boolean;
@@ -59,7 +60,14 @@ export function WalletDropdown({ isOpen, onClose }: WalletDropdownProps) {
       wallets.some((wallet) => wallet.stakingAddress === stakingAddress)
     ) {
       onClose();
-      alert("This wallet address is already added.");
+      toast.error("This wallet address is already added.", {
+        duration: 4000,
+        style: {
+          background: "#7f1d1d",
+          color: "#f1f5f9",
+          border: "1px solid #991b1b",
+        },
+      });
       return;
     }
     fetchPythStakingInfo(address, stakingAddress, name);
@@ -103,10 +111,30 @@ export function WalletDropdown({ isOpen, onClose }: WalletDropdownProps) {
           },
         ])
       );
+
+      // Success toast
+      toast.success(`Wallet "${name}" added successfully!`, {
+        duration: 4000,
+        style: {
+          background: "#065f46",
+          color: "#f1f5f9",
+          border: "1px solid #047857",
+        },
+      });
     } catch (error) {
       console.error("Error fetching Pyth staking info:", error);
-      alert(
-        "Failed to fetch staking info. Please check the wallet address and try again."
+
+      // Error toast with different styling
+      toast.error(
+        "Failed to add wallet. Please check the addresses and try again.",
+        {
+          duration: 5000,
+          style: {
+            background: "#7f1d1d",
+            color: "#f1f5f9",
+            border: "1px solid #991b1b",
+          },
+        }
       );
     } finally {
       setIsLoading(false);
@@ -184,6 +212,17 @@ export function WalletDropdown({ isOpen, onClose }: WalletDropdownProps) {
                           JSON.stringify(
                             wallets.filter((w) => w.id !== wallet.id)
                           )
+                        );
+                        toast.success(
+                          `Wallet "${wallet.name}" removed successfully!`,
+                          {
+                            duration: 3000,
+                            style: {
+                              background: "#065f46",
+                              color: "#f1f5f9",
+                              border: "1px solid #047857",
+                            },
+                          }
                         );
                         onClose();
                       }}

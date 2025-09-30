@@ -30,24 +30,24 @@
   }
 
   .dark {
-    --background: 217 19% 8%;
-    --foreground: 0 0% 98%;
-    --card: 217 19% 8%;
-    --card-foreground: 0 0% 98%;
-    --popover: 217 19% 8%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 217 19% 18%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 217 19% 18%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 217 19% 18%;
-    --accent-foreground: 0 0% 98%;
+    --background: 222 84% 5%;
+    --foreground: 0 0% 95%;
+    --card: 222 84% 5%;
+    --card-foreground: 0 0% 95%;
+    --popover: 222 84% 5%;
+    --popover-foreground: 0 0% 95%;
+    --primary: 0 0% 95%;
+    --primary-foreground: 222 84% 5%;
+    --secondary: 222 84% 10%;
+    --secondary-foreground: 0 0% 95%;
+    --muted: 222 84% 10%;
+    --muted-foreground: 0 0% 60%;
+    --accent: 222 84% 10%;
+    --accent-foreground: 0 0% 95%;
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 217 19% 18%;
-    --input: 217 19% 18%;
+    --destructive-foreground: 0 0% 95%;
+    --border: 222 84% 10%;
+    --input: 222 84% 10%;
     --ring: 0 0% 83.1%;
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
@@ -65,7 +65,7 @@
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
     /* fallback for dark mode background */
-    background-color: #0f1419;
+    background-color: #0a0e14;
   }
 
   /* Mobile-specific improvements */
