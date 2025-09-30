@@ -9,6 +9,7 @@ export const rolesNFT: NFTRole[] = [
     image: "/poply.jpg",
     projectUrl: "https://x.com/poply_xyz?lang=en",
     discordInviteUrl: "https://discord.com/invite/xzYSg4dxzb",
+    claimable: true,
   },
   {
     id: "2",
@@ -17,6 +18,7 @@ export const rolesNFT: NFTRole[] = [
     image: "/playAi.jpg",
     projectUrl: "https://x.com/playAInetwork",
     discordInviteUrl: "https://discord.gg/playai",
+    claimable: true,
   },
   {
     id: "3",
@@ -26,6 +28,7 @@ export const rolesNFT: NFTRole[] = [
     image: "/flagshipfyi.jpg",
     projectUrl: "https://x.com/flagshipfyi",
     discordInviteUrl: "https://discord.gg/flagshipfyi",
+    claimable: true,
   },
   {
     id: "4",
@@ -35,6 +38,7 @@ export const rolesNFT: NFTRole[] = [
     image: "/fogo.jpg",
     projectUrl: "https://x.com/FogoChain",
     discordInviteUrl: "https://discord.gg/fogochain",
+    claimable: true,
   },
   {
     id: "5",
@@ -44,6 +48,7 @@ export const rolesNFT: NFTRole[] = [
     image: "/valiant.jpg",
     projectUrl: "https://x.com/ValiantTrade",
     discordInviteUrl: "https://discord.gg/valianttrade",
+    claimable: true,
   },
   {
     id: "6",
@@ -52,6 +57,7 @@ export const rolesNFT: NFTRole[] = [
     image: "/furbo.jpg",
     projectUrl: "https://x.com/furbocoin",
     discordInviteUrl: "https://discord.gg/furbo",
+    claimable: true,
   },
   {
     id: "7",
@@ -60,6 +66,7 @@ export const rolesNFT: NFTRole[] = [
     image: "/acurast.png",
     projectUrl: "https://x.com/Acurast",
     discordInviteUrl: "https://discord.com/invite/acurast",
+    claimable: true,
   },
   {
     id: "8",
@@ -68,6 +75,7 @@ export const rolesNFT: NFTRole[] = [
     image: "/pactswap.jpg",
     projectUrl: "https://x.com/PACT_SWAP",
     discordInviteUrl: "https://discord.gg/pactswap",
+    claimable: true,
   },
   {
     id: "9",
@@ -77,6 +85,7 @@ export const rolesNFT: NFTRole[] = [
     image: "/squad.jpg",
     projectUrl: "https://x.com/the10kSquad",
     discordInviteUrl: "https://discord.gg/the10ksquad",
+    claimable: true,
   },
   {
     id: "10",
@@ -85,7 +94,7 @@ export const rolesNFT: NFTRole[] = [
     image: "/folgalio.jpg",
     projectUrl: "https://x.com/FogalioFG",
     discordInviteUrl: "https://discord.gg/fogalio",
-    // extraInfo: "https://x.com/PytheniansNFT/status/1964000493849428400"
+    claimable: true,
   },
   {
     id: "11",
@@ -94,6 +103,7 @@ export const rolesNFT: NFTRole[] = [
     image: "/nitrograph.jpg",
     projectUrl: "https://x.com/Nitrograph",
     discordInviteUrl: "https://discord.com/invite/nitrograph",
+    claimable: true,
   },
   {
     id: "12",
@@ -102,6 +112,7 @@ export const rolesNFT: NFTRole[] = [
     image: "/monadNomads.jpg",
     projectUrl: "https://x.com/MonadNomadsNFT",
     discordInviteUrl: "https://discord.gg/monadnomads",
+    claimable: true,
   },
   {
     id: "13",
@@ -110,6 +121,7 @@ export const rolesNFT: NFTRole[] = [
     image: "/pyron.jpg",
     projectUrl: "https://x.com/Pyronfi",
     discordInviteUrl: "https://discord.pyron.fi/",
+    claimable: true,
   },
   {
     id: "14",
@@ -118,5 +130,6 @@ export const rolesNFT: NFTRole[] = [
     image: "",
     projectUrl: "",
     discordInviteUrl: "",
+    claimable: false,
   },
 ];

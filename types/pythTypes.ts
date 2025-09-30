@@ -36,4 +36,5 @@ export type NFTRole = {
   image: string;
   projectUrl: string;
   discordInviteUrl: string;
+  claimable: boolean;
 };
