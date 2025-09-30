@@ -105,6 +105,14 @@ export const rolesNFT: NFTRole[] = [
   },
   {
     id: "13",
+    name: "Pyron",
+    description: "Asset productivity layer of @FogoChain",
+    image: "/pyron.jpg",
+    projectUrl: "https://x.com/Pyronfi",
+    discordInviteUrl: "https://discord.pyron.fi/",
+  },
+  {
+    id: "14",
     name: "Divinity",
     description: "No information available yet. Stay tuned!",
     image: "",
