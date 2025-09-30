@@ -37,16 +37,81 @@ export function AppLayout({ children }: AppLayoutProps) {
   // Load wallets from localStorage and refresh data
   useEffect(() => {
     async function loadAndRefreshWallets() {
-      const storedWallets = localStorage.getItem("wallets");
-      if (storedWallets) {
-        const parsedWallets = JSON.parse(storedWallets);
-        setWallets(parsedWallets);
+      try {
+        const storedWallets = localStorage.getItem("wallets");
+        if (storedWallets) {
+          const parsedWallets = JSON.parse(storedWallets);
+          setWallets(parsedWallets);
 
-        // Only refresh data if not in development mode
-        if (process.env.NODE_ENV !== "development") {
-          try {
-            // Fetch latest staking info for each wallet
-            const updatedWallets = await Promise.all(
+          // Only refresh data if not in development mode and we have wallets
+          if (
+            process.env.NODE_ENV !== "development" &&
+            parsedWallets.length > 0
+          ) {
+            try {
+              // Fetch latest staking info for each wallet
+              const updatedWallets = await Promise.all(
+                parsedWallets.map(async (wallet: any) => {
+                  try {
+                    const stakingInfo = await getOISStakingInfo(
+                      wallet.address,
+                      wallet.stakingAddress
+                    );
+                    return { ...wallet, stakingInfo };
+                  } catch (e) {
+                    console.error(
+                      `Error fetching staking info for wallet ${wallet.name}:`,
+                      e
+                    );
+                    return wallet; // fallback to old info if fetch fails
+                  }
+                })
+              );
+              setWallets(updatedWallets);
+              localStorage.setItem("wallets", JSON.stringify(updatedWallets));
+            } catch (error) {
+              console.error("Error refreshing wallet data:", error);
+            }
+          }
+        } else {
+          localStorage.setItem("wallets", JSON.stringify([]));
+        }
+      } catch (error) {
+        console.error("Error loading wallets:", error);
+        // Set empty wallets on error
+        setWallets([]);
+        localStorage.setItem("wallets", JSON.stringify([]));
+      } finally {
+        // Add a small delay to ensure skeleton is visible
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
+        // Set loading to false after data is loaded
+        setIsLoading(false);
+      }
+    }
+
+    loadAndRefreshWallets();
+  }, []); // Only run on mount
+
+  // Listen for localStorage changes (new wallets added)
+  useEffect(() => {
+    let isRefreshing = false; // Prevent multiple simultaneous refreshes
+
+    function handleStorageChange(event: StorageEvent) {
+      if (event.key === "wallets" && event.newValue && !isRefreshing) {
+        const parsedWallets = JSON.parse(event.newValue);
+
+        // Only update if wallets actually changed
+        const currentWallets = useWalletInfosStore.getState().wallets;
+        if (JSON.stringify(currentWallets) !== JSON.stringify(parsedWallets)) {
+          setWallets(parsedWallets);
+
+          // Refresh data for new wallets only in production
+          if (process.env.NODE_ENV !== "development" && !isLoading) {
+            isRefreshing = true;
+            setIsLoading(true);
+
+            Promise.all(
               parsedWallets.map(async (wallet: any) => {
                 try {
                   const stakingInfo = await getOISStakingInfo(
@@ -59,61 +124,22 @@ export function AppLayout({ children }: AppLayoutProps) {
                     `Error fetching staking info for wallet ${wallet.name}:`,
                     e
                   );
-                  return wallet; // fallback to old info if fetch fails
+                  return wallet;
                 }
               })
-            );
-            setWallets(updatedWallets);
-            localStorage.setItem("wallets", JSON.stringify(updatedWallets));
-          } catch (error) {
-            console.error("Error refreshing wallet data:", error);
+            )
+              .then((updatedWallets) => {
+                setWallets(updatedWallets);
+                localStorage.setItem("wallets", JSON.stringify(updatedWallets));
+                setIsLoading(false);
+                isRefreshing = false;
+              })
+              .catch((error) => {
+                console.error("Error refreshing wallet data:", error);
+                setIsLoading(false);
+                isRefreshing = false;
+              });
           }
-        }
-      } else {
-        localStorage.setItem("wallets", JSON.stringify([]));
-      }
-
-      // Add a small delay to ensure skeleton is visible
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      // Set loading to false after data is loaded
-      setIsLoading(false);
-    }
-
-    loadAndRefreshWallets();
-  }, []); // Only run on mount
-
-  // Listen for localStorage changes (new wallets added)
-  useEffect(() => {
-    function handleStorageChange(event: StorageEvent) {
-      if (event.key === "wallets" && event.newValue) {
-        const parsedWallets = JSON.parse(event.newValue);
-        setWallets(parsedWallets);
-
-        // Refresh data for new wallets
-        if (process.env.NODE_ENV !== "development" && !isLoading) {
-          setIsLoading(true);
-          Promise.all(
-            parsedWallets.map(async (wallet: any) => {
-              try {
-                const stakingInfo = await getOISStakingInfo(
-                  wallet.address,
-                  wallet.stakingAddress
-                );
-                return { ...wallet, stakingInfo };
-              } catch (e) {
-                console.error(
-                  `Error fetching staking info for wallet ${wallet.name}:`,
-                  e
-                );
-                return wallet;
-              }
-            })
-          ).then((updatedWallets) => {
-            setWallets(updatedWallets);
-            localStorage.setItem("wallets", JSON.stringify(updatedWallets));
-            setIsLoading(false);
-          });
         }
       }
     }
