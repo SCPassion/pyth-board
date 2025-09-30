@@ -34,119 +34,74 @@ export function AppLayout({ children }: AppLayoutProps) {
     setIsMobileMenuOpen((prev) => !prev);
   }, []);
 
-  // Load wallets from localStorage and refresh data
+  // Load wallets from localStorage - SIMPLIFIED VERSION
   useEffect(() => {
-    async function loadAndRefreshWallets() {
+    let isMounted = true;
+    let timeoutId: NodeJS.Timeout;
+
+    function loadWallets() {
       try {
         const storedWallets = localStorage.getItem("wallets");
-        if (storedWallets) {
-          const parsedWallets = JSON.parse(storedWallets);
-          setWallets(parsedWallets);
+        let wallets = [];
 
-          // Only refresh data if not in development mode and we have wallets
-          if (
-            process.env.NODE_ENV !== "development" &&
-            parsedWallets.length > 0
-          ) {
-            try {
-              // Fetch latest staking info for each wallet
-              const updatedWallets = await Promise.all(
-                parsedWallets.map(async (wallet: any) => {
-                  try {
-                    const stakingInfo = await getOISStakingInfo(
-                      wallet.address,
-                      wallet.stakingAddress
-                    );
-                    return { ...wallet, stakingInfo };
-                  } catch (e) {
-                    console.error(
-                      `Error fetching staking info for wallet ${wallet.name}:`,
-                      e
-                    );
-                    return wallet; // fallback to old info if fetch fails
-                  }
-                })
-              );
-              setWallets(updatedWallets);
-              localStorage.setItem("wallets", JSON.stringify(updatedWallets));
-            } catch (error) {
-              console.error("Error refreshing wallet data:", error);
-            }
-          }
+        if (storedWallets) {
+          wallets = JSON.parse(storedWallets);
         } else {
           localStorage.setItem("wallets", JSON.stringify([]));
         }
+
+        if (isMounted) {
+          setWallets(wallets);
+        }
       } catch (error) {
         console.error("Error loading wallets:", error);
-        // Set empty wallets on error
-        setWallets([]);
-        localStorage.setItem("wallets", JSON.stringify([]));
+        if (isMounted) {
+          setWallets([]);
+          localStorage.setItem("wallets", JSON.stringify([]));
+        }
       } finally {
-        // Add a small delay to ensure skeleton is visible
-        await new Promise((resolve) => setTimeout(resolve, 500));
-
-        // Set loading to false after data is loaded
-        setIsLoading(false);
+        // Always set loading to false after a short delay
+        timeoutId = setTimeout(() => {
+          if (isMounted) {
+            setIsLoading(false);
+          }
+        }, 1000);
       }
     }
 
-    loadAndRefreshWallets();
+    loadWallets();
+
+    // Emergency timeout to prevent infinite loading
+    const emergencyTimeout = setTimeout(() => {
+      if (isMounted) {
+        console.warn("Emergency timeout: Forcing loading to false");
+        setIsLoading(false);
+      }
+    }, 10000); // 10 second emergency timeout
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timeoutId);
+      clearTimeout(emergencyTimeout);
+    };
   }, []); // Only run on mount
 
-  // Listen for localStorage changes (new wallets added)
+  // Listen for localStorage changes (new wallets added) - SIMPLIFIED
   useEffect(() => {
-    let isRefreshing = false; // Prevent multiple simultaneous refreshes
-
     function handleStorageChange(event: StorageEvent) {
-      if (event.key === "wallets" && event.newValue && !isRefreshing) {
-        const parsedWallets = JSON.parse(event.newValue);
-
-        // Only update if wallets actually changed
-        const currentWallets = useWalletInfosStore.getState().wallets;
-        if (JSON.stringify(currentWallets) !== JSON.stringify(parsedWallets)) {
+      if (event.key === "wallets" && event.newValue) {
+        try {
+          const parsedWallets = JSON.parse(event.newValue);
           setWallets(parsedWallets);
-
-          // Refresh data for new wallets only in production
-          if (process.env.NODE_ENV !== "development" && !isLoading) {
-            isRefreshing = true;
-            setIsLoading(true);
-
-            Promise.all(
-              parsedWallets.map(async (wallet: any) => {
-                try {
-                  const stakingInfo = await getOISStakingInfo(
-                    wallet.address,
-                    wallet.stakingAddress
-                  );
-                  return { ...wallet, stakingInfo };
-                } catch (e) {
-                  console.error(
-                    `Error fetching staking info for wallet ${wallet.name}:`,
-                    e
-                  );
-                  return wallet;
-                }
-              })
-            )
-              .then((updatedWallets) => {
-                setWallets(updatedWallets);
-                localStorage.setItem("wallets", JSON.stringify(updatedWallets));
-                setIsLoading(false);
-                isRefreshing = false;
-              })
-              .catch((error) => {
-                console.error("Error refreshing wallet data:", error);
-                setIsLoading(false);
-                isRefreshing = false;
-              });
-          }
+        } catch (error) {
+          console.error("Error parsing wallet data from storage:", error);
         }
       }
     }
 
     window.addEventListener("storage", handleStorageChange);
     return () => window.removeEventListener("storage", handleStorageChange);
-  }, [isLoading]);
+  }, []); // No dependencies to prevent loops
 
   // Fetch Pyth price
   useEffect(() => {
