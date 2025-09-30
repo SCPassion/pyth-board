@@ -2,20 +2,15 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import { useWalletInfosStore } from "@/store/store";
-import { BadgeDollarSign, Beef } from "lucide-react";
+import { Beef } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 
 type MetricCardsProps = {
   pythPrice: number | null;
   totalStaked: number;
-  totalRewards: number;
 };
-export function MetricCards({
-  pythPrice,
-  totalStaked,
-  totalRewards,
-}: MetricCardsProps) {
+export function MetricCards({ pythPrice, totalStaked }: MetricCardsProps) {
   const wallets = useWalletInfosStore((state) => state.wallets);
   // Process wallet data for pie chart
   const walletData = wallets.map((wallet) => ({
@@ -50,7 +45,7 @@ export function MetricCards({
   }, []);
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
       <Card className="bg-[#2a2f3e] border-gray-700">
         <CardContent className="p-4 sm:p-6 space-y-3 sm:space-y-4">
           <div className="flex items-center justify-between">
@@ -118,21 +113,6 @@ export function MetricCards({
                 </span>
               </div>
             ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="bg-[#2a2f3e] border-gray-700">
-        <CardContent className="p-4 sm:p-6 space-y-3 sm:space-y-4">
-          <div className="flex items-center justify-between">
-            <p className="text-gray-400 text-xs sm:text-sm">Total Rewards</p>
-          </div>
-          <p className="text-2xl sm:text-3xl font-bold text-white">
-            {totalRewards.toFixed(0)} PYTH
-          </p>
-
-          <div className="flex justify-center items-center">
-            <BadgeDollarSign className="w-16 h-16 sm:w-20 sm:h-20" />
           </div>
         </CardContent>
       </Card>

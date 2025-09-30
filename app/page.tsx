@@ -22,10 +22,6 @@ export default function Dashboard() {
     return sum + (wallet.stakingInfo?.totalStakedPyth || 0);
   }, 0);
 
-  const totalRewards = wallets.reduce((sum, wallet) => {
-    return sum + (wallet.stakingInfo?.claimableRewards || 0);
-  }, 0);
-
   const connectedWallets = wallets.length;
 
   const validatorSets = wallets.map(
@@ -62,11 +58,7 @@ export default function Dashboard() {
           ? "Please add a wallet to view details."
           : "Portfolio Summary"}
       </PortfolioSummary>
-      <MetricCards
-        pythPrice={pythPrice}
-        totalStaked={totalStaked}
-        totalRewards={totalRewards}
-      />
+      <MetricCards pythPrice={pythPrice} totalStaked={totalStaked} />
       <GeneralSummary
         totalGovernance={totalGovernance.toFixed(1)}
         oisTotalStaked={oisTotalStaked.toFixed(0)}

@@ -90,17 +90,11 @@ export function WalletSection({ wallet }: WalletSectionProps) {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 mb-4 sm:mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
             <div>
               <p className="text-gray-400 text-xs sm:text-sm">Staking APY</p>
               <p className="text-xl sm:text-2xl font-bold text-green-400">
                 {averageApy.toFixed(2)}%
-              </p>
-            </div>
-            <div>
-              <p className="text-gray-400 text-xs sm:text-sm">Rewards Earned</p>
-              <p className="text-xl sm:text-2xl font-bold text-white">
-                {wallet.stakingInfo?.claimableRewards.toFixed(2)} PYTH
               </p>
             </div>
             <div>
@@ -133,10 +127,10 @@ export function WalletSection({ wallet }: WalletSectionProps) {
             </div>
 
             <div className="space-y-2">
-              <div className="hidden sm:grid grid-cols-3 gap-4 text-gray-400 text-sm font-medium pb-2 border-b border-gray-700 text-center">
-                <div>Validator's public key</div>
-                <div>Your Stake</div>
-                <div>APY</div>
+              <div className="hidden sm:grid grid-cols-3 gap-4 text-gray-400 text-sm font-medium pb-2 border-b border-gray-700">
+                <div className="text-left">Validator's public key</div>
+                <div className="text-center">Your Stake</div>
+                <div className="text-center">APY</div>
               </div>
 
               {wallet.stakingInfo?.StakeForEachPublisher.map(
@@ -165,13 +159,13 @@ export function WalletSection({ wallet }: WalletSectionProps) {
                         </span>
                       </div>
 
-                      <div className="text-white font-medium text-sm sm:text-base">
+                      <div className="text-white font-medium text-sm sm:text-base text-center">
                         <span className="sm:hidden text-gray-400 text-xs">
                           Stake:{" "}
                         </span>
                         {validator.stakedAmount.toLocaleString()} PYTH
                       </div>
-                      <div className="text-green-400 font-medium text-sm sm:text-base">
+                      <div className="text-green-400 font-medium text-sm sm:text-base text-center">
                         <span className="sm:hidden text-gray-400 text-xs">
                           APY:{" "}
                         </span>
