@@ -53,7 +53,7 @@ export function NFTRoles({ nftRoles }: NFTRolesProps) {
       </div>
 
       {/* Search and Filter Section */}
-      <div className="flex gap-4 items-center">
+      <div className="flex gap-4 items-center justify-between">
         {/* Search Box */}
         <div className="relative max-w-md">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
