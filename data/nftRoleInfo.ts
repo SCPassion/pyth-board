@@ -125,6 +125,15 @@ export const rolesNFT: NFTRole[] = [
   },
   {
     id: "14",
+    name: "Providence",
+    description: "The 1st multiplayer survival shooter on-chain, built in UE5",
+    image: "/providence.png",
+    projectUrl: "https://x.com/PlayProvidence",
+    discordInviteUrl: "https://discord.com/invite/playprovidenceio",
+    claimable: true,
+  },
+  {
+    id: "15",
     name: "Divinity",
     description: "No information available yet. Stay tuned!",
     image: "",
