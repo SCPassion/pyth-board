@@ -7,6 +7,7 @@ import { DashboardSkeleton } from "@/components/dashboard-skeleton";
 import { useAppLoading } from "@/components/app-layout";
 import { useWalletInfosStore } from "@/store/store";
 import { usePythPrice } from "@/hooks/use-pyth-price";
+import { Wallet } from "lucide-react";
 
 export default function Dashboard() {
   const { wallets } = useWalletInfosStore();
@@ -47,16 +48,14 @@ export default function Dashboard() {
       ?.rewardsDistributed || 0) / 1e6;
 
   return (
-    <>
+    <div className="space-y-6">
       <PortfolioSummary
         connectedWallets={connectedWallets}
         totalStaked={totalStaked}
         uniqueValidatorSize={uniqueValidatorSize}
         pythPrice={pythPrice}
       >
-        {wallets.length === 0
-          ? "Please add a wallet to view details."
-          : "Portfolio Summary"}
+        Portfolio Summary
       </PortfolioSummary>
       <MetricCards pythPrice={pythPrice} totalStaked={totalStaked} />
       <GeneralSummary
@@ -66,6 +65,6 @@ export default function Dashboard() {
       >
         General Information
       </GeneralSummary>
-    </>
+    </div>
   );
 }
