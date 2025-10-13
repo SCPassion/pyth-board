@@ -1,0 +1,86 @@
+{
+  "name": "Pyth Dashboard",
+  "short_name": "Pyth Dashboard",
+  "description": "Monitor your Pyth staking portfolio and network statistics",
+  "version": "1.0.1",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1f2e",
+  "theme_color": "#8b5cf6",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "en",
+  "categories": ["finance", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "/pyth-96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pyth-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pyth-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/pyth.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide"
+    },
+    {
+      "src": "/pyth.png",
+      "sizes": "750x1334",
+      "type": "image/png",
+      "form_factor": "narrow"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "View your Pyth staking dashboard",
+      "url": "/",
+      "icons": [
+        {
+          "src": "/pyth.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Wallets",
+      "short_name": "Wallets",
+      "description": "Manage your connected wallets",
+      "url": "/wallets",
+      "icons": [
+        {
+          "src": "/pyth.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Pythenians",
+      "short_name": "Pythenians",
+      "description": "View Pythenians partnerships",
+      "url": "/pythenians",
+      "icons": [
+        {
+          "src": "/pyth.png",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ]
+}
