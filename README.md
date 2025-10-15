@@ -1,6 +1,6 @@
 # 🐍 Pyth Board
 
-A comprehensive dashboard for tracking Pyth Network OIS (Oracle Incentive Scheme) staking statistics across multiple wallets. Built with Next.js 15, TypeScript, and modern React patterns.
+A comprehensive dashboard for tracking Pyth Network OIS (Oracle Integrity Staking) staking statistics across multiple wallets. Built with Next.js 15, TypeScript, and modern React patterns.
 
 ## 🌟 Features
 
