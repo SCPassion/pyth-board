@@ -4,6 +4,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { AppLayout } from "@/components/app-layout";
 import { PWAInstallPrompt } from "@/components/pwa-install-prompt";
+import { ServiceWorkerHandler } from "@/components/service-worker-handler";
 import { Analytics } from "@vercel/analytics/react";
 import { Toaster } from "react-hot-toast";
 
@@ -69,12 +70,52 @@ export default function RootLayout({
                   navigator.serviceWorker.register('/sw.js')
                     .then(function(registration) {
                       console.log('SW registered: ', registration);
+                      
+                      // Handle service worker updates
+                      registration.addEventListener('updatefound', () => {
+                        const newWorker = registration.installing;
+                        if (newWorker) {
+                          newWorker.addEventListener('statechange', () => {
+                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                              // New content is available, reload the page
+                              window.location.reload();
+                            }
+                          });
+                        }
+                      });
                     })
                     .catch(function(registrationError) {
                       console.log('SW registration failed: ', registrationError);
                     });
                 });
               }
+              
+              // Handle chunk loading errors with better error handling
+              window.addEventListener('error', function(event) {
+                if (event.error && event.error.name === 'ChunkLoadError') {
+                  console.log('Chunk load error detected, clearing cache and reloading...');
+                  // Clear service worker cache
+                  if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+                    navigator.serviceWorker.controller.postMessage({ type: 'CLEAR_CACHE' });
+                  }
+                  // Force reload with cache bypass
+                  window.location.reload(true);
+                }
+              });
+              
+              // Handle unhandled promise rejections (chunk loading failures)
+              window.addEventListener('unhandledrejection', function(event) {
+                if (event.reason && event.reason.name === 'ChunkLoadError') {
+                  console.log('Chunk load error in promise, clearing cache and reloading...');
+                  event.preventDefault();
+                  // Clear service worker cache
+                  if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+                    navigator.serviceWorker.controller.postMessage({ type: 'CLEAR_CACHE' });
+                  }
+                  // Force reload with cache bypass
+                  window.location.reload(true);
+                }
+              });
             `,
           }}
         />
@@ -82,6 +123,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <AppLayout>{children}</AppLayout>
         <PWAInstallPrompt />
+        <ServiceWorkerHandler />
         <Toaster
           position="bottom-right"
           toastOptions={{
