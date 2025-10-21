@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,21 +17,52 @@ type FilterType = "all" | "claimable" | "not-claimable";
 export function NFTRoles({ nftRoles }: NFTRolesProps) {
   const [filter, setFilter] = useState<FilterType>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [isMounted, setIsMounted] = useState(false);
 
-  const filteredRoles = nftRoles.filter((role) => {
-    // Apply claimable filter
-    const matchesClaimableFilter =
-      filter === "all" ||
-      (filter === "claimable" && role.claimable) ||
-      (filter === "not-claimable" && !role.claimable);
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
-    // Apply search filter
-    const matchesSearch =
-      searchQuery === "" ||
-      role.name.toLowerCase().includes(searchQuery.toLowerCase());
+  // Ensure we have data before rendering
+  if (!nftRoles || nftRoles.length === 0) {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <h2 className="text-xl sm:text-2xl font-bold text-white">
+            Pythenians Partnerships
+          </h2>
+        </div>
+        <div className="text-center py-8 sm:py-12 px-4">
+          <div className="w-16 h-16 sm:w-24 sm:h-24 mx-auto mb-4 bg-gray-800 rounded-full flex items-center justify-center">
+            <ImageIcon className="w-8 h-8 sm:w-12 sm:h-12 text-gray-400" />
+          </div>
+          <h3 className="text-lg sm:text-xl font-semibold text-white mb-2">
+            Loading NFT Roles...
+          </h3>
+          <p className="text-sm sm:text-base text-gray-400 max-w-md mx-auto">
+            Please wait while we load the NFT role data.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
-    return matchesClaimableFilter && matchesSearch;
-  });
+  const filteredRoles = isMounted
+    ? nftRoles.filter((role) => {
+        // Apply claimable filter
+        const matchesClaimableFilter =
+          filter === "all" ||
+          (filter === "claimable" && role.claimable) ||
+          (filter === "not-claimable" && !role.claimable);
+
+        // Apply search filter
+        const matchesSearch =
+          searchQuery === "" ||
+          role.name.toLowerCase().includes(searchQuery.toLowerCase());
+
+        return matchesClaimableFilter && matchesSearch;
+      })
+    : nftRoles || [];
 
   return (
     <div className="space-y-6">
@@ -44,7 +75,7 @@ export function NFTRoles({ nftRoles }: NFTRolesProps) {
             variant="outline"
             className="text-gray-400 border-gray-600 text-sm"
           >
-            {filteredRoles.length}{" "}
+            {isMounted ? filteredRoles.length : nftRoles?.length || 0}{" "}
             {filter === "all"
               ? "Total"
               : filter === "claimable"
