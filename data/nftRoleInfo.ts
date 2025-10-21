@@ -1,5 +1,8 @@
 import { NFTRole } from "@/types/pythTypes";
 
+// Cache-busting version - force fresh data
+const CACHE_VERSION = "v2.1.0";
+
 // Ensure consistent data structure for production
 export const rolesNFT: NFTRole[] = [
   {
