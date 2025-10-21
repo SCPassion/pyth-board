@@ -134,11 +134,11 @@ export const rolesNFT: NFTRole[] = [
   },
   {
     id: "15",
-    name: "Divinity",
-    description: "No information available yet. Stay tuned!",
-    image: "",
-    projectUrl: "",
-    discordInviteUrl: "",
-    claimable: false,
+    name: "Spiky",
+    description: "The sharp edge of pixel art NFTs on @monad",
+    image: "spiky.jpg",
+    projectUrl: "https://x.com/spiky_xyz",
+    discordInviteUrl: "https://discord.com/invite/spiky",
+    claimable: true,
   },
 ];
