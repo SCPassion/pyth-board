@@ -1,5 +1,6 @@
 import { NFTRole } from "@/types/pythTypes";
 
+// Ensure consistent data structure for production
 export const rolesNFT: NFTRole[] = [
   {
     id: "1",

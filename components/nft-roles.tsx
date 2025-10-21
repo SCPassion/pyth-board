@@ -23,8 +23,11 @@ export function NFTRoles({ nftRoles }: NFTRolesProps) {
     setIsMounted(true);
   }, []);
 
+  // Ensure we have valid data
+  const safeNftRoles = nftRoles || [];
+
   // Ensure we have data before rendering
-  if (!nftRoles || nftRoles.length === 0) {
+  if (!safeNftRoles || safeNftRoles.length === 0) {
     return (
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -48,7 +51,7 @@ export function NFTRoles({ nftRoles }: NFTRolesProps) {
   }
 
   const filteredRoles = isMounted
-    ? nftRoles.filter((role) => {
+    ? safeNftRoles.filter((role) => {
         // Apply claimable filter
         const matchesClaimableFilter =
           filter === "all" ||
@@ -62,7 +65,7 @@ export function NFTRoles({ nftRoles }: NFTRolesProps) {
 
         return matchesClaimableFilter && matchesSearch;
       })
-    : nftRoles || [];
+    : safeNftRoles;
 
   return (
     <div className="space-y-6">
@@ -75,7 +78,7 @@ export function NFTRoles({ nftRoles }: NFTRolesProps) {
             variant="outline"
             className="text-gray-400 border-gray-600 text-sm"
           >
-            {isMounted ? filteredRoles.length : nftRoles?.length || 0}{" "}
+            {isMounted ? filteredRoles.length : safeNftRoles.length}{" "}
             {filter === "all"
               ? "Total"
               : filter === "claimable"
