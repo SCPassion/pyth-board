@@ -71,18 +71,21 @@ export default function RootLayout({
                     .then(function(registration) {
                       console.log('SW registered: ', registration);
                       
-                      // Handle service worker updates
+                      // Handle service worker updates - force immediate update
                       registration.addEventListener('updatefound', () => {
                         const newWorker = registration.installing;
                         if (newWorker) {
                           newWorker.addEventListener('statechange', () => {
-                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                              // New content is available, reload the page
-                              window.location.reload();
+                            if (newWorker.state === 'installed') {
+                              // Force immediate reload for cache invalidation
+                              window.location.reload(true);
                             }
                           });
                         }
                       });
+                      
+                      // Force update check on page load
+                      registration.update();
                     })
                     .catch(function(registrationError) {
                       console.log('SW registration failed: ', registrationError);
