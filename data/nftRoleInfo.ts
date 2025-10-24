@@ -181,4 +181,13 @@ export const rolesNFT: NFTRole[] = [
     discordInviteUrl: "https://discord.com/invite/delmundos",
     claimable: true,
   },
+  {
+    id: "20",
+    name: "GOLDN",
+    description: "Gold on-Chain ~ Build Wealth & Chill.",
+    image: "/goldn.jpg",
+    projectUrl: "https://x.com/GOLDNonchain",
+    discordInviteUrl: "https://discord.com/invite/goldn",
+    claimable: true,
+  },
 ];
