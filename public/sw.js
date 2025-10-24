@@ -1,9 +1,8 @@
-const CACHE_NAME = "pyth-dashboard-v4";
-const STATIC_CACHE_NAME = "pyth-dashboard-static-v4";
+const CACHE_NAME = "pyth-dashboard-v6";
+const STATIC_CACHE_NAME = "pyth-dashboard-static-v6";
 const urlsToCache = [
   "/",
   "/wallets",
-  "/pythenians",
   "/manifest.json",
   "/pyth.png",
   "/pyth-96.png",
@@ -11,6 +10,7 @@ const urlsToCache = [
   "/pyth-512.png",
   "/favicon.ico",
 ];
+// Note: /pythenians is excluded from cache due to no-cache headers
 
 // Install event - cache resources
 self.addEventListener("install", (event) => {
@@ -42,6 +42,16 @@ self.addEventListener("fetch", (event) => {
           // This prevents serving stale chunks
           return new Response("Chunk not found", { status: 404 });
         })
+    );
+    return;
+  }
+
+  // Handle /pythenians with network-first strategy (no cache)
+  if (request.url.includes("/pythenians")) {
+    event.respondWith(
+      fetch(request).catch(() => {
+        return new Response("Network error", { status: 503 });
+      })
     );
     return;
   }

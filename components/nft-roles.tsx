@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,7 +14,7 @@ interface NFTRolesProps {
 
 type FilterType = "all" | "claimable" | "not-claimable";
 
-export function NFTRoles({ nftRoles }: NFTRolesProps) {
+export const NFTRoles = memo(function NFTRoles({ nftRoles }: NFTRolesProps) {
   const [filter, setFilter] = useState<FilterType>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [isMounted, setIsMounted] = useState(false);
@@ -190,4 +190,4 @@ export function NFTRoles({ nftRoles }: NFTRolesProps) {
       )}
     </div>
   );
-}
+});

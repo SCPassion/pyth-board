@@ -8,12 +8,13 @@ import { NFTRole } from "@/types/pythTypes";
 import Image from "next/image";
 import { DiscordIcon } from "@/components/icons/discord-icon";
 import { TwitterIcon } from "@/components/icons/twitter-icon";
+import { memo } from "react";
 
 interface NFTCardProps {
   role: NFTRole;
 }
 
-export function NFTCard({ role }: NFTCardProps) {
+export const NFTCard = memo(function NFTCard({ role }: NFTCardProps) {
   return (
     <Card className="bg-[#2a2f3e] border-gray-600 hover:border-purple-400 hover:shadow-lg hover:shadow-purple-500/30 transition-all duration-300 group">
       <CardHeader className="pb-1">
@@ -93,4 +94,4 @@ export function NFTCard({ role }: NFTCardProps) {
       </CardContent>
     </Card>
   );
-}
+});

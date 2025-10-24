@@ -5,6 +5,7 @@ import "./globals.css";
 import { AppLayout } from "@/components/app-layout";
 import { PWAInstallPrompt } from "@/components/pwa-install-prompt";
 import { ServiceWorkerHandler } from "@/components/service-worker-handler";
+import { ServiceWorkerScript } from "@/components/service-worker-script";
 import { Analytics } from "@vercel/analytics/react";
 import { Toaster } from "react-hot-toast";
 
@@ -62,68 +63,9 @@ export default function RootLayout({
         <meta name="application-name" content="Pyth Dashboard" />
         <meta name="msapplication-TileColor" content="#8b5cf6" />
         <meta name="msapplication-tap-highlight" content="no" />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              if ('serviceWorker' in navigator) {
-                window.addEventListener('load', function() {
-                  navigator.serviceWorker.register('/sw.js')
-                    .then(function(registration) {
-                      console.log('SW registered: ', registration);
-                      
-                      // Handle service worker updates - force immediate update
-                      registration.addEventListener('updatefound', () => {
-                        const newWorker = registration.installing;
-                        if (newWorker) {
-                          newWorker.addEventListener('statechange', () => {
-                            if (newWorker.state === 'installed') {
-                              // Force immediate reload for cache invalidation
-                              window.location.reload(true);
-                            }
-                          });
-                        }
-                      });
-                      
-                      // Force update check on page load
-                      registration.update();
-                    })
-                    .catch(function(registrationError) {
-                      console.log('SW registration failed: ', registrationError);
-                    });
-                });
-              }
-              
-              // Handle chunk loading errors with better error handling
-              window.addEventListener('error', function(event) {
-                if (event.error && event.error.name === 'ChunkLoadError') {
-                  console.log('Chunk load error detected, clearing cache and reloading...');
-                  // Clear service worker cache
-                  if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-                    navigator.serviceWorker.controller.postMessage({ type: 'CLEAR_CACHE' });
-                  }
-                  // Force reload with cache bypass
-                  window.location.reload(true);
-                }
-              });
-              
-              // Handle unhandled promise rejections (chunk loading failures)
-              window.addEventListener('unhandledrejection', function(event) {
-                if (event.reason && event.reason.name === 'ChunkLoadError') {
-                  console.log('Chunk load error in promise, clearing cache and reloading...');
-                  event.preventDefault();
-                  // Clear service worker cache
-                  if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-                    navigator.serviceWorker.controller.postMessage({ type: 'CLEAR_CACHE' });
-                  }
-                  // Force reload with cache bypass
-                  window.location.reload(true);
-                }
-              });
-            `,
-          }}
-        />
       </head>
       <body className={inter.className}>
+        <ServiceWorkerScript />
         <AppLayout>{children}</AppLayout>
         <PWAInstallPrompt />
         <ServiceWorkerHandler />
