@@ -187,4 +187,14 @@ export const rolesNFT: NFTRole[] = [
     discordInviteUrl: "https://discord.com/invite/goldn",
     claimable: true,
   },
+  {
+    id: "21",
+    name: "Intuition",
+    description:
+      "The decentralized knowledge network & native blockchain for InfoFi",
+    image: "/intuition.jpg",
+    projectUrl: "https://x.com/0xIntuition",
+    discordInviteUrl: "https://discord.com/invite/0xIntuition",
+    claimable: true,
+  },
 ];

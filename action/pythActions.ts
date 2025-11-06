@@ -373,6 +373,9 @@ export async function getPythPrice() {
     "0bbf28e9a841a1cc788f6a361b17ca072d0ea3098a1e5df1c3922d06719579ff";
   const PYTH_API_URL = `https://hermes.pyth.network/v2/updates/price/latest?ids%5B%5D=${PYTH_PRICE_ID}`;
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
+
   try {
     const response = await fetch(PYTH_API_URL, {
       method: "GET",
@@ -380,9 +383,10 @@ export async function getPythPrice() {
         Accept: "application/json",
         "User-Agent": "PythBoard/1.0",
       },
-      // Add timeout to prevent hanging requests
-      signal: AbortSignal.timeout(10000), // 10 second timeout
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -396,6 +400,7 @@ export async function getPythPrice() {
 
     return Number(data.parsed[0].price.price) * 1e-8; // Convert from micro to base units
   } catch (error) {
+    clearTimeout(timeoutId);
     if (error instanceof Error) {
       if (error.name === "AbortError") {
         throw new Error(

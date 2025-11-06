@@ -10,7 +10,8 @@ import {
 import { Sidebar } from "@/components/sidebar";
 import { TopHeader } from "@/components/top-header";
 import { useWalletInfosStore } from "@/store/store";
-import { getPythPrice, getOISStakingInfo } from "@/action/pythActions";
+import { getOISStakingInfo } from "@/action/pythActions";
+import { usePythPrice } from "@/hooks/use-pyth-price";
 
 // Create loading context
 const LoadingContext = createContext<{
@@ -28,7 +29,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const [isLoading, setIsLoading] = useState(true);
 
   const { wallets, setWallets } = useWalletInfosStore();
-  const [pythPrice, setPythPrice] = useState<number | null>(null);
+  const pythPrice = usePythPrice();
 
   const toggleMobileMenu = useCallback(() => {
     setIsMobileMenuOpen((prev) => !prev);
@@ -103,15 +104,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     return () => window.removeEventListener("storage", handleStorageChange);
   }, []); // No dependencies to prevent loops
 
-  // Fetch Pyth price
-  useEffect(() => {
-    async function getPrice() {
-      const price = await getPythPrice();
-      price && setPythPrice(price);
-    }
-
-    getPrice();
-  }, []);
+  // Pyth price is now handled by usePythPrice hook
 
   return (
     <LoadingContext.Provider value={{ isLoading }}>

@@ -9,6 +9,11 @@ const nextConfig: NextConfig = {
       "@radix-ui/react-slot",
     ],
   },
+  // Turbopack configuration for development
+  // Webpack config below is only used for production builds
+  turbopack: {
+    resolveExtensions: [".js", ".jsx", ".ts", ".tsx", ".json"],
+  },
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -24,6 +29,7 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   generateEtags: true,
   // Better chunk handling for Vercel deployment
+  // Note: Webpack config is used for production builds, Turbopack is used for dev
   webpack: (config, { dev, isServer }) => {
     if (!dev && !isServer) {
       // Optimize chunk loading for production
