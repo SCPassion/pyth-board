@@ -35,54 +35,86 @@ export function AppLayout({ children }: AppLayoutProps) {
     setIsMobileMenuOpen((prev) => !prev);
   }, []);
 
-  // Load wallets from localStorage - SIMPLIFIED VERSION
+  // Load wallets from localStorage - iOS/Mobile compatible version
   useEffect(() => {
     let isMounted = true;
     let timeoutId: NodeJS.Timeout;
 
     function loadWallets() {
+      // Check if we're in a browser environment and localStorage is available
+      if (typeof window === "undefined") {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+        return;
+      }
+
       try {
-        const storedWallets = localStorage.getItem("wallets");
+        // Try to access localStorage with error handling for iOS private browsing
+        let storedWallets: string | null = null;
+        try {
+          storedWallets = localStorage.getItem("wallets");
+        } catch (storageError) {
+          // iOS Safari private browsing mode or storage disabled
+          console.warn("localStorage not available:", storageError);
+          if (isMounted) {
+            setWallets([]);
+            setIsLoading(false);
+          }
+          return;
+        }
+
         let wallets = [];
 
         if (storedWallets) {
-          wallets = JSON.parse(storedWallets);
-        } else {
-          localStorage.setItem("wallets", JSON.stringify([]));
+          try {
+            wallets = JSON.parse(storedWallets);
+          } catch (parseError) {
+            console.error("Error parsing wallet data:", parseError);
+            wallets = [];
+          }
         }
 
         if (isMounted) {
           setWallets(wallets);
         }
+
+        // Try to initialize localStorage if empty (but don't fail if it's disabled)
+        if (!storedWallets) {
+          try {
+            localStorage.setItem("wallets", JSON.stringify([]));
+          } catch (setError) {
+            // localStorage might be disabled, that's okay
+            console.warn("Could not initialize localStorage:", setError);
+          }
+        }
       } catch (error) {
         console.error("Error loading wallets:", error);
         if (isMounted) {
           setWallets([]);
-          localStorage.setItem("wallets", JSON.stringify([]));
         }
       } finally {
-        // Always set loading to false after a short delay
-        timeoutId = setTimeout(() => {
-          if (isMounted) {
-            setIsLoading(false);
-          }
-        }, 1000);
+        // Always set loading to false immediately (no artificial delay)
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     }
 
+    // Load wallets immediately
     loadWallets();
 
-    // Emergency timeout to prevent infinite loading
+    // Emergency timeout to prevent infinite loading (reduced from 10s to 3s)
     const emergencyTimeout = setTimeout(() => {
       if (isMounted) {
         console.warn("Emergency timeout: Forcing loading to false");
         setIsLoading(false);
       }
-    }, 10000); // 10 second emergency timeout
+    }, 3000); // 3 second emergency timeout
 
     return () => {
       isMounted = false;
-      clearTimeout(timeoutId);
+      if (timeoutId) clearTimeout(timeoutId);
       clearTimeout(emergencyTimeout);
     };
   }, []); // Only run on mount
