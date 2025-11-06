@@ -38,14 +38,14 @@ export function AppLayout({ children }: AppLayoutProps) {
   // Load wallets from localStorage - iOS/Mobile compatible version
   useEffect(() => {
     let isMounted = true;
-    let timeoutId: NodeJS.Timeout;
+
+    // Set loading to false immediately on mount (don't block UI)
+    // We'll load wallets in the background
+    setIsLoading(false);
 
     function loadWallets() {
-      // Check if we're in a browser environment and localStorage is available
+      // Check if we're in a browser environment
       if (typeof window === "undefined") {
-        if (isMounted) {
-          setIsLoading(false);
-        }
         return;
       }
 
@@ -59,7 +59,6 @@ export function AppLayout({ children }: AppLayoutProps) {
           console.warn("localStorage not available:", storageError);
           if (isMounted) {
             setWallets([]);
-            setIsLoading(false);
           }
           return;
         }
@@ -93,29 +92,19 @@ export function AppLayout({ children }: AppLayoutProps) {
         if (isMounted) {
           setWallets([]);
         }
-      } finally {
-        // Always set loading to false immediately (no artificial delay)
-        if (isMounted) {
-          setIsLoading(false);
-        }
       }
     }
 
-    // Load wallets immediately
-    loadWallets();
-
-    // Emergency timeout to prevent infinite loading (reduced from 10s to 3s)
-    const emergencyTimeout = setTimeout(() => {
-      if (isMounted) {
-        console.warn("Emergency timeout: Forcing loading to false");
-        setIsLoading(false);
-      }
-    }, 3000); // 3 second emergency timeout
+    // Load wallets asynchronously (don't block UI)
+    // Use requestIdleCallback if available, otherwise setTimeout
+    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+      (window as any).requestIdleCallback(loadWallets, { timeout: 100 });
+    } else {
+      setTimeout(loadWallets, 0);
+    }
 
     return () => {
       isMounted = false;
-      if (timeoutId) clearTimeout(timeoutId);
-      clearTimeout(emergencyTimeout);
     };
   }, []); // Only run on mount
 

@@ -14,10 +14,9 @@ export default function Dashboard() {
   const pythPrice = usePythPrice();
   const { isLoading } = useAppLoading();
 
-  // Show skeleton while loading
-  if (isLoading) {
-    return <DashboardSkeleton />;
-  }
+  // Show skeleton only briefly while initial load (don't block forever)
+  // If wallets are empty, show skeleton, otherwise show content
+  const showSkeleton = isLoading && wallets.length === 0;
 
   const totalStaked = wallets.reduce((sum, wallet) => {
     return sum + (wallet.stakingInfo?.totalStakedPyth || 0);
@@ -46,6 +45,11 @@ export default function Dashboard() {
   const rewardsDistributed =
     (wallets[wallets.length - 1]?.stakingInfo?.generalStats
       ?.rewardsDistributed || 0) / 1e6;
+
+  // Show skeleton only if loading and no wallets
+  if (showSkeleton) {
+    return <DashboardSkeleton />;
+  }
 
   return (
     <div className="space-y-6">
