@@ -29,6 +29,23 @@ self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
+  // Don't cache POST, PUT, DELETE, or PATCH requests
+  if (request.method !== "GET") {
+    event.respondWith(fetch(request));
+    return;
+  }
+
+  // Don't cache server actions or API routes
+  if (
+    url.pathname.startsWith("/_next/") ||
+    url.pathname.startsWith("/api/") ||
+    url.pathname.includes("server-action") ||
+    url.searchParams.has("_rsc")
+  ) {
+    event.respondWith(fetch(request));
+    return;
+  }
+
   // Handle Next.js static chunks - network first, no caching for chunks
   if (url.pathname.startsWith("/_next/static/")) {
     event.respondWith(
@@ -56,18 +73,21 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Handle other requests with cache-first strategy
+  // Handle other GET requests with cache-first strategy
   event.respondWith(
     caches.match(request).then((response) => {
       if (response) {
         return response;
       }
       return fetch(request).then((fetchResponse) => {
-        // Cache successful responses
-        if (fetchResponse.ok) {
+        // Only cache successful GET responses
+        if (fetchResponse.ok && request.method === "GET") {
           const responseClone = fetchResponse.clone();
           caches.open(CACHE_NAME).then((cache) => {
-            cache.put(request, responseClone);
+            cache.put(request, responseClone).catch((error) => {
+              // Silently fail if caching fails (e.g., quota exceeded)
+              console.warn("Failed to cache response:", error);
+            });
           });
         }
         return fetchResponse;
