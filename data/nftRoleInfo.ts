@@ -198,3 +198,10 @@ export const rolesNFT: NFTRole[] = [
     claimable: true,
   },
 ];
+
+// Export sorted array (create new array to avoid mutation)
+export const sortedRolesNFT = [...rolesNFT].sort((a, b) => {
+  const idA = parseInt(a.id, 10);
+  const idB = parseInt(b.id, 10);
+  return idB - idA; // Descending order
+});

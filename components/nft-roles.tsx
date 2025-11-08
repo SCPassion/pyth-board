@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, memo } from "react";
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,14 +14,9 @@ interface NFTRolesProps {
 
 type FilterType = "all" | "claimable" | "not-claimable";
 
-export const NFTRoles = memo(function NFTRoles({ nftRoles }: NFTRolesProps) {
+export function NFTRoles({ nftRoles }: NFTRolesProps) {
   const [filter, setFilter] = useState<FilterType>("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
 
   // Ensure we have valid data
   const safeNftRoles = nftRoles || [];
@@ -50,22 +45,21 @@ export const NFTRoles = memo(function NFTRoles({ nftRoles }: NFTRolesProps) {
     );
   }
 
-  const filteredRoles = isMounted
-    ? safeNftRoles.filter((role) => {
-        // Apply claimable filter
-        const matchesClaimableFilter =
-          filter === "all" ||
-          (filter === "claimable" && role.claimable) ||
-          (filter === "not-claimable" && !role.claimable);
+  // Filter roles (data is already sorted in descending order by ID)
+  const filteredRoles = safeNftRoles.filter((role) => {
+    // Apply claimable filter
+    const matchesClaimableFilter =
+      filter === "all" ||
+      (filter === "claimable" && role.claimable) ||
+      (filter === "not-claimable" && !role.claimable);
 
-        // Apply search filter
-        const matchesSearch =
-          searchQuery === "" ||
-          role.name.toLowerCase().includes(searchQuery.toLowerCase());
+    // Apply search filter
+    const matchesSearch =
+      searchQuery === "" ||
+      role.name.toLowerCase().includes(searchQuery.toLowerCase());
 
-        return matchesClaimableFilter && matchesSearch;
-      })
-    : safeNftRoles;
+    return matchesClaimableFilter && matchesSearch;
+  });
 
   return (
     <div className="space-y-6">
@@ -78,7 +72,7 @@ export const NFTRoles = memo(function NFTRoles({ nftRoles }: NFTRolesProps) {
             variant="outline"
             className="text-gray-400 border-gray-600 text-sm"
           >
-            {isMounted ? filteredRoles.length : safeNftRoles.length}{" "}
+            {filteredRoles.length}{" "}
             {filter === "all"
               ? "Total"
               : filter === "claimable"
@@ -190,4 +184,4 @@ export const NFTRoles = memo(function NFTRoles({ nftRoles }: NFTRolesProps) {
       )}
     </div>
   );
-});
+}

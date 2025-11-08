@@ -1,8 +1,14 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { NFTRoles } from "@/components/nft-roles";
-import { rolesNFT } from "@/data/nftRoleInfo";
+import { sortedRolesNFT } from "@/data/nftRoleInfo";
 
-export default function PytheniansPage() {
-  return <NFTRoles nftRoles={rolesNFT} />;
-}
+// Disable SSR to prevent hydration mismatches
+const PytheniansContent = () => {
+  return <NFTRoles nftRoles={sortedRolesNFT} />;
+};
+
+export default dynamic(() => Promise.resolve(PytheniansContent), {
+  ssr: false,
+});
