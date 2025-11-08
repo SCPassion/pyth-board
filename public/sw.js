@@ -1,5 +1,5 @@
-const CACHE_NAME = "pyth-dashboard-v6";
-const STATIC_CACHE_NAME = "pyth-dashboard-static-v6";
+const CACHE_NAME = "pyth-dashboard-v7";
+const STATIC_CACHE_NAME = "pyth-dashboard-static-v7";
 const urlsToCache = [
   "/",
   "/wallets",
