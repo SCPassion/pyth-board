@@ -51,15 +51,17 @@ export function Sidebar({
       >
         {/* Pyth Network Logo */}
         <div className="p-6 border-b border-gray-800">
-          <div className="flex items-center gap-3">
-            <span className="text-white font-semibold text-lg">
+          <div className="flex items-center gap-3 w-full overflow-hidden">
+            <div className="relative w-full max-w-[200px] h-auto">
               <Image
                 src="/PythLight.svg"
                 width={3285}
                 height={1120}
-                alt="Pyth image"
+                alt="Pyth Network"
+                className="w-full h-auto object-contain"
+                priority
               />
-            </span>
+            </div>
           </div>
         </div>
 
