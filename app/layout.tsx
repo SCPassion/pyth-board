@@ -4,8 +4,6 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { AppLayout } from "@/components/app-layout";
 import { PWAInstallPrompt } from "@/components/pwa-install-prompt";
-import { ServiceWorkerHandler } from "@/components/service-worker-handler";
-import { ServiceWorkerScript } from "@/components/service-worker-script";
 import { Analytics } from "@vercel/analytics/react";
 import { Toaster } from "react-hot-toast";
 
@@ -65,10 +63,8 @@ export default function RootLayout({
         <meta name="msapplication-tap-highlight" content="no" />
       </head>
       <body className={inter.className}>
-        <ServiceWorkerScript />
         <AppLayout>{children}</AppLayout>
         <PWAInstallPrompt />
-        <ServiceWorkerHandler />
         <Toaster
           position="bottom-right"
           toastOptions={{
