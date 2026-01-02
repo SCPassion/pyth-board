@@ -51,7 +51,7 @@ export function WalletSection({ wallet }: WalletSectionProps) {
                 Staking Account: {wallet.stakingAddress}
               </p>
             </div>
-            <div className="text-left sm:text-right">
+            <div className="text-left sm:text-right space-y-3">
               <Button
                 variant="outline"
                 size="sm"
@@ -83,14 +83,19 @@ export function WalletSection({ wallet }: WalletSectionProps) {
               >
                 Remove Wallet
               </Button>
-              <p className="text-xl sm:text-2xl font-bold text-white">
-                {wallet.stakingInfo?.totalStakedPyth.toFixed(2)} PYTH
-              </p>
-              <p className="text-gray-400 text-xs sm:text-sm">Total Staked</p>
+              <div className="space-y-2">
+                <div>
+                  <p className="text-xl sm:text-2xl font-bold text-white">
+                    {wallet.stakingInfo?.totalStakedPyth.toFixed(2) || "0.00"} PYTH
+                  </p>
+                  <p className="text-gray-400 text-xs sm:text-sm">Total Staked</p>
+                </div>
+
+              </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 sm:gap-6 mb-4 sm:mb-6">
             <div>
               <p className="text-gray-400 text-xs sm:text-sm">Staking APY</p>
               <p className="text-xl sm:text-2xl font-bold text-green-400">
@@ -103,6 +108,14 @@ export function WalletSection({ wallet }: WalletSectionProps) {
               </p>
               <p className="text-xl sm:text-2xl font-bold text-white">
                 {wallet.stakingInfo?.StakeForEachPublisher.length || 0}
+              </p>
+            </div>
+            <div className="sm:ml-auto">
+              <p className="text-gray-400 text-xs sm:text-sm">
+                Claimable Rewards
+              </p>
+              <p className="text-xl sm:text-2xl font-bold text-yellow-400">
+                {wallet.stakingInfo?.claimableRewards.toFixed(2) || "0.00"} PYTH
               </p>
             </div>
           </div>
@@ -127,7 +140,7 @@ export function WalletSection({ wallet }: WalletSectionProps) {
             </div>
 
             <div className="space-y-2">
-              <div className="hidden sm:grid grid-cols-3 gap-4 text-gray-400 text-sm font-medium pb-2 border-b border-gray-700">
+              <div className="grid grid-cols-3 gap-4 text-gray-400 text-sm font-medium pb-2 border-b border-gray-700">
                 <div className="text-left">Validator's public key</div>
                 <div className="text-center">Your Stake</div>
                 <div className="text-center">APY</div>

@@ -35,8 +35,11 @@ export function TopHeader({
         <h1 className="text-white text-lg sm:text-xl font-medium truncate">
           Pyth Dashboard
         </h1>
-        <span className="inline-block text-xs text-gray-400 bg-gray-800/50 px-2 py-0.5 rounded border border-gray-700 whitespace-nowrap flex-shrink-0">
-          v0.1.3
+        <span 
+          className="inline-block text-xs text-gray-400 bg-gray-800/50 px-2 py-0.5 rounded border border-gray-700 whitespace-nowrap flex-shrink-0"
+          suppressHydrationWarning
+        >
+          v0.1.4
         </span>
       </div>
 
