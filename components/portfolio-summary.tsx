@@ -2,7 +2,7 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Wallet, TrendingUp, Users } from "lucide-react";
+import { Wallet, Users } from "lucide-react";
 
 interface PortfolioSummaryProps {
   connectedWallets: number;

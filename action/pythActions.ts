@@ -152,6 +152,7 @@ export async function getOISStakingInfo(
           publisherKey: key,
           stakedAmount: Number(p.amount) * 1e-6,
           apy: publisherData?.apy ?? 0,
+          rewards: 0, // Will be calculated after totalStakedPyth is known
         };
       })
       .filter((p): p is MyPublisherInfo => p !== null);
@@ -161,6 +162,17 @@ export async function getOISStakingInfo(
       (acc, publisher) => acc + publisher.stakedAmount,
       0
     );
+
+    // Calculate rewards per validator proportionally based on staked amount
+    StakeForEachPublisher.forEach((publisher) => {
+      if (totalStakedPyth > 0 && claimableRewards > 0) {
+        publisher.rewards =
+          (publisher.stakedAmount / totalStakedPyth) * claimableRewards;
+      } else {
+        // Ensure rewards is always a number, default to 0
+        publisher.rewards = 0;
+      }
+    });
 
     return {
       StakeForEachPublisher,

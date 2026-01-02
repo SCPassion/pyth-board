@@ -13,6 +13,7 @@ export type MyPublisherInfo = {
   publisherKey: string;
   stakedAmount: number;
   apy: number;
+  rewards: number;
 };
 
 export type PythGeneralStats = {
