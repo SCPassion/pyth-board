@@ -14,9 +14,6 @@ const nextConfig: NextConfig = {
   turbopack: {
     resolveExtensions: [".js", ".jsx", ".ts", ".tsx", ".json"],
   },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   typescript: {
     ignoreBuildErrors: true,
   },
