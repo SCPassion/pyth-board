@@ -112,6 +112,14 @@ const nextConfig: NextConfig = {
             key: "Cache-Control",
             value: "public, max-age=86400",
           },
+          {
+            key: "Content-Type",
+            value: "application/manifest+json",
+          },
+          {
+            key: "Access-Control-Allow-Origin",
+            value: "*",
+          },
         ],
       },
       {
