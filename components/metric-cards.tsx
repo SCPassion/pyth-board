@@ -3,15 +3,17 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useWalletInfosStore } from "@/store/store";
-import { Beef, TrendingUp, PieChart as PieChartIcon } from "lucide-react";
+import { Beef, TrendingUp, PieChart as PieChartIcon, Gift } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 
 type MetricCardsProps = {
   pythPrice: number | null;
   totalStaked: number;
+  totalClaimableRewards: number;
 };
-export function MetricCards({ pythPrice, totalStaked }: MetricCardsProps) {
+export function MetricCards({ pythPrice, totalStaked, totalClaimableRewards }: MetricCardsProps) {
+  const rewardsInUSD = pythPrice ? totalClaimableRewards * pythPrice : 0;
   const wallets = useWalletInfosStore((state) => state.wallets);
   // Process wallet data for pie chart
   const walletData = wallets.map((wallet) => ({
@@ -59,7 +61,7 @@ export function MetricCards({ pythPrice, totalStaked }: MetricCardsProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         <Card className="bg-[#2a2f3e] border-gray-700 hover:border-green-400 hover:shadow-lg hover:shadow-green-500/30 transition-all duration-300 group">
           <CardContent className="p-4 sm:p-6 space-y-3 sm:space-y-4">
             <div className="flex items-center justify-between">
@@ -146,6 +148,34 @@ export function MetricCards({ pythPrice, totalStaked }: MetricCardsProps) {
                 </div>
               ))}
             </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-[#2a2f3e] border-gray-700 hover:border-yellow-400 hover:shadow-lg hover:shadow-yellow-500/30 transition-all duration-300 group">
+          <CardContent className="p-4 sm:p-6 space-y-3 sm:space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Gift className="w-4 h-4 text-yellow-400 group-hover:text-yellow-300 transition-colors" />
+                <p className="text-gray-400 text-xs sm:text-sm group-hover:text-gray-300 transition-colors">
+                  Total Claimable Rewards
+                </p>
+              </div>
+              <Badge
+                variant="outline"
+                className="text-yellow-400 border-yellow-600 text-xs group-hover:bg-yellow-500/20 transition-colors"
+              >
+                All Wallets
+              </Badge>
+            </div>
+            <p className="text-2xl sm:text-3xl font-bold text-yellow-400 group-hover:text-yellow-100 transition-colors">
+              {totalClaimableRewards.toFixed(2)} PYTH
+            </p>
+            <p className="text-gray-400 text-xs sm:text-sm group-hover:text-gray-300 transition-colors">
+              Rewards in USD
+            </p>
+            <p className="text-xl sm:text-2xl font-bold text-white group-hover:text-yellow-100 transition-colors">
+              $ {rewardsInUSD ? rewardsInUSD.toFixed(2) : "..."}
+            </p>
           </CardContent>
         </Card>
       </div>
