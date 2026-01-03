@@ -3,8 +3,10 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { ReserveSummary } from "@/components/reserve-summary";
 import { ReserveAccountCard } from "@/components/reserve-account-card";
+import { SwapTransactions } from "@/components/swap-transactions";
 import { getPythReserveSummary } from "@/action/pythReserveActions";
-import type { PythReserveSummary } from "@/types/pythTypes";
+import { getSwapTransactions } from "@/action/swapTransactionsActions";
+import type { PythReserveSummary, SwapTransaction } from "@/types/pythTypes";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
@@ -12,6 +14,7 @@ import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
 export default function ReservePage() {
   const [reserveSummary, setReserveSummary] =
     useState<PythReserveSummary | null>(null);
+  const [swapTransactions, setSwapTransactions] = useState<SwapTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const hasFetchedRef = useRef(false);
@@ -27,8 +30,12 @@ export default function ReservePage() {
       isFetchingRef.current = true;
       setLoading(true);
       setError(null);
-      const data = await getPythReserveSummary();
+      const [data, swaps] = await Promise.all([
+        getPythReserveSummary(),
+        getSwapTransactions(),
+      ]);
       setReserveSummary(data);
+      setSwapTransactions(swaps);
       hasFetchedRef.current = true;
     } catch (err) {
       const errorMessage =
@@ -129,6 +136,11 @@ export default function ReservePage() {
             accountInfo={reserveSummary.pythianCouncilOps}
           />
         </div>
+      </div>
+
+      {/* Swap Transactions */}
+      <div className="space-y-4">
+        <SwapTransactions transactions={swapTransactions} />
       </div>
 
       {/* Information Section */}

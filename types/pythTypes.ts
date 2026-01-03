@@ -63,3 +63,16 @@ export type PythReserveSummary = {
   totalReserveValue: number;
   totalPythHeld: number;
 };
+
+export type SwapTransaction = {
+  signature: string;
+  timestamp: number;
+  date: string;
+  block: number;
+  inputToken: string;
+  inputAmount: number;
+  outputAmount: number; // PYTH amount
+  postBalance: number; // PYTH balance after swap
+  swapProgram: string;
+  explorerUrl: string;
+};
