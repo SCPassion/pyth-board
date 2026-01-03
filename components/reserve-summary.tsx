@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { PythReserveSummary } from "@/types/pythTypes";
 import { TrendingUp, Coins, Building2 } from "lucide-react";
+import Image from "next/image";
 
 interface ReserveSummaryProps {
   reserveSummary: PythReserveSummary;
@@ -75,7 +76,13 @@ export function ReserveSummary({ reserveSummary }: ReserveSummaryProps) {
           <CardContent className="p-4 sm:p-6">
             <div className="flex items-center gap-3 sm:gap-4">
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-500/20 rounded-lg flex items-center justify-center group-hover:bg-blue-500/30 transition-colors">
-                <Coins className="h-5 w-5 sm:h-6 sm:w-6 text-blue-400 group-hover:text-blue-300 transition-colors" />
+                <Image
+                  src="/pyth.svg"
+                  alt="PYTH"
+                  width={32}
+                  height={32}
+                  className="w-6 h-6 sm:w-8 sm:h-8"
+                />
               </div>
               <div>
                 <p className="text-gray-400 text-xs sm:text-sm group-hover:text-gray-300 transition-colors">

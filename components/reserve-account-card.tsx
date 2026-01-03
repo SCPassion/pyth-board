@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { ReserveAccountInfo } from "@/types/pythTypes";
 import { Wallet, ExternalLink } from "lucide-react";
+import Image from "next/image";
 
 interface ReserveAccountCardProps {
   accountInfo: ReserveAccountInfo;
@@ -48,6 +49,17 @@ export function ReserveAccountCard({ accountInfo }: ReserveAccountCardProps) {
   };
 
   const solanaExplorerUrl = `https://solscan.io/account/${accountInfo.address}`;
+
+  // Get icon path for token symbol
+  const getTokenIcon = (symbol: string): string => {
+    const iconMap: Record<string, string> = {
+      SOL: "/sol.webp",
+      PYTH: "/pyth.svg",
+      USDC: "/usdc.webp",
+      USDT: "/usdt.svg",
+    };
+    return iconMap[symbol] || "";
+  };
 
   return (
     <Card className="bg-[#2a2f3e] border-gray-700 hover:border-purple-400 hover:shadow-lg hover:shadow-purple-500/30 transition-all duration-300">
@@ -106,8 +118,14 @@ export function ReserveAccountCard({ accountInfo }: ReserveAccountCardProps) {
         {accountInfo.solBalance > 0 && (
           <div className="flex items-center justify-between p-3 bg-gray-800/30 rounded-lg">
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-blue-500/20 rounded-full flex items-center justify-center">
-                <span className="text-blue-400 text-xs font-bold">SOL</span>
+              <div className="w-6 h-6 flex items-center justify-center flex-shrink-0">
+                <Image
+                  src="/sol.webp"
+                  alt="SOL"
+                  width={24}
+                  height={24}
+                  className="w-6 h-6"
+                />
               </div>
               <span className="text-gray-300 text-sm">SOL</span>
             </div>
@@ -133,10 +151,22 @@ export function ReserveAccountCard({ accountInfo }: ReserveAccountCardProps) {
                   className="flex items-center justify-between p-3 bg-gray-800/30 rounded-lg hover:bg-gray-800/50 transition-colors"
                 >
                   <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <div className="w-6 h-6 bg-purple-500/20 rounded-full flex items-center justify-center flex-shrink-0">
-                      <span className="text-purple-400 text-xs font-bold">
-                        {token.symbol.slice(0, 2).toUpperCase()}
-                      </span>
+                    <div className="w-6 h-6 flex items-center justify-center flex-shrink-0">
+                      {getTokenIcon(token.symbol) ? (
+                        <Image
+                          src={getTokenIcon(token.symbol)}
+                          alt={token.symbol}
+                          width={24}
+                          height={24}
+                          className="w-6 h-6"
+                        />
+                      ) : (
+                        <div className="w-6 h-6 bg-purple-500/20 rounded-full flex items-center justify-center">
+                          <span className="text-purple-400 text-xs font-bold">
+                            {token.symbol.slice(0, 2).toUpperCase()}
+                          </span>
+                        </div>
+                      )}
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="text-gray-300 text-sm font-medium truncate">
