@@ -25,26 +25,13 @@ export function ReserveAccountCard({ accountInfo }: ReserveAccountCardProps) {
   };
 
   const formatTokenAmount = (amount: number, decimals: number = 0) => {
-    if (amount === 0) return "0";
+    if (amount === 0) return "0.00";
     if (amount < 0.01) return "< 0.01";
     
-    // Validate and clamp decimals to valid range (0-20) for Intl.NumberFormat
-    // Handle edge cases: NaN, Infinity, negative numbers
-    let safeDecimals = 0;
-    if (typeof decimals === "number" && !isNaN(decimals) && isFinite(decimals)) {
-      safeDecimals = Math.max(0, Math.min(20, Math.floor(decimals)));
-    }
-    
-    // Use a reasonable default for token display (max 6 decimal places)
-    const displayDecimals = Math.min(safeDecimals, 6);
-    
-    // Ensure minimumFractionDigits is valid (0-20) and <= maximumFractionDigits
-    const minFractionDigits = Math.max(0, Math.min(2, displayDecimals));
-    const maxFractionDigits = Math.max(minFractionDigits, Math.min(20, displayDecimals));
-    
+    // Format all amounts to 2 decimal places
     return new Intl.NumberFormat("en-US", {
-      minimumFractionDigits: minFractionDigits,
-      maximumFractionDigits: maxFractionDigits,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     }).format(amount);
   };
 
@@ -142,44 +129,35 @@ export function ReserveAccountCard({ accountInfo }: ReserveAccountCardProps) {
 
         {/* Token Balances */}
         {accountInfo.tokenBalances.length > 0 && (
-          <div className="space-y-2">
-            <p className="text-gray-400 text-sm font-medium">Token Holdings</p>
-            <div className="space-y-2 max-h-64 overflow-y-auto">
+          <div>
+            <p className="text-gray-400 text-sm font-medium mb-3">Token Holdings</p>
+            <div className="flex flex-wrap gap-3">
               {accountInfo.tokenBalances.map((token, index) => (
                 <div
                   key={`${token.mint}-${index}`}
-                  className="flex items-center justify-between p-3 bg-gray-800/30 rounded-lg hover:bg-gray-800/50 transition-colors"
+                  className="flex items-center gap-2 px-3 py-2 bg-gray-800/30 rounded-lg hover:bg-gray-800/50 transition-colors flex-1 min-w-0"
                 >
-                  <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <div className="w-6 h-6 flex items-center justify-center flex-shrink-0">
-                      {getTokenIcon(token.symbol) ? (
-                        <Image
-                          src={getTokenIcon(token.symbol)}
-                          alt={token.symbol}
-                          width={24}
-                          height={24}
-                          className="w-6 h-6"
-                        />
-                      ) : (
-                        <div className="w-6 h-6 bg-purple-500/20 rounded-full flex items-center justify-center">
-                          <span className="text-purple-400 text-xs font-bold">
-                            {token.symbol.slice(0, 2).toUpperCase()}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-gray-300 text-sm font-medium truncate">
-                        {token.symbol}
-                      </p>
-                      {token.symbol === "UNKNOWN" && (
-                        <p className="text-gray-500 text-xs font-mono truncate">
-                          {formatAddress(token.mint)}
-                        </p>
-                      )}
-                    </div>
+                  <div className="w-5 h-5 flex items-center justify-center flex-shrink-0">
+                    {getTokenIcon(token.symbol) ? (
+                      <Image
+                        src={getTokenIcon(token.symbol)}
+                        alt={token.symbol}
+                        width={20}
+                        height={20}
+                        className="w-5 h-5"
+                      />
+                    ) : (
+                      <div className="w-5 h-5 bg-purple-500/20 rounded-full flex items-center justify-center">
+                        <span className="text-purple-400 text-xs font-bold">
+                          {token.symbol.slice(0, 2).toUpperCase()}
+                        </span>
+                      </div>
+                    )}
                   </div>
-                  <div className="text-right ml-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-gray-300 text-xs font-medium truncate">
+                      {token.symbol}
+                    </p>
                     <p className="text-white font-semibold text-sm">
                       {formatTokenAmount(token.amount, token.decimals)}
                     </p>
