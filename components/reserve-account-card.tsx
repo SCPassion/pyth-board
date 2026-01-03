@@ -131,7 +131,7 @@ export function ReserveAccountCard({ accountInfo }: ReserveAccountCardProps) {
         {accountInfo.tokenBalances.length > 0 && (
           <div>
             <p className="text-gray-400 text-sm font-medium mb-3">Token Holdings</p>
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-row gap-3">
               {accountInfo.tokenBalances.map((token, index) => (
                 <div
                   key={`${token.mint}-${index}`}
