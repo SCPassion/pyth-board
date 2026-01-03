@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   Wallet,
   Image as ImageIcon,
+  Building2,
 } from "lucide-react";
 import { TwitterIcon } from "@/components/icons/twitter-icon";
 import { cn } from "@/lib/utils";
@@ -106,6 +107,20 @@ export function Sidebar({
               >
                 <ImageIcon className="h-5 w-5" />
                 Pythenians
+              </Button>
+            </Link>
+
+            <Link href="/reserve" onClick={() => onMobileMenuToggle()}>
+              <Button
+                variant="ghost"
+                className={cn(
+                  "w-full justify-start gap-3 text-gray-300 hover:text-white hover:bg-purple-500/10 cursor-pointer",
+                  isActive("/reserve") &&
+                    "bg-purple-500/20 text-white border-r-2 border-purple-500"
+                )}
+              >
+                <Building2 className="h-5 w-5" />
+                Reserve
               </Button>
             </Link>
           </nav>
