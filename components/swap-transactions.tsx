@@ -39,7 +39,7 @@ export function SwapTransactions({ transactions }: SwapTransactionsProps) {
 
   if (transactions.length === 0) {
     return (
-      <Card className="bg-[#2a2f3e] border-gray-600 hover:border-purple-400 hover:shadow-lg hover:shadow-purple-500/30 transition-all duration-300">
+      <Card className="bg-[#2a2f3e] border-gray-700 hover:border-purple-400 hover:shadow-lg hover:shadow-purple-500/30 transition-all duration-300">
         <CardHeader>
           <p className="text-gray-400 text-xs">
             Last 10 token swaps to PYTH by Pythian Council Ops Multisig
@@ -62,30 +62,30 @@ export function SwapTransactions({ transactions }: SwapTransactionsProps) {
     );
   }
 
-  return (
-    <Card className="bg-[#2a2f3e] border-gray-600 hover:border-purple-400 hover:shadow-lg hover:shadow-purple-500/30 transition-all duration-300">
+    return (
+      <Card className="bg-[#2a2f3e] border-gray-700 hover:border-purple-400 hover:shadow-lg hover:shadow-purple-500/30 transition-all duration-300">
       <CardHeader>
         <p className="text-gray-400 text-xs">
           Last 10 token swaps to PYTH by Pythian Council Ops Multisig
         </p>
       </CardHeader>
           <CardContent>
-            {/* Table Header */}
+            {/* Table Header - Desktop Only */}
             <div className="hidden sm:flex items-center justify-evenly gap-4 pb-3 mb-3 border-b border-gray-700 px-3">
-              <div className="flex items-center gap-2 flex-1">
+              <div className="flex items-center gap-2 flex-1 min-w-0">
                 <div className="w-6 h-6 flex-shrink-0"></div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-gray-400 text-xs font-medium">Input Token</p>
                 </div>
               </div>
               <div className="flex-shrink-0 w-4"></div>
-              <div className="flex items-center gap-2 flex-1">
+              <div className="flex items-center gap-2 flex-1 min-w-0">
                 <div className="w-6 h-6 flex-shrink-0"></div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-gray-400 text-xs font-medium">Output (PYTH)</p>
                 </div>
               </div>
-              <div className="flex-1 text-center">
+              <div className="flex-1 text-center min-w-0">
                 <p className="text-gray-400 text-xs font-medium">Signature</p>
               </div>
               <div className="flex-1 text-center">
@@ -102,9 +102,71 @@ export function SwapTransactions({ transactions }: SwapTransactionsProps) {
                   rel="noopener noreferrer"
                   className="block p-3 bg-gray-800/30 rounded-lg hover:bg-gray-800/50 transition-all duration-200 ease-in-out hover:scale-[1.02] hover:shadow-md hover:shadow-purple-500/20 border border-transparent hover:border-purple-500/30"
                 >
-              <div className="flex items-center justify-evenly gap-4">
+              {/* Mobile Layout */}
+              <div className="sm:hidden space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <div className="w-6 h-6 flex items-center justify-center flex-shrink-0">
+                      {getTokenIcon(tx.inputToken) ? (
+                        <Image
+                          src={getTokenIcon(tx.inputToken)}
+                          alt={tx.inputToken}
+                          width={24}
+                          height={24}
+                          className="w-6 h-6"
+                        />
+                      ) : (
+                        <div className="w-6 h-6 bg-purple-500/20 rounded-full flex items-center justify-center">
+                          <span className="text-purple-400 text-xs font-bold">
+                            {tx.inputToken.slice(0, 2).toUpperCase()}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-white font-semibold text-sm">
+                        {formatTokenAmount(tx.inputAmount)}
+                      </p>
+                      <p className="text-gray-400 text-xs truncate">{tx.inputToken}</p>
+                    </div>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                  <div className="flex items-center gap-2 flex-1 min-w-0 justify-end">
+                    <div className="w-6 h-6 flex items-center justify-center flex-shrink-0">
+                      <Image
+                        src="/pyth.svg"
+                        alt="PYTH"
+                        width={24}
+                        height={24}
+                        className="w-6 h-6"
+                      />
+                    </div>
+                    <div>
+                      <p className="text-white font-semibold text-sm">
+                        {formatTokenAmount(tx.outputAmount)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between gap-2 pt-2 border-t border-gray-700">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-gray-400 text-xs mb-1">Signature</p>
+                    <p className="text-gray-300 text-xs font-mono truncate">{formatAddress(tx.signature)}</p>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-gray-400 text-xs mb-1">Block</p>
+                    <p className="text-white text-sm font-semibold">{formatBlock(tx.block)}</p>
+                  </div>
+                  <div className="flex-shrink-0 ml-2">
+                    <ExternalLink className="w-4 h-4 text-gray-500" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Desktop Layout */}
+              <div className="hidden sm:flex items-center justify-evenly gap-4">
                 {/* Input Token */}
-                <div className="flex items-center gap-2 flex-1">
+                <div className="flex items-center gap-2 flex-1 min-w-0">
                   <div className="w-6 h-6 flex items-center justify-center flex-shrink-0">
                     {getTokenIcon(tx.inputToken) ? (
                       <Image
@@ -122,11 +184,11 @@ export function SwapTransactions({ transactions }: SwapTransactionsProps) {
                       </div>
                     )}
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-white font-semibold text-sm">
                       {formatTokenAmount(tx.inputAmount)}
                     </p>
-                    <p className="text-gray-400 text-xs">{tx.inputToken}</p>
+                    <p className="text-gray-400 text-xs truncate">{tx.inputToken}</p>
                   </div>
                 </div>
 
@@ -134,7 +196,7 @@ export function SwapTransactions({ transactions }: SwapTransactionsProps) {
                 <ArrowRight className="w-4 h-4 text-gray-500 flex-shrink-0" />
 
                 {/* Output Token (PYTH) */}
-                <div className="flex items-center gap-2 flex-1">
+                <div className="flex items-center gap-2 flex-1 min-w-0">
                   <div className="w-6 h-6 flex items-center justify-center flex-shrink-0">
                     <Image
                       src="/pyth.svg"
@@ -144,7 +206,7 @@ export function SwapTransactions({ transactions }: SwapTransactionsProps) {
                       className="w-6 h-6"
                     />
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-white font-semibold text-sm">
                       {formatTokenAmount(tx.outputAmount)}
                     </p>
@@ -152,8 +214,8 @@ export function SwapTransactions({ transactions }: SwapTransactionsProps) {
                 </div>
 
                 {/* Signature */}
-                <div className="flex-1 text-center">
-                  <p className="text-gray-300 text-xs font-mono">{formatAddress(tx.signature)}</p>
+                <div className="flex-1 text-center min-w-0">
+                  <p className="text-gray-300 text-xs font-mono truncate">{formatAddress(tx.signature)}</p>
                 </div>
 
                 {/* Block */}

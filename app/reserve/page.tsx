@@ -145,7 +145,7 @@ export default function ReservePage() {
       <ReserveSummary reserveSummary={reserveSummary} />
 
       {/* Account Details */}
-      <div className="space-y-4">
+      <div className="space-y-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <h2 className="text-xl sm:text-2xl font-bold text-white">
             Reserve Accounts
@@ -166,7 +166,7 @@ export default function ReservePage() {
       </div>
 
       {/* Swap Transactions */}
-      <div className="space-y-4">
+      <div className="space-y-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <h2 className="text-xl sm:text-2xl font-bold text-white">
             Recent Swap Operations
@@ -176,12 +176,12 @@ export default function ReservePage() {
       </div>
 
       {/* Information Section */}
-      <Card className="bg-[#2a2f3e] border-gray-600 hover:border-purple-400 hover:shadow-lg hover:shadow-purple-500/30 transition-all duration-300">
-        <CardContent className="p-6 space-y-4">
-          <h3 className="text-lg font-semibold text-white">
+      <Card className="bg-[#2a2f3e] border-gray-700 hover:border-purple-400 hover:shadow-lg hover:shadow-purple-500/30 transition-all duration-300">
+        <CardContent className="p-4 sm:p-6 space-y-4">
+          <h3 className="text-base sm:text-lg font-semibold text-white">
             About the Strategic Reserve
           </h3>
-          <div className="space-y-2 text-gray-400 text-sm">
+          <div className="space-y-2 text-gray-400 text-xs sm:text-sm">
             <p>
               The Pyth Strategic Reserve is a DAO-owned reserve established to
               systematically acquire PYTH tokens using protocol revenue. The
