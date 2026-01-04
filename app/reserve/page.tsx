@@ -96,7 +96,7 @@ export default function ReservePage() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl sm:text-3xl font-bold text-white">
+            <h1 className="text-xl sm:text-2xl font-bold text-white">
               Pyth Strategic Reserve
             </h1>
             <Badge
@@ -120,16 +120,25 @@ export default function ReservePage() {
             . Currently tracking $SOL, $PYTH, $USDC & $USDT only.
           </p>
         </div>
-        <Button
-          onClick={fetchReserveData}
-          disabled={loading}
-          className="bg-purple-600 hover:bg-purple-700 text-white"
-        >
-          <RefreshCw
-            className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`}
-          />
-          Refresh
-        </Button>
+        <div className="flex items-center gap-3">
+          <Badge
+            variant="outline"
+            className="text-gray-400 border-gray-600 text-sm"
+          >
+            {swapTransactions.length} Recent Swaps
+          </Badge>
+          <Button
+            onClick={fetchReserveData}
+            disabled={loading}
+            size="sm"
+            className="bg-purple-600 hover:bg-purple-700 text-white flex items-center gap-2"
+          >
+            <RefreshCw
+              className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
+            />
+            <span className="hidden sm:inline">Refresh</span>
+          </Button>
+        </div>
       </div>
 
       {/* Summary Cards */}
@@ -137,9 +146,17 @@ export default function ReservePage() {
 
       {/* Account Details */}
       <div className="space-y-4">
-        <h2 className="text-xl sm:text-2xl font-bold text-white">
-          Reserve Accounts
-        </h2>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <h2 className="text-xl sm:text-2xl font-bold text-white">
+            Reserve Accounts
+          </h2>
+          <Badge
+            variant="outline"
+            className="text-gray-400 border-gray-600 text-sm"
+          >
+            2 Accounts
+          </Badge>
+        </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           <ReserveAccountCard accountInfo={reserveSummary.daoTreasury} />
           <ReserveAccountCard
@@ -150,11 +167,16 @@ export default function ReservePage() {
 
       {/* Swap Transactions */}
       <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <h2 className="text-xl sm:text-2xl font-bold text-white">
+            Recent Swap Operations
+          </h2>
+        </div>
         <SwapTransactions transactions={swapTransactions} />
       </div>
 
       {/* Information Section */}
-      <Card className="bg-[#2a2f3e] border-gray-700">
+      <Card className="bg-[#2a2f3e] border-gray-600 hover:border-purple-400 hover:shadow-lg hover:shadow-purple-500/30 transition-all duration-300">
         <CardContent className="p-6 space-y-4">
           <h3 className="text-lg font-semibold text-white">
             About the Strategic Reserve

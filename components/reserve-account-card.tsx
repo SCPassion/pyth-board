@@ -49,7 +49,7 @@ export function ReserveAccountCard({ accountInfo }: ReserveAccountCardProps) {
   };
 
   return (
-    <Card className="bg-[#2a2f3e] border-gray-700 hover:border-purple-400 hover:shadow-lg hover:shadow-purple-500/30 transition-all duration-300">
+    <Card className="bg-[#2a2f3e] border-gray-600 hover:border-purple-400 hover:shadow-lg hover:shadow-purple-500/30 transition-all duration-300 group">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -103,26 +103,29 @@ export function ReserveAccountCard({ accountInfo }: ReserveAccountCardProps) {
 
         {/* SOL Balance */}
         {accountInfo.solBalance > 0 && (
-          <div className="flex items-center justify-between p-3 bg-gray-800/30 rounded-lg">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 flex items-center justify-center flex-shrink-0">
-                <Image
-                  src="/sol.webp"
-                  alt="SOL"
-                  width={24}
-                  height={24}
-                  className="w-6 h-6"
-                />
+          <div>
+            <p className="text-gray-400 text-sm font-medium mb-3">Solana Balance</p>
+            <div className="flex items-center justify-between p-3 bg-gray-800/30 rounded-lg">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 flex items-center justify-center flex-shrink-0">
+                  <Image
+                    src="/sol.webp"
+                    alt="SOL"
+                    width={24}
+                    height={24}
+                    className="w-6 h-6"
+                  />
+                </div>
+                <span className="text-gray-300 text-sm">SOL</span>
               </div>
-              <span className="text-gray-300 text-sm">SOL</span>
-            </div>
-            <div className="text-right">
-              <p className="text-white font-semibold">
-                {formatTokenAmount(accountInfo.solBalance, 4)}
-              </p>
-              <p className="text-gray-400 text-xs">
-                {formatCurrency(accountInfo.solBalance * (accountInfo.solPrice || 150))}
-              </p>
+              <div className="text-right">
+                <p className="text-white font-semibold">
+                  {formatTokenAmount(accountInfo.solBalance, 4)}
+                </p>
+                <p className="text-gray-400 text-xs">
+                  {formatCurrency(accountInfo.solBalance * (accountInfo.solPrice || 150))}
+                </p>
+              </div>
             </div>
           </div>
         )}
@@ -130,7 +133,12 @@ export function ReserveAccountCard({ accountInfo }: ReserveAccountCardProps) {
         {/* Token Balances */}
         {accountInfo.tokenBalances.length > 0 && (
           <div>
-            <p className="text-gray-400 text-sm font-medium mb-3">Token Holdings</p>
+            <div className="mb-3">
+              <p className="text-gray-400 text-sm font-medium">Token Holdings</p>
+              <p className="text-gray-500 text-xs mt-1">
+                SOL balance is required for token operations on Solana
+              </p>
+            </div>
             <div className="flex flex-row gap-3">
               {accountInfo.tokenBalances.map((token, index) => (
                 <div

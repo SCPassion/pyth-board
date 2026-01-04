@@ -39,29 +39,36 @@ export function SwapTransactions({ transactions }: SwapTransactionsProps) {
 
   if (transactions.length === 0) {
     return (
-      <Card className="bg-[#2a2f3e] border-gray-700">
+      <Card className="bg-[#2a2f3e] border-gray-600 hover:border-purple-400 hover:shadow-lg hover:shadow-purple-500/30 transition-all duration-300">
         <CardHeader>
-          <CardTitle className="text-white text-lg">
-            Recent Swap Operations
-          </CardTitle>
+          <p className="text-gray-400 text-xs">
+            Last 10 token swaps to PYTH by Pythian Council Ops Multisig
+          </p>
         </CardHeader>
         <CardContent>
-          <p className="text-gray-400 text-sm">No swap transactions found.</p>
+          <div className="text-center py-8 sm:py-12 px-4">
+            <div className="w-16 h-16 sm:w-24 sm:h-24 mx-auto mb-4 bg-gray-800 rounded-full flex items-center justify-center">
+              <ExternalLink className="w-8 h-8 sm:w-12 sm:h-12 text-gray-400" />
+            </div>
+            <h3 className="text-lg sm:text-xl font-semibold text-white mb-2">
+              No Swap Transactions Found
+            </h3>
+            <p className="text-sm sm:text-base text-gray-400 max-w-md mx-auto">
+              No recent swap operations have been detected for the Pyth Council Ops wallet.
+            </p>
+          </div>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card className="bg-[#2a2f3e] border-gray-700">
+    <Card className="bg-[#2a2f3e] border-gray-600 hover:border-purple-400 hover:shadow-lg hover:shadow-purple-500/30 transition-all duration-300">
       <CardHeader>
-        <CardTitle className="text-white text-lg">
-          Recent Swap Operations
-        </CardTitle>
-        <p className="text-gray-400 text-xs mt-1">
+        <p className="text-gray-400 text-xs">
           Last 10 token swaps to PYTH by Pythian Council Ops Multisig
         </p>
-          </CardHeader>
+      </CardHeader>
           <CardContent>
             {/* Table Header */}
             <div className="hidden sm:flex items-center justify-evenly gap-4 pb-3 mb-3 border-b border-gray-700 px-3">
