@@ -9,6 +9,7 @@ import { getSwapTransactions } from "@/action/swapTransactionsActions";
 import type { PythReserveSummary, SwapTransaction } from "@/types/pythTypes";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
 
 export default function ReservePage() {
@@ -94,9 +95,17 @@ export default function ReservePage() {
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="space-y-2">
-          <h1 className="text-2xl sm:text-3xl font-bold text-white">
-            Pyth Strategic Reserve
-          </h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl sm:text-3xl font-bold text-white">
+              Pyth Strategic Reserve
+            </h1>
+            <Badge
+              variant="outline"
+              className="text-yellow-400 border-yellow-600 text-xs"
+            >
+              BETA
+            </Badge>
+          </div>
           <p className="text-gray-400 text-sm sm:text-base">
             Monitor the operations and holdings of the Pyth DAO Strategic Reserve
             as per{" "}
@@ -108,6 +117,7 @@ export default function ReservePage() {
             >
               OP-PIP-87
             </a>
+            . Currently tracking $SOL, $PYTH, $USDC & $USDT only.
           </p>
         </div>
         <Button
