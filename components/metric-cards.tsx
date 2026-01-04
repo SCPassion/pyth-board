@@ -167,7 +167,7 @@ export function MetricCards({ pythPrice, totalStaked, totalClaimableRewards }: M
                 All Wallets
               </Badge>
             </div>
-            <p className="text-2xl sm:text-3xl font-bold text-yellow-400 group-hover:text-yellow-100 transition-colors">
+            <p className="text-2xl sm:text-3xl font-bold text-white group-hover:text-yellow-400 transition-colors">
               {totalClaimableRewards.toFixed(2)} PYTH
             </p>
             <p className="text-gray-400 text-xs sm:text-sm group-hover:text-gray-300 transition-colors">

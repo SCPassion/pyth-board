@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, Menu, X } from "lucide-react";
 import { WalletDropdown } from "@/components/wallet-dropdown";
+import { PriceTicker } from "@/components/price-ticker";
 
 interface TopHeaderProps {
   isMobileMenuOpen: boolean;
@@ -39,11 +40,16 @@ export function TopHeader({
           className="inline-block text-xs text-gray-400 bg-gray-800/50 px-2 py-0.5 rounded border border-gray-700 whitespace-nowrap flex-shrink-0"
           suppressHydrationWarning
         >
-          v0.1.5
+          v0.1.6
         </span>
       </div>
 
       <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
+        {/* Price Ticker - Shown on medium screens and up */}
+        <div className="hidden md:flex items-center">
+          <PriceTicker />
+        </div>
+        
         <div className="relative">
           <Button
             variant="ghost"
