@@ -27,6 +27,10 @@ export function SwapTransactions({ transactions }: SwapTransactionsProps) {
     return new Intl.NumberFormat("en-US").format(block);
   };
 
+  const formatDate = (date: string) => {
+    return date && date.trim().length > 0 ? date : "—";
+  };
+
   const getTokenIcon = (symbol: string): string => {
     const iconMap: Record<string, string> = {
       SOL: "/sol.webp",
@@ -87,6 +91,9 @@ export function SwapTransactions({ transactions }: SwapTransactionsProps) {
               </div>
               <div className="flex-1 text-center min-w-0">
                 <p className="text-gray-400 text-xs font-medium">Signature</p>
+              </div>
+              <div className="flex-1 text-center min-w-0">
+                <p className="text-gray-400 text-xs font-medium">Date/Time</p>
               </div>
               <div className="flex-1 text-center">
                 <p className="text-gray-400 text-xs font-medium">Block</p>
@@ -154,8 +161,16 @@ export function SwapTransactions({ transactions }: SwapTransactionsProps) {
                     <p className="text-gray-300 text-xs font-mono truncate">{formatAddress(tx.signature)}</p>
                   </div>
                   <div className="text-right flex-shrink-0">
+                    <p className="text-gray-400 text-xs mb-1">Date/Time</p>
+                    <p className="text-white text-xs font-medium">
+                      {formatDate(tx.date)}
+                    </p>
+                  </div>
+                  <div className="text-right flex-shrink-0">
                     <p className="text-gray-400 text-xs mb-1">Block</p>
-                    <p className="text-white text-sm font-semibold">{formatBlock(tx.block)}</p>
+                    <p className="text-white text-sm font-semibold">
+                      {formatBlock(tx.block)}
+                    </p>
                   </div>
                   <div className="flex-shrink-0 ml-2">
                     <ExternalLink className="w-4 h-4 text-gray-500" />
@@ -218,6 +233,13 @@ export function SwapTransactions({ transactions }: SwapTransactionsProps) {
                   <p className="text-gray-300 text-xs font-mono truncate">{formatAddress(tx.signature)}</p>
                 </div>
 
+                {/* Date/Time */}
+                <div className="flex-1 text-center min-w-0">
+                  <p className="text-gray-300 text-xs truncate">
+                    {formatDate(tx.date)}
+                  </p>
+                </div>
+
                 {/* Block */}
                 <div className="flex-1 text-center">
                   <p className="text-white text-sm font-semibold">{formatBlock(tx.block)}</p>
@@ -235,4 +257,3 @@ export function SwapTransactions({ transactions }: SwapTransactionsProps) {
     </Card>
   );
 }
-

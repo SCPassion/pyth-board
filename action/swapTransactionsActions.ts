@@ -272,15 +272,17 @@ export async function getSwapTransactions(): Promise<SwapTransaction[]> {
         // Convert to Date and format
         const transactionDate = new Date(blockTime * 1000);
         
-        // Format the date
-        const formattedDate = transactionDate.toLocaleString("en-US", {
+        // Format the date in UTC
+        const formattedDate = new Intl.DateTimeFormat("en-US", {
           year: "numeric",
           month: "short",
           day: "numeric",
           hour: "2-digit",
           minute: "2-digit",
           hour12: true,
-        });
+          timeZone: "UTC",
+          timeZoneName: "short",
+        }).format(transactionDate);
         
         return {
           ...tx,
@@ -305,4 +307,3 @@ export async function getSwapTransactions(): Promise<SwapTransaction[]> {
     return [];
   }
 }
-
