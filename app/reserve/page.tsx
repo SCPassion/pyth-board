@@ -5,7 +5,7 @@ import { ReserveSummary } from "@/components/reserve-summary";
 import { ReserveAccountCard } from "@/components/reserve-account-card";
 import { SwapTransactions } from "@/components/swap-transactions";
 import { getPythReserveSummary } from "@/action/pythReserveActions";
-import { getSwapTransactions } from "@/action/swapTransactionsActions";
+import { getSwapTransactionsPage } from "@/action/swapTransactionsActions";
 import type { PythReserveSummary, SwapTransaction } from "@/types/pythTypes";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,27 +16,98 @@ export default function ReservePage() {
   const [reserveSummary, setReserveSummary] =
     useState<PythReserveSummary | null>(null);
   const [swapTransactions, setSwapTransactions] = useState<SwapTransaction[]>([]);
+  const [swapPage, setSwapPage] = useState(1);
+  const [swapPageSize] = useState(10);
+  const [swapHasMore, setSwapHasMore] = useState(false);
+  const [swapLoading, setSwapLoading] = useState(false);
+  const [swapThrottleRemainingMs, setSwapThrottleRemainingMs] = useState(0);
+  const swapCacheRef = useRef(new Map<number, SwapTransaction[]>());
+  const swapHasMoreCacheRef = useRef(new Map<number, boolean>());
+  const swapThrottleRef = useRef(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const hasFetchedRef = useRef(false);
-  const isFetchingRef = useRef(false);
+  const isFetchingReserveRef = useRef(false);
+  const isFetchingSwapsRef = useRef(false);
+
+  const startSwapThrottle = useCallback(() => {
+    const now = Date.now();
+    swapThrottleRef.current = now;
+    setSwapThrottleRemainingMs(10000);
+  }, []);
+
+  const isSwapThrottled = useCallback(() => {
+    const now = Date.now();
+    const remaining = 10000 - (now - swapThrottleRef.current);
+    return remaining > 0;
+  }, []);
+
+  const fetchSwapPage = useCallback(
+    async (page: number, force: boolean = false) => {
+      const now = Date.now();
+      const remaining = 10000 - (now - swapThrottleRef.current);
+      if (!force && remaining > 0) {
+        setSwapThrottleRemainingMs(remaining);
+        return;
+      }
+      startSwapThrottle();
+
+      if (!force && swapCacheRef.current.has(page)) {
+        setSwapTransactions(swapCacheRef.current.get(page) || []);
+        setSwapHasMore(swapHasMoreCacheRef.current.get(page) || false);
+        setSwapPage(page);
+        return;
+      }
+
+      if (isFetchingSwapsRef.current) {
+        return;
+      }
+
+      try {
+        isFetchingSwapsRef.current = true;
+        setSwapLoading(true);
+        setError(null);
+        const response = await getSwapTransactionsPage(page, swapPageSize);
+        swapCacheRef.current.set(page, response.transactions);
+        swapHasMoreCacheRef.current.set(page, response.hasMore);
+        setSwapTransactions(response.transactions);
+        setSwapHasMore(response.hasMore);
+        setSwapPage(page);
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : "Failed to fetch swap transactions";
+        setError(errorMessage);
+        console.error("Error fetching swap transactions:", err);
+      } finally {
+        setSwapLoading(false);
+        isFetchingSwapsRef.current = false;
+      }
+    },
+    [startSwapThrottle, swapPageSize]
+  );
+
+  useEffect(() => {
+    if (swapThrottleRemainingMs <= 0) return;
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const remaining = 10000 - (now - swapThrottleRef.current);
+      setSwapThrottleRemainingMs(remaining > 0 ? remaining : 0);
+    }, 200);
+    return () => clearInterval(interval);
+  }, [swapThrottleRemainingMs]);
 
   const fetchReserveData = useCallback(async () => {
     // Prevent multiple simultaneous fetches
-    if (isFetchingRef.current) {
+    if (isFetchingReserveRef.current) {
       return;
     }
 
     try {
-      isFetchingRef.current = true;
+      isFetchingReserveRef.current = true;
       setLoading(true);
       setError(null);
-      const [data, swaps] = await Promise.all([
-        getPythReserveSummary(),
-        getSwapTransactions(),
-      ]);
+      const data = await getPythReserveSummary();
       setReserveSummary(data);
-      setSwapTransactions(swaps);
       hasFetchedRef.current = true;
     } catch (err) {
       const errorMessage =
@@ -45,7 +116,7 @@ export default function ReservePage() {
       console.error("Error fetching reserve summary:", err);
     } finally {
       setLoading(false);
-      isFetchingRef.current = false;
+      isFetchingReserveRef.current = false;
     }
   }, []);
 
@@ -53,6 +124,7 @@ export default function ReservePage() {
     // Only fetch on initial mount if we haven't fetched yet
     if (!hasFetchedRef.current) {
       fetchReserveData();
+      fetchSwapPage(1);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Intentionally empty - only run once on mount
@@ -128,7 +200,12 @@ export default function ReservePage() {
             {swapTransactions.length} Recent Swaps
           </Badge>
           <Button
-            onClick={fetchReserveData}
+            onClick={() => {
+              swapCacheRef.current.clear();
+              swapHasMoreCacheRef.current.clear();
+              fetchReserveData();
+              fetchSwapPage(swapPage, true);
+            }}
             disabled={loading}
             size="sm"
             className="bg-purple-600 hover:bg-purple-700 text-white flex items-center gap-2 w-fit justify-center self-start"
@@ -172,7 +249,27 @@ export default function ReservePage() {
             Recent Swap Operations
           </h2>
         </div>
-        <SwapTransactions transactions={swapTransactions} />
+        <SwapTransactions
+          transactions={swapTransactions}
+          page={swapPage}
+          pageSize={swapPageSize}
+          hasMore={swapHasMore}
+          isLoading={swapLoading}
+          throttleRemainingMs={swapThrottleRemainingMs}
+          onPageChange={(page) => {
+            if (isSwapThrottled()) {
+              return;
+            }
+            if (swapCacheRef.current.has(page)) {
+              startSwapThrottle();
+              setSwapTransactions(swapCacheRef.current.get(page) || []);
+              setSwapHasMore(swapHasMoreCacheRef.current.get(page) || false);
+              setSwapPage(page);
+              return;
+            }
+            fetchSwapPage(page, true);
+          }}
+        />
       </div>
 
       {/* Information Section */}
