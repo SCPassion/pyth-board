@@ -33,7 +33,7 @@ export default function ReservePage() {
   const fetchSwapPage = useCallback(
     async (page: number, force: boolean = false) => {
       const now = Date.now();
-      const remaining = 5000 - (now - swapThrottleRef.current);
+      const remaining = 10000 - (now - swapThrottleRef.current);
       if (!force && remaining > 0) {
         setSwapThrottleRemainingMs(remaining);
         return;
@@ -79,7 +79,7 @@ export default function ReservePage() {
     if (swapThrottleRemainingMs <= 0) return;
     const interval = setInterval(() => {
       const now = Date.now();
-      const remaining = 5000 - (now - swapThrottleRef.current);
+      const remaining = 10000 - (now - swapThrottleRef.current);
       setSwapThrottleRemainingMs(remaining > 0 ? remaining : 0);
     }, 200);
     return () => clearInterval(interval);
