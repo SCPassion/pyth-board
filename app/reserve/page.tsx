@@ -20,8 +20,10 @@ export default function ReservePage() {
   const [swapPageSize] = useState(10);
   const [swapHasMore, setSwapHasMore] = useState(false);
   const [swapLoading, setSwapLoading] = useState(false);
+  const [swapThrottleRemainingMs, setSwapThrottleRemainingMs] = useState(0);
   const swapCacheRef = useRef(new Map<number, SwapTransaction[]>());
   const swapHasMoreCacheRef = useRef(new Map<number, boolean>());
+  const swapThrottleRef = useRef(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const hasFetchedRef = useRef(false);
@@ -30,6 +32,15 @@ export default function ReservePage() {
 
   const fetchSwapPage = useCallback(
     async (page: number, force: boolean = false) => {
+      const now = Date.now();
+      const remaining = 5000 - (now - swapThrottleRef.current);
+      if (!force && remaining > 0) {
+        setSwapThrottleRemainingMs(remaining);
+        return;
+      }
+      swapThrottleRef.current = now;
+      setSwapThrottleRemainingMs(0);
+
       if (!force && swapCacheRef.current.has(page)) {
         setSwapTransactions(swapCacheRef.current.get(page) || []);
         setSwapHasMore(swapHasMoreCacheRef.current.get(page) || false);
@@ -63,6 +74,16 @@ export default function ReservePage() {
     },
     [swapPageSize]
   );
+
+  useEffect(() => {
+    if (swapThrottleRemainingMs <= 0) return;
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const remaining = 5000 - (now - swapThrottleRef.current);
+      setSwapThrottleRemainingMs(remaining > 0 ? remaining : 0);
+    }, 200);
+    return () => clearInterval(interval);
+  }, [swapThrottleRemainingMs]);
 
   const fetchReserveData = useCallback(async () => {
     // Prevent multiple simultaneous fetches
@@ -223,6 +244,7 @@ export default function ReservePage() {
           pageSize={swapPageSize}
           hasMore={swapHasMore}
           isLoading={swapLoading}
+          throttleRemainingMs={swapThrottleRemainingMs}
           onPageChange={(page) => fetchSwapPage(page)}
         />
       </div>

@@ -13,6 +13,7 @@ interface SwapTransactionsProps {
   pageSize: number;
   hasMore: boolean;
   isLoading: boolean;
+  throttleRemainingMs: number;
   onPageChange: (page: number) => void;
 }
 
@@ -22,6 +23,7 @@ export function SwapTransactions({
   pageSize,
   hasMore,
   isLoading,
+  throttleRemainingMs,
   onPageChange,
 }: SwapTransactionsProps) {
   const formatTokenAmount = (amount: number) => {
@@ -81,6 +83,9 @@ export function SwapTransactions({
   for (let p = startPage; p <= endPage; p += 1) {
     pageNumbers.push(p);
   }
+
+  const throttleSeconds = Math.ceil(throttleRemainingMs / 1000);
+  const throttleActive = throttleRemainingMs > 0;
 
   if (transactions.length === 0) {
     return (
@@ -304,16 +309,28 @@ export function SwapTransactions({
           ))}
         </div>
         <div className="mt-4 flex items-center justify-between gap-3">
-          <div className="text-xs text-gray-400">
-            {pageSize} per page
-          </div>
+          <div className="text-xs text-gray-400">{pageSize} per page</div>
           <div className="flex items-center gap-2">
+            {throttleActive ? (
+              <div className="text-xs text-purple-300 mr-1">
+                Requests too frequent. Try again in {throttleSeconds}s
+              </div>
+            ) : null}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 hover:bg-gray-800 hover:text-white transition-colors hover:cursor-pointer"
+              onClick={() => onPageChange(1)}
+              disabled={page === 1 || isLoading || throttleActive}
+            >
+              <span className="text-xs font-semibold">«</span>
+            </Button>
             <Button
               variant="ghost"
               size="icon"
               className="h-8 w-8 hover:bg-gray-800 hover:text-white transition-colors hover:cursor-pointer"
               onClick={() => onPageChange(Math.max(1, page - 1))}
-              disabled={page === 1 || isLoading}
+              disabled={page === 1 || isLoading || throttleActive}
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
@@ -329,7 +346,7 @@ export function SwapTransactions({
                     : "text-gray-300 hover:bg-gray-800 hover:text-white hover:cursor-pointer"
                 )}
                 onClick={() => onPageChange(p)}
-                disabled={isLoading}
+                disabled={isLoading || throttleActive}
               >
                 {p}
               </Button>
@@ -339,7 +356,7 @@ export function SwapTransactions({
               size="icon"
               className="h-8 w-8 hover:bg-gray-800 hover:text-white transition-colors hover:cursor-pointer"
               onClick={() => onPageChange(page + 1)}
-              disabled={!hasMore || isLoading}
+              disabled={!hasMore || isLoading || throttleActive}
             >
               <ChevronRight className="h-4 w-4" />
             </Button>

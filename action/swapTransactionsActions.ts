@@ -203,17 +203,87 @@ export async function getSwapTransactionsPage(
     let connection = createConnection(0);
     const councilOpsAddress = new PublicKey(PYTHIAN_COUNCIL_OPS_MULTISIG_ADDRESS);
 
+    const targetCount = page * pageSize;
+    const batchLimit = 50;
+    let beforeSignature: string | undefined;
+    let collected: SwapTransaction[] = [];
+    let hasMore = false;
+
     // Try with fallback endpoints
-    let signatures: any[] = [];
     for (let i = 0; i < RPC_ENDPOINTS.length; i++) {
       try {
         connection = createConnection(i);
-        // Fetch recent signatures (last 100 transactions)
-        const signaturesLimit = Math.min(page * pageSize + 1, 1000);
-        const response = await connection.getSignaturesForAddress(councilOpsAddress, {
-          limit: signaturesLimit,
-        });
-        signatures = response;
+
+        while (collected.length < targetCount) {
+          const response = await connection.getSignaturesForAddress(councilOpsAddress, {
+            limit: batchLimit,
+            before: beforeSignature,
+          });
+
+          if (response.length === 0) {
+            hasMore = false;
+            break;
+          }
+
+          beforeSignature = response[response.length - 1].signature;
+          hasMore = response.length === batchLimit;
+
+          const signatureStrings = response.map((sig) => sig.signature);
+          const parsed = await connection.getParsedTransactions(signatureStrings, {
+            maxSupportedTransactionVersion: 0,
+          });
+
+          const parsedTransactions = parsed
+            .map((parsedTx, index) => {
+              const sig = response[index];
+              const tx = parseSwapTransactionFromParsed(sig.signature, parsedTx);
+              if (!tx) {
+                return null;
+              }
+
+              let blockTime: number | null = null;
+              const now = Math.floor(Date.now() / 1000);
+              const oneYearAgo = now - 365 * 24 * 60 * 60;
+
+              if (sig.blockTime !== null && sig.blockTime !== undefined && sig.blockTime > 0) {
+                if (sig.blockTime <= now && sig.blockTime >= oneYearAgo) {
+                  blockTime = sig.blockTime;
+                }
+              }
+
+              if (!blockTime && tx.timestamp && tx.timestamp > 0) {
+                if (tx.timestamp <= now && tx.timestamp >= oneYearAgo) {
+                  blockTime = tx.timestamp;
+                }
+              }
+
+              if (!blockTime || blockTime <= 0) {
+                return null;
+              }
+
+              const transactionDate = new Date(blockTime * 1000);
+              const formattedDate = new Intl.DateTimeFormat("en-US", {
+                year: "numeric",
+                month: "short",
+                day: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: true,
+                timeZone: "UTC",
+                timeZoneName: "short",
+              }).format(transactionDate);
+
+              return {
+                ...tx,
+                timestamp: blockTime,
+                date: formattedDate,
+              };
+            })
+            .filter((tx): tx is SwapTransaction => tx !== null);
+
+          collected = collected.concat(parsedTransactions);
+        }
+
         break;
       } catch (error) {
         if (i === RPC_ENDPOINTS.length - 1) {
@@ -222,84 +292,15 @@ export async function getSwapTransactionsPage(
       }
     }
 
+    const sorted = collected.sort((a, b) => b.timestamp - a.timestamp);
     const pageStart = (page - 1) * pageSize;
     const pageEnd = pageStart + pageSize;
-    const hasMore = signatures.length > pageEnd;
-    const pageSignatures = signatures.slice(pageStart, pageEnd);
-
-    if (pageSignatures.length === 0) {
-      return {
-        transactions: [],
-        hasMore: false,
-        page,
-        pageSize,
-      };
-    }
-
-    // Parse transactions in a single batch RPC for the requested page only
-    const signatureStrings = pageSignatures.map((sig) => sig.signature);
-    const parsed = await connection.getParsedTransactions(signatureStrings, {
-      maxSupportedTransactionVersion: 0,
-    });
-
-    const parsedTransactions = parsed.map((parsedTx, index) => {
-      const sig = pageSignatures[index];
-      const tx = parseSwapTransactionFromParsed(sig.signature, parsedTx);
-      if (!tx) {
-        return null;
-      }
-
-      let blockTime: number | null = null;
-      const now = Math.floor(Date.now() / 1000);
-      const oneYearAgo = now - 365 * 24 * 60 * 60;
-
-      // Priority 1: Use signature blockTime if present and valid (no extra RPC)
-      if (sig.blockTime !== null && sig.blockTime !== undefined && sig.blockTime > 0) {
-        if (sig.blockTime <= now && sig.blockTime >= oneYearAgo) {
-          blockTime = sig.blockTime;
-        }
-      }
-
-      // Priority 2: Use transaction blockTime if valid
-      if (!blockTime && tx.timestamp && tx.timestamp > 0) {
-        if (tx.timestamp <= now && tx.timestamp >= oneYearAgo) {
-          blockTime = tx.timestamp;
-        }
-      }
-
-      if (!blockTime || blockTime <= 0) {
-        return null;
-      }
-
-      const transactionDate = new Date(blockTime * 1000);
-      const formattedDate = new Intl.DateTimeFormat("en-US", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-        timeZone: "UTC",
-        timeZoneName: "short",
-      }).format(transactionDate);
-
-      return {
-        ...tx,
-        timestamp: blockTime,
-        date: formattedDate,
-      };
-    });
-
-    // Filter out null results, sort by timestamp (descending - most recent first)
-    // Then take the 10 most recent
-    const swapTransactions = parsedTransactions
-      .filter((tx): tx is SwapTransaction => tx !== null)
-      .sort((a, b) => b.timestamp - a.timestamp) // Descending order (most recent first)
-      .slice(0, pageSize); // Only the requested page size
+    const pageTransactions = sorted.slice(pageStart, pageEnd);
+    const hasMorePages = sorted.length > pageEnd || hasMore;
 
     return {
-      transactions: swapTransactions,
-      hasMore,
+      transactions: pageTransactions,
+      hasMore: hasMorePages,
       page,
       pageSize,
     };
