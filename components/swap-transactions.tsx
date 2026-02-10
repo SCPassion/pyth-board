@@ -313,13 +313,13 @@ export function SwapTransactions({
           <div className="flex items-center gap-2">
             {throttleActive ? (
               <div className="text-xs text-purple-300 mr-1">
-                Requests too frequent. Try again in {throttleSeconds}s
+                You can click in {throttleSeconds}s
               </div>
             ) : null}
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 hover:bg-gray-800 hover:text-white transition-colors hover:cursor-pointer"
+              className="h-8 w-8 hover:bg-gray-800 hover:text-white transition-colors hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-400"
               onClick={() => onPageChange(1)}
               disabled={page === 1 || isLoading || throttleActive}
             >
@@ -328,7 +328,7 @@ export function SwapTransactions({
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 hover:bg-gray-800 hover:text-white transition-colors hover:cursor-pointer"
+              className="h-8 w-8 hover:bg-gray-800 hover:text-white transition-colors hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-400"
               onClick={() => onPageChange(Math.max(1, page - 1))}
               disabled={page === 1 || isLoading || throttleActive}
             >
@@ -340,7 +340,7 @@ export function SwapTransactions({
                 variant="ghost"
                 size="icon"
                 className={cn(
-                  "h-8 w-8 text-xs",
+                  "h-8 w-8 text-xs disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-400",
                   p === page
                     ? "bg-purple-600 text-white hover:bg-purple-500"
                     : "text-gray-300 hover:bg-gray-800 hover:text-white hover:cursor-pointer"
@@ -354,7 +354,7 @@ export function SwapTransactions({
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 hover:bg-gray-800 hover:text-white transition-colors hover:cursor-pointer"
+              className="h-8 w-8 hover:bg-gray-800 hover:text-white transition-colors hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-400"
               onClick={() => onPageChange(page + 1)}
               disabled={!hasMore || isLoading || throttleActive}
             >

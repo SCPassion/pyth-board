@@ -30,6 +30,18 @@ export default function ReservePage() {
   const isFetchingReserveRef = useRef(false);
   const isFetchingSwapsRef = useRef(false);
 
+  const startSwapThrottle = useCallback(() => {
+    const now = Date.now();
+    swapThrottleRef.current = now;
+    setSwapThrottleRemainingMs(10000);
+  }, []);
+
+  const isSwapThrottled = useCallback(() => {
+    const now = Date.now();
+    const remaining = 10000 - (now - swapThrottleRef.current);
+    return remaining > 0;
+  }, []);
+
   const fetchSwapPage = useCallback(
     async (page: number, force: boolean = false) => {
       const now = Date.now();
@@ -38,8 +50,7 @@ export default function ReservePage() {
         setSwapThrottleRemainingMs(remaining);
         return;
       }
-      swapThrottleRef.current = now;
-      setSwapThrottleRemainingMs(0);
+      startSwapThrottle();
 
       if (!force && swapCacheRef.current.has(page)) {
         setSwapTransactions(swapCacheRef.current.get(page) || []);
@@ -72,7 +83,7 @@ export default function ReservePage() {
         isFetchingSwapsRef.current = false;
       }
     },
-    [swapPageSize]
+    [startSwapThrottle, swapPageSize]
   );
 
   useEffect(() => {
@@ -245,7 +256,19 @@ export default function ReservePage() {
           hasMore={swapHasMore}
           isLoading={swapLoading}
           throttleRemainingMs={swapThrottleRemainingMs}
-          onPageChange={(page) => fetchSwapPage(page)}
+          onPageChange={(page) => {
+            if (isSwapThrottled()) {
+              return;
+            }
+            if (swapCacheRef.current.has(page)) {
+              startSwapThrottle();
+              setSwapTransactions(swapCacheRef.current.get(page) || []);
+              setSwapHasMore(swapHasMoreCacheRef.current.get(page) || false);
+              setSwapPage(page);
+              return;
+            }
+            fetchSwapPage(page, true);
+          }}
         />
       </div>
 

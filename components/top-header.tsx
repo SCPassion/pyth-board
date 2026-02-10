@@ -40,7 +40,7 @@ export function TopHeader({
           className="inline-block text-xs text-gray-400 bg-gray-800/50 px-2 py-0.5 rounded border border-gray-700 whitespace-nowrap flex-shrink-0"
           suppressHydrationWarning
         >
-          v0.1.7
+          v0.1.8
         </span>
       </div>
 
