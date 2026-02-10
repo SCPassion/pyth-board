@@ -37,7 +37,7 @@ export function ReserveSummary({ reserveSummary }: ReserveSummaryProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <h2 className="text-xl sm:text-2xl font-bold text-white">
           Pyth Reserve Summary
         </h2>
@@ -51,7 +51,7 @@ export function ReserveSummary({ reserveSummary }: ReserveSummaryProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
         {/* Total Reserve Value */}
         <Card className="bg-[#2a2f3e] border-gray-700 hover:border-purple-400 hover:shadow-lg hover:shadow-purple-500/30 transition-all duration-300 group">
           <CardContent className="p-4 sm:p-6">
@@ -100,4 +100,3 @@ export function ReserveSummary({ reserveSummary }: ReserveSummaryProps) {
     </div>
   );
 }
-
