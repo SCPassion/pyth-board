@@ -25,7 +25,8 @@ export default function ReservePage() {
   const swapHasMoreCacheRef = useRef(new Map<number, boolean>());
   const swapThrottleRef = useRef(0);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [reserveError, setReserveError] = useState<string | null>(null);
+  const [swapError, setSwapError] = useState<string | null>(null);
   const hasFetchedRef = useRef(false);
   const isFetchingReserveRef = useRef(false);
   const isFetchingSwapsRef = useRef(false);
@@ -34,12 +35,6 @@ export default function ReservePage() {
     const now = Date.now();
     swapThrottleRef.current = now;
     setSwapThrottleRemainingMs(10000);
-  }, []);
-
-  const isSwapThrottled = useCallback(() => {
-    const now = Date.now();
-    const remaining = 10000 - (now - swapThrottleRef.current);
-    return remaining > 0;
   }, []);
 
   const fetchSwapPage = useCallback(
@@ -66,7 +61,7 @@ export default function ReservePage() {
       try {
         isFetchingSwapsRef.current = true;
         setSwapLoading(true);
-        setError(null);
+        setSwapError(null);
         const response = await getSwapTransactionsPage(page, swapPageSize);
         swapCacheRef.current.set(page, response.transactions);
         swapHasMoreCacheRef.current.set(page, response.hasMore);
@@ -76,7 +71,7 @@ export default function ReservePage() {
       } catch (err) {
         const errorMessage =
           err instanceof Error ? err.message : "Failed to fetch swap transactions";
-        setError(errorMessage);
+        setSwapError(errorMessage);
         console.error("Error fetching swap transactions:", err);
       } finally {
         setSwapLoading(false);
@@ -105,14 +100,14 @@ export default function ReservePage() {
     try {
       isFetchingReserveRef.current = true;
       setLoading(true);
-      setError(null);
+      setReserveError(null);
       const data = await getPythReserveSummary();
       setReserveSummary(data);
       hasFetchedRef.current = true;
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Failed to fetch reserve data";
-      setError(errorMessage);
+      setReserveError(errorMessage);
       console.error("Error fetching reserve summary:", err);
     } finally {
       setLoading(false);
@@ -140,7 +135,7 @@ export default function ReservePage() {
     );
   }
 
-  if (error) {
+  if (reserveError) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Card className="bg-[#2a2f3e] border-red-700 max-w-md">
@@ -149,7 +144,7 @@ export default function ReservePage() {
               <AlertCircle className="h-5 w-5" />
               <div>
                 <h3 className="font-semibold text-white mb-1">Error</h3>
-                <p className="text-sm text-gray-400">{error}</p>
+                <p className="text-sm text-gray-400">{reserveError}</p>
               </div>
             </div>
           </CardContent>
@@ -256,19 +251,8 @@ export default function ReservePage() {
           hasMore={swapHasMore}
           isLoading={swapLoading}
           throttleRemainingMs={swapThrottleRemainingMs}
-          onPageChange={(page) => {
-            if (isSwapThrottled()) {
-              return;
-            }
-            if (swapCacheRef.current.has(page)) {
-              startSwapThrottle();
-              setSwapTransactions(swapCacheRef.current.get(page) || []);
-              setSwapHasMore(swapHasMoreCacheRef.current.get(page) || false);
-              setSwapPage(page);
-              return;
-            }
-            fetchSwapPage(page, true);
-          }}
+          error={swapError}
+          onPageChange={(page) => fetchSwapPage(page)}
         />
       </div>
 

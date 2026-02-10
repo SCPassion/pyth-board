@@ -14,6 +14,7 @@ interface SwapTransactionsProps {
   hasMore: boolean;
   isLoading: boolean;
   throttleRemainingMs: number;
+  error: string | null;
   onPageChange: (page: number) => void;
 }
 
@@ -24,6 +25,7 @@ export function SwapTransactions({
   hasMore,
   isLoading,
   throttleRemainingMs,
+  error,
   onPageChange,
 }: SwapTransactionsProps) {
   const formatTokenAmount = (amount: number) => {
@@ -87,41 +89,9 @@ export function SwapTransactions({
   const throttleSeconds = Math.ceil(throttleRemainingMs / 1000);
   const throttleActive = throttleRemainingMs > 0;
 
-  if (transactions.length === 0) {
-    return (
-      <Card className="bg-[#2a2f3e] border-gray-700 hover:border-purple-400 hover:shadow-lg hover:shadow-purple-500/30 transition-all duration-300">
-        <CardHeader>
-          <p className="text-gray-400 text-xs">
-            Token swaps to PYTH by Pythian Council Ops Multisig
-          </p>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="flex items-center justify-center py-10">
-              <div className="flex items-center gap-2 text-gray-400 text-sm">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Loading swaps...
-              </div>
-            </div>
-          ) : (
-          <div className="text-center py-8 sm:py-12 px-4">
-            <div className="w-16 h-16 sm:w-24 sm:h-24 mx-auto mb-4 bg-gray-800 rounded-full flex items-center justify-center">
-              <ExternalLink className="w-8 h-8 sm:w-12 sm:h-12 text-gray-400" />
-            </div>
-            <h3 className="text-lg sm:text-xl font-semibold text-white mb-2">
-              No Swap Transactions Found
-            </h3>
-            <p className="text-sm sm:text-base text-gray-400 max-w-md mx-auto">
-              No recent swap operations have been detected for the Pyth Council Ops wallet.
-            </p>
-          </div>
-          )}
-        </CardContent>
-      </Card>
-    );
-  }
+  const hasTransactions = transactions.length > 0;
 
-    return (
+  return (
       <Card className="bg-[#2a2f3e] border-gray-700 hover:border-purple-400 hover:shadow-lg hover:shadow-purple-500/30 transition-all duration-300">
       <CardHeader>
         <p className="text-gray-400 text-xs">
@@ -129,43 +99,72 @@ export function SwapTransactions({
         </p>
       </CardHeader>
           <CardContent>
-            {/* Table Header - Desktop Only */}
-            <div className="hidden md:flex items-center justify-evenly gap-4 pb-3 mb-3 border-b border-gray-700 px-3">
-              <div className="flex items-center gap-2 flex-1 min-w-0">
-                <div className="w-6 h-6 flex-shrink-0"></div>
-                <div className="min-w-0">
-                  <p className="text-gray-400 text-xs font-medium">Input Token</p>
+            {error ? (
+              <div className="flex items-center gap-2 text-red-400 text-sm mb-4">
+                <ExternalLink className="w-4 h-4" />
+                {error}
+              </div>
+            ) : null}
+            {isLoading && !hasTransactions ? (
+              <div className="flex items-center justify-center py-10">
+                <div className="flex items-center gap-2 text-gray-400 text-sm">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Loading swaps...
                 </div>
               </div>
-              <div className="flex-shrink-0 w-4"></div>
-              <div className="flex items-center gap-2 flex-1 min-w-0">
-                <div className="w-6 h-6 flex-shrink-0"></div>
-                <div className="min-w-0">
-                  <p className="text-gray-400 text-xs font-medium">Output (PYTH)</p>
+            ) : null}
+            {!isLoading && !hasTransactions ? (
+              <div className="text-center py-8 sm:py-12 px-4">
+                <div className="w-16 h-16 sm:w-24 sm:h-24 mx-auto mb-4 bg-gray-800 rounded-full flex items-center justify-center">
+                  <ExternalLink className="w-8 h-8 sm:w-12 sm:h-12 text-gray-400" />
                 </div>
+                <h3 className="text-lg sm:text-xl font-semibold text-white mb-2">
+                  No Swap Transactions Found
+                </h3>
+                <p className="text-sm sm:text-base text-gray-400 max-w-md mx-auto">
+                  No recent swap operations have been detected for the Pyth Council Ops wallet.
+                </p>
               </div>
-              <div className="flex-1 text-center min-w-0">
-                <p className="text-gray-400 text-xs font-medium">Signature</p>
-              </div>
-              <div className="flex-1 text-center min-w-0">
-                <p className="text-gray-400 text-xs font-medium">Date/Time</p>
-              </div>
-              <div className="flex-1 text-center">
-                <p className="text-gray-400 text-xs font-medium">Block</p>
-              </div>
-              <div className="flex-shrink-0 w-4"></div>
-            </div>
-            <div className="space-y-2">
-              {transactions.map((tx, index) => (
-                <a
-                  key={tx.signature}
-                  href={tx.explorerUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block p-3 bg-gray-800/30 rounded-lg hover:bg-gray-800/50 transition-all duration-200 ease-in-out hover:scale-[1.02] hover:shadow-md hover:shadow-purple-500/20 border border-transparent hover:border-purple-500/30"
-                >
-              {/* Mobile Layout */}
-              <div className="md:hidden space-y-3">
+            ) : null}
+            {hasTransactions ? (
+              <>
+                {/* Table Header - Desktop Only */}
+                <div className="hidden md:flex items-center justify-evenly gap-4 pb-3 mb-3 border-b border-gray-700 px-3">
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <div className="w-6 h-6 flex-shrink-0"></div>
+                    <div className="min-w-0">
+                      <p className="text-gray-400 text-xs font-medium">Input Token</p>
+                    </div>
+                  </div>
+                  <div className="flex-shrink-0 w-4"></div>
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <div className="w-6 h-6 flex-shrink-0"></div>
+                    <div className="min-w-0">
+                      <p className="text-gray-400 text-xs font-medium">Output (PYTH)</p>
+                    </div>
+                  </div>
+                  <div className="flex-1 text-center min-w-0">
+                    <p className="text-gray-400 text-xs font-medium">Signature</p>
+                  </div>
+                  <div className="flex-1 text-center min-w-0">
+                    <p className="text-gray-400 text-xs font-medium">Date/Time</p>
+                  </div>
+                  <div className="flex-1 text-center">
+                    <p className="text-gray-400 text-xs font-medium">Block</p>
+                  </div>
+                  <div className="flex-shrink-0 w-4"></div>
+                </div>
+                <div className="space-y-2">
+                  {transactions.map((tx, index) => (
+                    <a
+                      key={tx.signature}
+                      href={tx.explorerUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block p-3 bg-gray-800/30 rounded-lg hover:bg-gray-800/50 transition-all duration-200 ease-in-out hover:scale-[1.02] hover:shadow-md hover:shadow-purple-500/20 border border-transparent hover:border-purple-500/30"
+                    >
+                      {/* Mobile Layout */}
+                      <div className="md:hidden space-y-3">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 flex-1 min-w-0">
                     <div className="w-6 h-6 flex items-center justify-center flex-shrink-0">
@@ -304,10 +303,12 @@ export function SwapTransactions({
                 <div className="flex-shrink-0">
                   <ExternalLink className="w-4 h-4 text-gray-500 hover:text-purple-400 transition-colors" />
                 </div>
-              </div>
+                </div>
             </a>
           ))}
         </div>
+      </>
+        ) : null}
         <div className="mt-4 flex items-center justify-between gap-3">
           <div className="text-xs text-gray-400">{pageSize} per page</div>
           <div className="flex items-center gap-2">
