@@ -42,17 +42,13 @@ const SWAP_PROGRAMS = [
 ];
 
 /**
- * Parses a transaction to check if it's a swap to PYTH
+ * Parses a parsed transaction to check if it's a swap to PYTH
  */
-async function parseSwapTransaction(
-  connection: Connection,
-  signature: string
-): Promise<SwapTransaction | null> {
+function parseSwapTransactionFromParsed(
+  signature: string,
+  tx: Awaited<ReturnType<Connection["getParsedTransaction"]>>
+): Omit<SwapTransaction, "date"> | null {
   try {
-    const tx = await connection.getParsedTransaction(signature, {
-      maxSupportedTransactionVersion: 0,
-    });
-
     if (!tx || !tx.meta) {
       return null;
     }
@@ -215,82 +211,60 @@ export async function getSwapTransactions(): Promise<SwapTransaction[]> {
       }
     }
 
-    // Parse transactions in parallel (limit to 50 for better coverage)
-    // Note: getSignaturesForAddress blockTime can be unreliable, so we'll fetch from blocks
+    // Parse transactions in a single batch RPC (limit to 50 for coverage)
     const transactionsToParse = signatures.slice(0, 50);
-    const parsedTransactions = await Promise.all(
-      transactionsToParse.map(async (sig) => {
-        // Parse the transaction first
-        const tx = await parseSwapTransaction(connection, sig.signature);
-        if (!tx) {
-          return null;
+    const signatureStrings = transactionsToParse.map((sig) => sig.signature);
+    const parsed = await connection.getParsedTransactions(signatureStrings, {
+      maxSupportedTransactionVersion: 0,
+    });
+
+    const parsedTransactions = parsed.map((parsedTx, index) => {
+      const sig = transactionsToParse[index];
+      const tx = parseSwapTransactionFromParsed(sig.signature, parsedTx);
+      if (!tx) {
+        return null;
+      }
+
+      let blockTime: number | null = null;
+      const now = Math.floor(Date.now() / 1000);
+      const oneYearAgo = now - 365 * 24 * 60 * 60;
+
+      // Priority 1: Use signature blockTime if present and valid (no extra RPC)
+      if (sig.blockTime !== null && sig.blockTime !== undefined && sig.blockTime > 0) {
+        if (sig.blockTime <= now && sig.blockTime >= oneYearAgo) {
+          blockTime = sig.blockTime;
         }
-        
-        let blockTime: number | null = null;
-        const now = Math.floor(Date.now() / 1000); // Current time in seconds
-        
-        // Priority 1: Fetch blockTime directly from the block using slot
-        // This is more reliable than getSignaturesForAddress blockTime
-        if (tx.block > 0) {
-          try {
-            const blockInfo = await connection.getBlockTime(tx.block);
-            if (blockInfo && blockInfo > 0) {
-              // Validate it's reasonable (not in the future, not too old)
-              const oneYearAgo = now - (365 * 24 * 60 * 60);
-              if (blockInfo <= now && blockInfo >= oneYearAgo) {
-                blockTime = blockInfo;
-              }
-            }
-          } catch (error) {
-            // Continue to next method
-          }
+      }
+
+      // Priority 2: Use transaction blockTime if valid
+      if (!blockTime && tx.timestamp && tx.timestamp > 0) {
+        if (tx.timestamp <= now && tx.timestamp >= oneYearAgo) {
+          blockTime = tx.timestamp;
         }
-        
-        // Priority 2: Try transaction blockTime (from parsed transaction)
-        if (!blockTime && tx.timestamp && tx.timestamp > 0) {
-          const oneYearAgo = now - (365 * 24 * 60 * 60);
-          if (tx.timestamp <= now && tx.timestamp >= oneYearAgo) {
-            blockTime = tx.timestamp;
-          }
-        }
-        
-        // Priority 3: Last resort - use signature blockTime, but validate it carefully
-        // Note: Some RPCs return incorrect future dates, so we validate strictly
-        if (!blockTime && sig.blockTime !== null && sig.blockTime !== undefined && sig.blockTime > 0) {
-          const oneYearAgo = now - (365 * 24 * 60 * 60);
-          // Only use if it's not in the future and not too old
-          if (sig.blockTime <= now && sig.blockTime >= oneYearAgo) {
-            blockTime = sig.blockTime;
-          }
-        }
-        
-        // If we still don't have a valid blockTime, skip this transaction
-        if (!blockTime || blockTime <= 0) {
-          return null;
-        }
-        
-        // Convert to Date and format
-        const transactionDate = new Date(blockTime * 1000);
-        
-        // Format the date in UTC
-        const formattedDate = new Intl.DateTimeFormat("en-US", {
-          year: "numeric",
-          month: "short",
-          day: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: true,
-          timeZone: "UTC",
-          timeZoneName: "short",
-        }).format(transactionDate);
-        
-        return {
-          ...tx,
-          timestamp: blockTime,
-          date: formattedDate,
-        };
-      })
-    );
+      }
+
+      if (!blockTime || blockTime <= 0) {
+        return null;
+      }
+
+      const transactionDate = new Date(blockTime * 1000);
+      const formattedDate = new Intl.DateTimeFormat("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+        timeZone: "UTC",
+        timeZoneName: "short",
+      }).format(transactionDate);
+
+      return {
+        ...tx,
+        timestamp: blockTime,
+        date: formattedDate,
+      };
+    });
 
     // Filter out null results, sort by timestamp (descending - most recent first)
     // Then take the 10 most recent
