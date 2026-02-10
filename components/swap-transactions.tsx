@@ -75,7 +75,7 @@ export function SwapTransactions({ transactions }: SwapTransactionsProps) {
       </CardHeader>
           <CardContent>
             {/* Table Header - Desktop Only */}
-            <div className="hidden sm:flex items-center justify-evenly gap-4 pb-3 mb-3 border-b border-gray-700 px-3">
+            <div className="hidden md:flex items-center justify-evenly gap-4 pb-3 mb-3 border-b border-gray-700 px-3">
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 <div className="w-6 h-6 flex-shrink-0"></div>
                 <div className="min-w-0">
@@ -110,7 +110,7 @@ export function SwapTransactions({ transactions }: SwapTransactionsProps) {
                   className="block p-3 bg-gray-800/30 rounded-lg hover:bg-gray-800/50 transition-all duration-200 ease-in-out hover:scale-[1.02] hover:shadow-md hover:shadow-purple-500/20 border border-transparent hover:border-purple-500/30"
                 >
               {/* Mobile Layout */}
-              <div className="sm:hidden space-y-3">
+              <div className="md:hidden space-y-3">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 flex-1 min-w-0">
                     <div className="w-6 h-6 flex items-center justify-center flex-shrink-0">
@@ -179,7 +179,7 @@ export function SwapTransactions({ transactions }: SwapTransactionsProps) {
               </div>
 
               {/* Desktop Layout */}
-              <div className="hidden sm:flex items-center justify-evenly gap-4">
+              <div className="hidden md:flex items-center justify-evenly gap-4">
                 {/* Input Token */}
                 <div className="flex items-center gap-2 flex-1 min-w-0">
                   <div className="w-6 h-6 flex items-center justify-center flex-shrink-0">
