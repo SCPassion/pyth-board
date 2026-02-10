@@ -1,15 +1,29 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ExternalLink, ArrowRight } from "lucide-react";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { ExternalLink, ArrowRight, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import type { SwapTransaction } from "@/types/pythTypes";
 import Image from "next/image";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface SwapTransactionsProps {
   transactions: SwapTransaction[];
+  page: number;
+  pageSize: number;
+  hasMore: boolean;
+  isLoading: boolean;
+  onPageChange: (page: number) => void;
 }
 
-export function SwapTransactions({ transactions }: SwapTransactionsProps) {
+export function SwapTransactions({
+  transactions,
+  page,
+  pageSize,
+  hasMore,
+  isLoading,
+  onPageChange,
+}: SwapTransactionsProps) {
   const formatTokenAmount = (amount: number) => {
     if (amount === 0) return "0.00";
     if (amount < 0.01) return "< 0.01";
@@ -41,15 +55,50 @@ export function SwapTransactions({ transactions }: SwapTransactionsProps) {
     return iconMap[symbol] || "";
   };
 
+  const rangeStart = (page - 1) * pageSize + 1;
+  const rangeEnd = rangeStart + transactions.length - 1;
+  const rangeLabel =
+    transactions.length > 0 ? `${rangeStart}-${rangeEnd}` : `${rangeStart}-${rangeStart + pageSize - 1}`;
+
+  const maxVisiblePages = 5;
+  let startPage = Math.max(1, page - Math.floor(maxVisiblePages / 2));
+  let endPage = startPage + maxVisiblePages - 1;
+  if (page <= 3) {
+    startPage = 1;
+    endPage = maxVisiblePages;
+  }
+  if (page > 3) {
+    startPage = page - 2;
+    endPage = page + 2;
+  }
+  if (startPage < 1) startPage = 1;
+  if (endPage < startPage) endPage = startPage;
+  if (!hasMore && endPage > page) {
+    endPage = page;
+  }
+
+  const pageNumbers = [];
+  for (let p = startPage; p <= endPage; p += 1) {
+    pageNumbers.push(p);
+  }
+
   if (transactions.length === 0) {
     return (
       <Card className="bg-[#2a2f3e] border-gray-700 hover:border-purple-400 hover:shadow-lg hover:shadow-purple-500/30 transition-all duration-300">
         <CardHeader>
           <p className="text-gray-400 text-xs">
-            Last 10 token swaps to PYTH by Pythian Council Ops Multisig
+            Token swaps to PYTH by Pythian Council Ops Multisig
           </p>
         </CardHeader>
         <CardContent>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-10">
+              <div className="flex items-center gap-2 text-gray-400 text-sm">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading swaps...
+              </div>
+            </div>
+          ) : (
           <div className="text-center py-8 sm:py-12 px-4">
             <div className="w-16 h-16 sm:w-24 sm:h-24 mx-auto mb-4 bg-gray-800 rounded-full flex items-center justify-center">
               <ExternalLink className="w-8 h-8 sm:w-12 sm:h-12 text-gray-400" />
@@ -61,6 +110,7 @@ export function SwapTransactions({ transactions }: SwapTransactionsProps) {
               No recent swap operations have been detected for the Pyth Council Ops wallet.
             </p>
           </div>
+          )}
         </CardContent>
       </Card>
     );
@@ -70,7 +120,7 @@ export function SwapTransactions({ transactions }: SwapTransactionsProps) {
       <Card className="bg-[#2a2f3e] border-gray-700 hover:border-purple-400 hover:shadow-lg hover:shadow-purple-500/30 transition-all duration-300">
       <CardHeader>
         <p className="text-gray-400 text-xs">
-          Last 10 token swaps to PYTH by Pythian Council Ops Multisig
+          Showing swaps {rangeLabel} to PYTH by Pythian Council Ops Multisig
         </p>
       </CardHeader>
           <CardContent>
@@ -252,6 +302,48 @@ export function SwapTransactions({ transactions }: SwapTransactionsProps) {
               </div>
             </a>
           ))}
+        </div>
+        <div className="mt-4 flex items-center justify-between gap-3">
+          <div className="text-xs text-gray-400">
+            {pageSize} per page
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 hover:bg-gray-800 hover:text-white transition-colors hover:cursor-pointer"
+              onClick={() => onPageChange(Math.max(1, page - 1))}
+              disabled={page === 1 || isLoading}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            {pageNumbers.map((p) => (
+              <Button
+                key={p}
+                variant="ghost"
+                size="icon"
+                className={cn(
+                  "h-8 w-8 text-xs",
+                  p === page
+                    ? "bg-purple-600 text-white hover:bg-purple-500"
+                    : "text-gray-300 hover:bg-gray-800 hover:text-white hover:cursor-pointer"
+                )}
+                onClick={() => onPageChange(p)}
+                disabled={isLoading}
+              >
+                {p}
+              </Button>
+            ))}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 hover:bg-gray-800 hover:text-white transition-colors hover:cursor-pointer"
+              onClick={() => onPageChange(page + 1)}
+              disabled={!hasMore || isLoading}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>

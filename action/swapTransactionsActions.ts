@@ -188,7 +188,17 @@ function parseSwapTransactionFromParsed(
 /**
  * Fetches recent swap transactions to PYTH from Pyth Council Ops wallet
  */
-export async function getSwapTransactions(): Promise<SwapTransaction[]> {
+export interface SwapTransactionsPage {
+  transactions: SwapTransaction[];
+  hasMore: boolean;
+  page: number;
+  pageSize: number;
+}
+
+export async function getSwapTransactionsPage(
+  page: number,
+  pageSize: number
+): Promise<SwapTransactionsPage> {
   try {
     let connection = createConnection(0);
     const councilOpsAddress = new PublicKey(PYTHIAN_COUNCIL_OPS_MULTISIG_ADDRESS);
@@ -199,8 +209,9 @@ export async function getSwapTransactions(): Promise<SwapTransaction[]> {
       try {
         connection = createConnection(i);
         // Fetch recent signatures (last 100 transactions)
+        const signaturesLimit = Math.min(page * pageSize + 1, 1000);
         const response = await connection.getSignaturesForAddress(councilOpsAddress, {
-          limit: 100,
+          limit: signaturesLimit,
         });
         signatures = response;
         break;
@@ -211,15 +222,28 @@ export async function getSwapTransactions(): Promise<SwapTransaction[]> {
       }
     }
 
-    // Parse transactions in a single batch RPC (limit to 50 for coverage)
-    const transactionsToParse = signatures.slice(0, 50);
-    const signatureStrings = transactionsToParse.map((sig) => sig.signature);
+    const pageStart = (page - 1) * pageSize;
+    const pageEnd = pageStart + pageSize;
+    const hasMore = signatures.length > pageEnd;
+    const pageSignatures = signatures.slice(pageStart, pageEnd);
+
+    if (pageSignatures.length === 0) {
+      return {
+        transactions: [],
+        hasMore: false,
+        page,
+        pageSize,
+      };
+    }
+
+    // Parse transactions in a single batch RPC for the requested page only
+    const signatureStrings = pageSignatures.map((sig) => sig.signature);
     const parsed = await connection.getParsedTransactions(signatureStrings, {
       maxSupportedTransactionVersion: 0,
     });
 
     const parsedTransactions = parsed.map((parsedTx, index) => {
-      const sig = transactionsToParse[index];
+      const sig = pageSignatures[index];
       const tx = parseSwapTransactionFromParsed(sig.signature, parsedTx);
       if (!tx) {
         return null;
@@ -271,13 +295,23 @@ export async function getSwapTransactions(): Promise<SwapTransaction[]> {
     const swapTransactions = parsedTransactions
       .filter((tx): tx is SwapTransaction => tx !== null)
       .sort((a, b) => b.timestamp - a.timestamp) // Descending order (most recent first)
-      .slice(0, 10); // Get 10 most recent
+      .slice(0, pageSize); // Only the requested page size
 
-    return swapTransactions;
+    return {
+      transactions: swapTransactions,
+      hasMore,
+      page,
+      pageSize,
+    };
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";
     console.error("Error fetching swap transactions:", errorMessage);
-    return [];
+    return {
+      transactions: [],
+      hasMore: false,
+      page,
+      pageSize,
+    };
   }
 }
