@@ -209,25 +209,29 @@ export function SwapTransactions({
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center justify-between gap-2 pt-2 border-t border-gray-700">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-gray-400 text-xs mb-1">Signature</p>
-                    <p className="text-gray-300 text-xs font-mono truncate">{formatAddress(tx.signature)}</p>
-                  </div>
-                  <div className="text-right flex-shrink-0">
-                    <p className="text-gray-400 text-xs mb-1">Date/Time</p>
-                    <p className="text-white text-xs font-medium">
-                      {formatDate(tx.date)}
-                    </p>
-                  </div>
-                  <div className="text-right flex-shrink-0">
-                    <p className="text-gray-400 text-xs mb-1">Block</p>
-                    <p className="text-white text-sm font-semibold">
-                      {formatBlock(tx.block)}
-                    </p>
-                  </div>
-                  <div className="flex-shrink-0 ml-2">
-                    <ExternalLink className="w-4 h-4 text-gray-500" />
+                <div className="pt-2 border-t border-gray-700">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="col-span-2 min-w-0">
+                      <p className="text-gray-400 text-xs mb-1">Signature</p>
+                      <p className="text-gray-300 text-xs font-mono truncate">
+                        {formatAddress(tx.signature)}
+                      </p>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-gray-400 text-xs mb-1">Date/Time</p>
+                      <p className="text-white text-xs font-medium truncate">
+                        {formatDate(tx.date)}
+                      </p>
+                    </div>
+                    <div className="min-w-0 flex items-end justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-gray-400 text-xs mb-1">Block</p>
+                        <p className="text-white text-sm font-semibold truncate">
+                          {formatBlock(tx.block)}
+                        </p>
+                      </div>
+                      <ExternalLink className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                    </div>
                   </div>
                 </div>
               </div>
