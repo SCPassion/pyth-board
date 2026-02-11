@@ -18,8 +18,8 @@ export function TopHeader({
   const [showWalletDropdown, setShowWalletDropdown] = useState(false);
 
   return (
-    <header className="h-16 border-b border-gray-800 bg-[#1a1f2e] flex items-center justify-between px-3 sm:px-6 relative">
-      <div className="flex items-center gap-2 sm:gap-6 min-w-0 flex-1">
+    <header className="h-16 border-b border-gray-800 bg-[#1a1f2e] grid grid-cols-[1fr_auto] items-center gap-2 px-3 sm:px-6 relative min-w-0 sm:flex sm:justify-between">
+      <div className="flex items-center gap-2 sm:gap-6 min-w-0">
         {/* Mobile menu button */}
         <Button
           variant="ghost"
@@ -37,14 +37,14 @@ export function TopHeader({
           Pyth Dashboard
         </h1>
         <span
-          className="inline-block text-xs text-gray-400 bg-gray-800/50 px-2 py-0.5 rounded border border-gray-700 whitespace-nowrap flex-shrink-0"
+          className="hidden sm:inline-block text-xs text-gray-400 bg-gray-800/50 px-2 py-0.5 rounded border border-gray-700 whitespace-nowrap flex-shrink-0"
           suppressHydrationWarning
         >
           v0.1.8
         </span>
       </div>
 
-      <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
+      <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0 justify-end">
         {/* Price Ticker - Shown on medium screens and up */}
         <div className="hidden md:flex items-center">
           <PriceTicker />
