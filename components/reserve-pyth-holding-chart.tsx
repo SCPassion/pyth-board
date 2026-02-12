@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import {
@@ -10,8 +10,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   ChartContainer,
   ChartTooltip,
@@ -21,11 +19,7 @@ import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { Loader2 } from "lucide-react";
 
 export function ReservePythHoldingChart() {
-  const [minutes, setMinutes] = useState(180);
-
-  const rawHistory = useQuery(api.reserveSnapshots.getPythHoldingHistory, {
-    minutes,
-  });
+  const rawHistory = useQuery(api.reserveSnapshots.getPythHoldingHistory, {});
 
   const chartData = useMemo(() => {
     if (!rawHistory) return [];
@@ -37,21 +31,12 @@ export function ReservePythHoldingChart() {
   }, [rawHistory]);
 
   const latestValue = chartData.at(-1)?.totalPythHeld ?? null;
-  const firstValue = chartData.at(0)?.totalPythHeld ?? null;
-  const changeValue =
-    latestValue !== null && firstValue !== null
-      ? latestValue - firstValue
-      : null;
-  const changePct =
-    changeValue !== null && firstValue && firstValue > 0
-      ? (changeValue / firstValue) * 100
-      : null;
-  const averageValue =
-    chartData.length > 0
-      ? chartData.reduce((sum, point) => sum + point.totalPythHeld, 0) /
-        chartData.length
-      : null;
   const lastUpdated = chartData.at(-1)?.timestampMs;
+  const spanMs =
+    chartData.length > 1
+      ? chartData[chartData.length - 1].minuteBucketMs -
+        chartData[0].minuteBucketMs
+      : 0;
 
   return (
     <div className="space-y-5 min-h-[calc(100vh-240px)]">
@@ -64,30 +49,6 @@ export function ReservePythHoldingChart() {
               </p>
               <p className="text-white text-4xl font-semibold tracking-tight">
                 {latestValue !== null ? latestValue.toLocaleString() : "-"}
-              </p>
-            </div>
-            <div className="h-px bg-gray-700" />
-            <div>
-              <p className="text-gray-400 text-sm mb-2">Window Change</p>
-              <p
-                className={`text-3xl font-semibold ${
-                  (changeValue ?? 0) >= 0 ? "text-purple-300" : "text-red-300"
-                }`}
-              >
-                {changeValue !== null
-                  ? `${changeValue >= 0 ? "+" : ""}${changeValue.toLocaleString()}`
-                  : "-"}
-              </p>
-              <p className="text-gray-400 text-sm">
-                {changePct !== null
-                  ? `${changePct >= 0 ? "+" : ""}${changePct.toFixed(2)}%`
-                  : "-"}
-              </p>
-            </div>
-            <div>
-              <p className="text-gray-400 text-sm mb-2">Average Holdings</p>
-              <p className="text-white text-2xl font-semibold">
-                {averageValue !== null ? averageValue.toLocaleString() : "-"}
               </p>
             </div>
           </div>
@@ -104,72 +65,17 @@ export function ReservePythHoldingChart() {
                     : "Waiting for first snapshot"}
                 </CardDescription>
               </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  size="sm"
-                  variant={minutes === 60 ? "default" : "outline"}
-                  className={
-                    minutes === 60
-                      ? "bg-purple-600 hover:bg-purple-700"
-                      : "border-gray-600 text-gray-200 hover:bg-[#374151]"
-                  }
-                  onClick={() => setMinutes(60)}
-                >
-                  1h
-                </Button>
-                <Button
-                  size="sm"
-                  variant={minutes === 180 ? "default" : "outline"}
-                  className={
-                    minutes === 180
-                      ? "bg-purple-600 hover:bg-purple-700"
-                      : "border-gray-600 text-gray-200 hover:bg-[#374151]"
-                  }
-                  onClick={() => setMinutes(180)}
-                >
-                  3h
-                </Button>
-                <Button
-                  size="sm"
-                  variant={minutes === 1440 ? "default" : "outline"}
-                  className={
-                    minutes === 1440
-                      ? "bg-purple-600 hover:bg-purple-700"
-                      : "border-gray-600 text-gray-200 hover:bg-[#374151]"
-                  }
-                  onClick={() => setMinutes(1440)}
-                >
-                  24h
-                </Button>
-              </div>
             </CardHeader>
 
             <CardContent className="px-0 pb-0 flex-1 min-h-0 flex flex-col">
-              <div className="flex items-center gap-2 mb-3">
-                <Badge
-                  variant="outline"
-                  className="border-gray-600 text-gray-300"
-                >
-                  {chartData.length} snapshots
-                </Badge>
-                {latestValue !== null ? (
-                  <Badge
-                    variant="outline"
-                    className="border-purple-600 text-purple-200 bg-purple-500/10"
-                  >
-                    Latest: {latestValue.toLocaleString()} PYTH
-                  </Badge>
-                ) : null}
-              </div>
-
               {!rawHistory ? (
                 <div className="flex-1 min-h-0 flex items-center justify-center text-gray-400">
                   <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                  Loading Convex history...
+                  Loading history...
                 </div>
               ) : chartData.length === 0 ? (
                 <div className="flex-1 min-h-0 flex items-center justify-center text-gray-400 text-sm">
-                  No snapshots yet. Wait for the hourly cron to populate data.
+                  No snapshots yet. Wait for the daily cron to populate data.
                 </div>
               ) : (
                 <ChartContainer
@@ -225,10 +131,15 @@ export function ReservePythHoldingChart() {
                       minTickGap={24}
                       tick={{ fill: "#94a3b8", fontSize: 12 }}
                       tickFormatter={(value) =>
-                        new Date(value).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })
+                        spanMs > 365 * 24 * 60 * 60 * 1000
+                          ? new Date(value).toLocaleDateString([], {
+                              year: "2-digit",
+                              month: "short",
+                            })
+                          : new Date(value).toLocaleDateString([], {
+                              month: "short",
+                              day: "2-digit",
+                            })
                       }
                     />
                     <YAxis

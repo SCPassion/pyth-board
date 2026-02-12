@@ -4,8 +4,8 @@ import { internal } from "./_generated/api";
 const crons = cronJobs();
 
 crons.interval(
-  "fetch pyth reserve holdings every hour",
-  { hours: 1 },
+  "fetch pyth reserve holdings daily",
+  { hours: 24 },
   internal.reserveSnapshots.runPythHoldingSnapshotJob,
   {}
 );

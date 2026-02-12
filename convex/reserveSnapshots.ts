@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import {
   internalAction,
   internalMutation,
+  mutation,
   query,
 } from "./_generated/server";
 import { internal } from "./_generated/api";
@@ -131,16 +132,11 @@ export const runPythHoldingSnapshotJob = internalAction({
 });
 
 export const getPythHoldingHistory = query({
-  args: {
-    minutes: v.optional(v.number()),
-  },
-  handler: async (ctx, args) => {
-    const minutes = Math.max(1, Math.min(args.minutes ?? 180, 10_080));
-    const sinceMs = Date.now() - minutes * 60_000;
-
+  args: {},
+  handler: async (ctx) => {
     const snapshots = await ctx.db
       .query("pythHoldingSnapshots")
-      .withIndex("by_timestampMs", (q) => q.gte("timestampMs", sinceMs))
+      .withIndex("by_timestampMs", (q) => q.gte("timestampMs", 0))
       .order("asc")
       .collect();
 
@@ -150,5 +146,65 @@ export const getPythHoldingHistory = query({
       minuteBucketMs: snapshot.minuteBucketMs,
       totalPythHeld: snapshot.totalPythHeld,
     }));
+  },
+});
+
+export const seedDummyPythHoldingSnapshots = mutation({
+  args: {
+    hours: v.optional(v.number()),
+    intervalHours: v.optional(v.number()),
+    baseAmount: v.optional(v.number()),
+    hourlyGrowth: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const hours = Math.max(6, Math.min(args.hours ?? 72, 24 * 30));
+    const intervalHours = Math.max(1, Math.min(args.intervalHours ?? 1, 24));
+    const baseAmount = args.baseAmount ?? 4_450_000;
+    const hourlyGrowth = args.hourlyGrowth ?? 4_800;
+
+    const nowMs = Date.now();
+    const intervalMs = intervalHours * 3_600_000;
+    const startBucketMs =
+      Math.floor((nowMs - hours * 60 * 60 * 1000) / intervalMs) * intervalMs;
+
+    let insertedOrUpdated = 0;
+    const pointCount = Math.floor(hours / intervalHours);
+
+    for (let i = 0; i <= pointCount; i++) {
+      const elapsedHours = i * intervalHours;
+      const bucketMs = startBucketMs + i * intervalMs;
+      const trend = baseAmount + elapsedHours * hourlyGrowth;
+      const wave = Math.sin(i / 4) * 18_000 + Math.cos(i / 7) * 9_000;
+      const noise = ((i * 7919) % 5000) - 2500;
+      const totalPythHeld = Math.max(0, trend + wave + noise);
+
+      const existing = await ctx.db
+        .query("pythHoldingSnapshots")
+        .withIndex("by_minuteBucketMs", (q) => q.eq("minuteBucketMs", bucketMs))
+        .first();
+
+      if (existing) {
+        await ctx.db.patch(existing._id, {
+          timestampMs: bucketMs,
+          totalPythHeld,
+        });
+      } else {
+        await ctx.db.insert("pythHoldingSnapshots", {
+          timestampMs: bucketMs,
+          minuteBucketMs: bucketMs,
+          totalPythHeld,
+        });
+      }
+
+      insertedOrUpdated += 1;
+    }
+
+    return {
+      hours,
+      intervalHours,
+      insertedOrUpdated,
+      startBucketMs,
+      endBucketMs: startBucketMs + pointCount * intervalMs,
+    };
   },
 });
