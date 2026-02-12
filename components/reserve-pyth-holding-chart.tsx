@@ -18,12 +18,14 @@ import {
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { Loader2 } from "lucide-react";
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
 export function ReservePythHoldingChart() {
   const rawHistory = useQuery(api.reserveSnapshots.getPythHoldingHistory, {});
 
   const chartData = useMemo(() => {
     if (!rawHistory) return [];
-    return rawHistory.map((point) => ({
+    return rawHistory.map((point: any) => ({
       timestampMs: point.timestampMs,
       minuteBucketMs: point.minuteBucketMs,
       totalPythHeld: Number(point.totalPythHeld.toFixed(2)),
@@ -31,12 +33,58 @@ export function ReservePythHoldingChart() {
   }, [rawHistory]);
 
   const latestValue = chartData.at(-1)?.totalPythHeld ?? null;
+  const firstValue = chartData.at(0)?.totalPythHeld ?? null;
   const lastUpdated = chartData.at(-1)?.timestampMs;
   const spanMs =
     chartData.length > 1
       ? chartData[chartData.length - 1].minuteBucketMs -
         chartData[0].minuteBucketMs
       : 0;
+  const spanDays = spanMs / DAY_MS;
+
+  const axisMode: "daily" | "weekly" | "monthly" =
+    spanDays <= 60 ? "daily" : spanDays <= 365 ? "weekly" : "monthly";
+
+  const axisTicks = useMemo(() => {
+    if (chartData.length === 0) return [];
+
+    const start = chartData[0].minuteBucketMs;
+    const end = chartData[chartData.length - 1].minuteBucketMs;
+
+    if (axisMode === "daily") {
+      return chartData.map((point) => point.minuteBucketMs);
+    }
+
+    if (axisMode === "weekly") {
+      const ticks: number[] = [];
+      const firstDay = Math.floor(start / DAY_MS) * DAY_MS;
+      for (let t = firstDay; t <= end; t += 7 * DAY_MS) {
+        ticks.push(t);
+      }
+      if (ticks[ticks.length - 1] !== end) {
+        ticks.push(end);
+      }
+      return ticks;
+    }
+
+    const ticks: number[] = [];
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    const cursor = new Date(
+      Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), 1)
+    );
+
+    while (cursor.getTime() <= endDate.getTime()) {
+      ticks.push(cursor.getTime());
+      cursor.setUTCMonth(cursor.getUTCMonth() + 1);
+    }
+
+    if (ticks[ticks.length - 1] !== end) {
+      ticks.push(end);
+    }
+
+    return ticks;
+  }, [axisMode, chartData]);
 
   return (
     <div className="space-y-5 min-h-[calc(100vh-240px)]">
@@ -126,12 +174,13 @@ export function ReservePythHoldingChart() {
                       type="number"
                       scale="time"
                       domain={["dataMin", "dataMax"]}
+                      ticks={axisTicks}
                       tickLine={false}
                       axisLine={false}
                       minTickGap={24}
                       tick={{ fill: "#94a3b8", fontSize: 12 }}
                       tickFormatter={(value) =>
-                        spanMs > 365 * 24 * 60 * 60 * 1000
+                        axisMode === "monthly"
                           ? new Date(value).toLocaleDateString([], {
                               year: "2-digit",
                               month: "short",
@@ -146,6 +195,7 @@ export function ReservePythHoldingChart() {
                       tickLine={false}
                       axisLine={false}
                       width={96}
+                      domain={[firstValue ?? "dataMin", "dataMax"]}
                       tick={{ fill: "#94a3b8", fontSize: 12 }}
                       tickFormatter={(value) => Number(value).toLocaleString()}
                     />
