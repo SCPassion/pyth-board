@@ -8,13 +8,19 @@
  * @module
  */
 
+import type * as crons from "../crons.js";
+import type * as reserveSnapshots from "../reserveSnapshots.js";
+
 import type {
   ApiFromModules,
   FilterApi,
   FunctionReference,
 } from "convex/server";
 
-declare const fullApi: ApiFromModules<{}>;
+declare const fullApi: ApiFromModules<{
+  crons: typeof crons;
+  reserveSnapshots: typeof reserveSnapshots;
+}>;
 
 /**
  * A utility for referencing Convex functions in your app's public API.

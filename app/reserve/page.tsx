@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { ReserveSummary } from "@/components/reserve-summary";
 import { ReserveAccountCard } from "@/components/reserve-account-card";
 import { SwapTransactions } from "@/components/swap-transactions";
+import { ReservePythHoldingChart } from "@/components/reserve-pyth-holding-chart";
 import { getPythReserveSummary } from "@/action/pythReserveActions";
 import { getSwapTransactionsPage } from "@/action/swapTransactionsActions";
 import type { PythReserveSummary, SwapTransaction } from "@/types/pythTypes";
@@ -13,6 +14,9 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
 
 export default function ReservePage() {
+  const [activeTab, setActiveTab] = useState<"overview" | "pyth-history">(
+    "overview"
+  );
   const [reserveSummary, setReserveSummary] =
     useState<PythReserveSummary | null>(null);
   const [swapTransactions, setSwapTransactions] = useState<SwapTransaction[]>([]);
@@ -213,80 +217,113 @@ export default function ReservePage() {
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <ReserveSummary reserveSummary={reserveSummary} />
-
-      {/* Account Details */}
-      <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <h2 className="text-xl sm:text-2xl font-bold text-white">
-            Reserve Accounts
-          </h2>
-          <Badge
-            variant="outline"
-            className="text-gray-400 border-gray-600 text-sm"
-          >
-            2 Accounts
-          </Badge>
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-          <ReserveAccountCard accountInfo={reserveSummary.daoTreasury} />
-          <ReserveAccountCard
-            accountInfo={reserveSummary.pythianCouncilOps}
-          />
-        </div>
+      <div className="flex items-center gap-2 border-b border-gray-700 pb-3">
+        <Button
+          size="sm"
+          variant={activeTab === "overview" ? "default" : "outline"}
+          className={
+            activeTab === "overview"
+              ? "bg-purple-600 hover:bg-purple-700 text-white"
+              : "text-gray-300 border-gray-600 hover:bg-[#374151]"
+          }
+          onClick={() => setActiveTab("overview")}
+        >
+          Overview
+        </Button>
+        <Button
+          size="sm"
+          variant={activeTab === "pyth-history" ? "default" : "outline"}
+          className={
+            activeTab === "pyth-history"
+              ? "bg-purple-600 hover:bg-purple-700 text-white"
+              : "text-gray-300 border-gray-600 hover:bg-[#374151]"
+          }
+          onClick={() => setActiveTab("pyth-history")}
+        >
+          PYTH Holding History
+        </Button>
       </div>
 
-      {/* Swap Transactions */}
-      <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <h2 className="text-xl sm:text-2xl font-bold text-white">
-            Recent Swap Operations
-          </h2>
-        </div>
-        <SwapTransactions
-          transactions={swapTransactions}
-          page={swapPage}
-          pageSize={swapPageSize}
-          hasMore={swapHasMore}
-          isLoading={swapLoading}
-          throttleRemainingMs={swapThrottleRemainingMs}
-          error={swapError}
-          onPageChange={(page) => fetchSwapPage(page)}
-        />
-      </div>
+      {activeTab === "overview" ? (
+        <>
+          {/* Summary Cards */}
+          <ReserveSummary reserveSummary={reserveSummary} />
 
-      {/* Information Section */}
-      <Card className="bg-[#2a2f3e] border-gray-700 hover:border-purple-400 hover:shadow-lg hover:shadow-purple-500/30 transition-all duration-300">
-        <CardContent className="p-4 sm:p-6 space-y-4">
-          <h3 className="text-base sm:text-lg font-semibold text-white">
-            About the Strategic Reserve
-          </h3>
-          <div className="space-y-2 text-gray-400 text-xs sm:text-sm">
-            <p>
-              The Pyth Strategic Reserve is a DAO-owned reserve established to
-              systematically acquire PYTH tokens using protocol revenue. The
-              reserve operates under the following principles:
-            </p>
-            <ul className="list-disc list-inside space-y-1 ml-4">
-              <li>
-                Monthly purchases using one-third (33%) of the Treasury balance
-              </li>
-              <li>
-                Administered by the Pythian Council Ops Multisig (6/8 approval
-                required)
-              </li>
-              <li>
-                All acquired PYTH tokens are repatriated to the DAO Treasury
-              </li>
-              <li>
-                Transactions follow strict parameters: max 5% slippage, max
-                $25,000 per transaction
-              </li>
-            </ul>
+          {/* Account Details */}
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <h2 className="text-xl sm:text-2xl font-bold text-white">
+                Reserve Accounts
+              </h2>
+              <Badge
+                variant="outline"
+                className="text-gray-400 border-gray-600 text-sm"
+              >
+                2 Accounts
+              </Badge>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+              <ReserveAccountCard accountInfo={reserveSummary.daoTreasury} />
+              <ReserveAccountCard
+                accountInfo={reserveSummary.pythianCouncilOps}
+              />
+            </div>
           </div>
-        </CardContent>
-      </Card>
+
+          {/* Swap Transactions */}
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <h2 className="text-xl sm:text-2xl font-bold text-white">
+                Recent Swap Operations
+              </h2>
+            </div>
+            <SwapTransactions
+              transactions={swapTransactions}
+              page={swapPage}
+              pageSize={swapPageSize}
+              hasMore={swapHasMore}
+              isLoading={swapLoading}
+              throttleRemainingMs={swapThrottleRemainingMs}
+              error={swapError}
+              onPageChange={(page) => fetchSwapPage(page)}
+            />
+          </div>
+
+          {/* Information Section */}
+          <Card className="bg-[#2a2f3e] border-gray-700 hover:border-purple-400 hover:shadow-lg hover:shadow-purple-500/30 transition-all duration-300">
+            <CardContent className="p-4 sm:p-6 space-y-4">
+              <h3 className="text-base sm:text-lg font-semibold text-white">
+                About the Strategic Reserve
+              </h3>
+              <div className="space-y-2 text-gray-400 text-xs sm:text-sm">
+                <p>
+                  The Pyth Strategic Reserve is a DAO-owned reserve established to
+                  systematically acquire PYTH tokens using protocol revenue. The
+                  reserve operates under the following principles:
+                </p>
+                <ul className="list-disc list-inside space-y-1 ml-4">
+                  <li>
+                    Monthly purchases using one-third (33%) of the Treasury balance
+                  </li>
+                  <li>
+                    Administered by the Pythian Council Ops Multisig (6/8 approval
+                    required)
+                  </li>
+                  <li>
+                    All acquired PYTH tokens are repatriated to the DAO Treasury
+                  </li>
+                  <li>
+                    Transactions follow strict parameters: max 5% slippage, max
+                    $25,000 per transaction
+                  </li>
+                </ul>
+              </div>
+            </CardContent>
+          </Card>
+        </>
+      ) : (
+        <ReservePythHoldingChart />
+      )}
     </div>
   );
 }

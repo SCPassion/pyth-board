@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { AppLayout } from "@/components/app-layout";
+import { ConvexClientProvider } from "@/components/convex-provider";
 import { PWAInstallPrompt } from "@/components/pwa-install-prompt";
 import { Analytics } from "@vercel/analytics/react";
 import { Toaster } from "react-hot-toast";
@@ -63,7 +64,9 @@ export default function RootLayout({
         <meta name="msapplication-tap-highlight" content="no" />
       </head>
       <body className={inter.className}>
-        <AppLayout>{children}</AppLayout>
+        <ConvexClientProvider>
+          <AppLayout>{children}</AppLayout>
+        </ConvexClientProvider>
         <PWAInstallPrompt />
         <Toaster
           position="bottom-right"

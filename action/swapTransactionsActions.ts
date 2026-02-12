@@ -170,7 +170,6 @@ function parseSwapTransactionFromParsed(
     return {
       signature,
       timestamp: blockTime || 0, // Will be overridden by signature blockTime if available
-      date: "", // Will be set by caller using signature blockTime
       block: slot || 0,
       inputToken,
       inputAmount,
