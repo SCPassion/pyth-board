@@ -519,7 +519,7 @@ export const seedDummyPythHoldingSnapshots = mutation({
     hourlyGrowth: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const hours = Math.max(6, Math.min(args.hours ?? 72, 24 * 30));
+    const hours = Math.max(6, Math.min(args.hours ?? 72, 24 * 3650));
     const intervalHours = Math.max(1, Math.min(args.intervalHours ?? 1, 24));
     const baseAmount = args.baseAmount ?? 4_450_000;
     const hourlyGrowth = args.hourlyGrowth ?? 4_800;
