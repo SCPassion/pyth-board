@@ -71,7 +71,7 @@ export function ReservePythHoldingChart() {
     const startDate = new Date(start);
     const endDate = new Date(end);
     const cursor = new Date(
-      Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), 1)
+      Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), 1),
     );
 
     while (cursor.getTime() <= endDate.getTime()) {
@@ -105,7 +105,7 @@ export function ReservePythHoldingChart() {
             <CardHeader className="px-0 pt-0 pb-4 flex-row items-start justify-between space-y-0">
               <div>
                 <CardTitle className="text-white text-3xl">
-                  Reserve Activity
+                  Reserve PYTH Holdings over time
                 </CardTitle>
                 <CardDescription className="text-gray-400 mt-1">
                   {lastUpdated
