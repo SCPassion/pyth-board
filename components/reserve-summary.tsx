@@ -8,9 +8,14 @@ import Image from "next/image";
 
 interface ReserveSummaryProps {
   reserveSummary: PythReserveSummary;
+  /** USDC balance in Jupiter DCA vault (Council Ops) — included in Total Reserve Value */
+  dcaVaultUsdc?: number;
 }
 
-export function ReserveSummary({ reserveSummary }: ReserveSummaryProps) {
+export function ReserveSummary({
+  reserveSummary,
+  dcaVaultUsdc = 0,
+}: ReserveSummaryProps) {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
@@ -64,8 +69,15 @@ export function ReserveSummary({ reserveSummary }: ReserveSummaryProps) {
                   Total Reserve Value
                 </p>
                 <p className="text-2xl sm:text-3xl font-bold text-white group-hover:text-purple-100 transition-colors">
-                  {formatCurrency(reserveSummary.totalReserveValue)}
+                  {formatCurrency(
+                    reserveSummary.totalReserveValue + dcaVaultUsdc
+                  )}
                 </p>
+                {dcaVaultUsdc > 0 && (
+                  <p className="text-gray-500 text-xs mt-1">
+                    includes DCA vault
+                  </p>
+                )}
               </div>
             </div>
           </CardContent>

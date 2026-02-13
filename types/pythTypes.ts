@@ -76,3 +76,27 @@ export type SwapTransaction = {
   swapProgram: string;
   explorerUrl: string;
 };
+
+/** Jupiter DCA time-based order (USDC -> PYTH relevant fields) */
+export type JupiterDcaOrder = {
+  orderKey: string;
+  userPubkey: string;
+  inputMint: string;
+  outputMint: string;
+  inDeposited: number;
+  inWithdrawn: number;
+  inUsed: number;
+  outWithdrawn: number;
+  inAmountPerCycle: number;
+  cycleFrequency: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+/** Status of Jupiter DCA usage for Council Ops (USDC -> PYTH) */
+export type JupiterDcaCouncilOpsStatus = {
+  usingDca: boolean;
+  /** Total USDC balance remaining in DCA vault(s) (inDeposited - inUsed across orders) */
+  usdcBalanceVault: number;
+  orders: JupiterDcaOrder[];
+};

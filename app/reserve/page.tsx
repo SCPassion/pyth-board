@@ -7,7 +7,13 @@ import { SwapTransactions } from "@/components/swap-transactions";
 import { ReservePythHoldingChart } from "@/components/reserve-pyth-holding-chart";
 import { getPythReserveSummary } from "@/action/pythReserveActions";
 import { getSwapTransactionsPage } from "@/action/swapTransactionsActions";
-import type { PythReserveSummary, SwapTransaction } from "@/types/pythTypes";
+import { getJupiterDcaCouncilOps } from "@/action/jupiterDcaActions";
+import { getDcaCardHref } from "@/components/jupiter-dca-card";
+import type {
+  PythReserveSummary,
+  SwapTransaction,
+  JupiterDcaCouncilOpsStatus,
+} from "@/types/pythTypes";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +37,9 @@ export default function ReservePage() {
   const [loading, setLoading] = useState(true);
   const [reserveError, setReserveError] = useState<string | null>(null);
   const [swapError, setSwapError] = useState<string | null>(null);
+  const [dcaStatus, setDcaStatus] =
+    useState<JupiterDcaCouncilOpsStatus | null>(null);
+  const [dcaLoading, setDcaLoading] = useState(true);
   const hasFetchedRef = useRef(false);
   const isFetchingReserveRef = useRef(false);
   const isFetchingSwapsRef = useRef(false);
@@ -105,8 +114,13 @@ export default function ReservePage() {
       isFetchingReserveRef.current = true;
       setLoading(true);
       setReserveError(null);
-      const data = await getPythReserveSummary();
+      setDcaLoading(true);
+      const [data, dca] = await Promise.all([
+        getPythReserveSummary(),
+        getJupiterDcaCouncilOps(),
+      ]);
       setReserveSummary(data);
+      setDcaStatus(dca);
       hasFetchedRef.current = true;
     } catch (err) {
       const errorMessage =
@@ -115,6 +129,7 @@ export default function ReservePage() {
       console.error("Error fetching reserve summary:", err);
     } finally {
       setLoading(false);
+      setDcaLoading(false);
       isFetchingReserveRef.current = false;
     }
   }, []);
@@ -247,7 +262,10 @@ export default function ReservePage() {
       {activeTab === "overview" ? (
         <>
           {/* Summary Cards */}
-          <ReserveSummary reserveSummary={reserveSummary} />
+          <ReserveSummary
+            reserveSummary={reserveSummary}
+            dcaVaultUsdc={dcaStatus?.usdcBalanceVault ?? 0}
+          />
 
           {/* Account Details */}
           <div className="space-y-6">
@@ -266,6 +284,12 @@ export default function ReservePage() {
               <ReserveAccountCard accountInfo={reserveSummary.daoTreasury} />
               <ReserveAccountCard
                 accountInfo={reserveSummary.pythianCouncilOps}
+                jupiterDca={{
+                  usingDca: dcaStatus?.usingDca ?? false,
+                  usdcBalanceVault: dcaStatus?.usdcBalanceVault ?? 0,
+                  vaultUrl: getDcaCardHref(dcaStatus),
+                }}
+                dcaLoading={dcaLoading}
               />
             </div>
           </div>
