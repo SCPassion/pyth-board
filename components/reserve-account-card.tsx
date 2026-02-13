@@ -88,28 +88,28 @@ export function ReserveAccountCard({
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Total USD Value */}
-        {/* Calculate total from displayed values to ensure it matches the sum of individual items */}
+        {/* Wallet tokens + SOL; add Jupiter DCA vault USDC when present (vault is separate, no double count) */}
         {(() => {
-          // Use the actual SOL price from the API (passed from server)
-          const solPrice = accountInfo.solPrice || 150; // Fallback if not available
+          const solPrice = accountInfo.solPrice || 150;
           const solValue = accountInfo.solBalance * solPrice;
-          
-          // Sum all token USD values (these are the exact values displayed below)
           const tokenTotal = accountInfo.tokenBalances.reduce(
             (sum, token) => sum + (token.usdValue || 0),
             0
           );
-          
-          // Total = SOL value + sum of all displayed token values
-          // This ensures the total matches: SOL + USDC + PYTH + USDT
-          const calculatedTotal = solValue + tokenTotal;
-          
+          // DCA vault USDC is held in Jupiter's vault, not in this wallet's token accounts
+          const dcaVaultUsd =
+            jupiterDca && jupiterDca.usingDca ? jupiterDca.usdcBalanceVault : 0;
+          const calculatedTotal = solValue + tokenTotal + dcaVaultUsd;
+
           return (
             <div className="bg-gray-800/50 rounded-lg p-4 sm:p-6">
               <p className="text-gray-400 text-xs sm:text-sm mb-1">Total Value</p>
               <p className="text-2xl sm:text-3xl font-bold text-white break-words">
                 {formatCurrency(calculatedTotal)}
               </p>
+              {dcaVaultUsd > 0 && (
+                <p className="text-gray-500 text-xs mt-1">includes DCA vault</p>
+              )}
             </div>
           );
         })()}
