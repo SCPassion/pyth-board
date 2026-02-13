@@ -3,14 +3,27 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { ReserveAccountInfo } from "@/types/pythTypes";
-import { Wallet, ExternalLink } from "lucide-react";
+import { Wallet, ExternalLink, Repeat, CheckCircle2, XCircle } from "lucide-react";
 import Image from "next/image";
+
+export type JupiterDcaBlock = {
+  usingDca: boolean;
+  usdcBalanceVault: number;
+  vaultUrl: string;
+};
 
 interface ReserveAccountCardProps {
   accountInfo: ReserveAccountInfo;
+  /** When set, shows Jupiter DCA (owned by this account) inside the card */
+  jupiterDca?: JupiterDcaBlock | null;
+  dcaLoading?: boolean;
 }
 
-export function ReserveAccountCard({ accountInfo }: ReserveAccountCardProps) {
+export function ReserveAccountCard({
+  accountInfo,
+  jupiterDca,
+  dcaLoading = false,
+}: ReserveAccountCardProps) {
   const formatAddress = (address: string) => {
     return `${address.slice(0, 8)}...${address.slice(-8)}`;
   };
@@ -181,11 +194,85 @@ export function ReserveAccountCard({ accountInfo }: ReserveAccountCardProps) {
           </div>
         )}
 
-        {accountInfo.tokenBalances.length === 0 && accountInfo.solBalance === 0 && (
-          <div className="text-center py-4">
-            <p className="text-gray-500 text-sm">No holdings found</p>
+        {/* Jupiter DCA (when this account owns it) */}
+        {jupiterDca !== undefined && (
+          <div>
+            <p className="text-gray-400 text-xs sm:text-sm font-medium mb-2">
+              Jupiter DCA
+            </p>
+            {dcaLoading ? (
+              <div className="p-3 sm:p-4 bg-gray-800/30 rounded-lg flex items-center gap-3">
+                <div className="w-9 h-9 bg-gray-600 rounded-lg animate-pulse flex-shrink-0" />
+                <div className="space-y-1 flex-1 min-w-0">
+                  <div className="h-3 bg-gray-600 rounded animate-pulse w-28" />
+                  <div className="h-4 bg-gray-600 rounded animate-pulse w-20" />
+                </div>
+              </div>
+            ) : (
+              <a
+                href={jupiterDca?.vaultUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block p-3 sm:p-4 bg-gray-800/30 rounded-lg hover:bg-gray-800/50 transition-colors border border-transparent hover:border-emerald-500/40"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-9 h-9 bg-emerald-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Repeat className="h-4 w-4 text-emerald-400" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        {jupiterDca?.usingDca ? (
+                          <>
+                            <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0" />
+                            <span className="text-white font-medium text-sm">
+                              Using Jupiter DCA
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <XCircle className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                            <span className="text-white font-medium text-sm">
+                              Not using DCA
+                            </span>
+                          </>
+                        )}
+                        <ExternalLink className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                      </div>
+                      {!jupiterDca?.usingDca && (
+                        <p className="text-gray-500 text-xs mt-0.5">
+                          No active USDC → PYTH orders
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  {jupiterDca?.usingDca && (
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <Image
+                        src="/usdc.webp"
+                        alt="USDC"
+                        width={20}
+                        height={20}
+                        className="w-5 h-5"
+                      />
+                      <span className="text-white font-semibold text-sm tabular-nums">
+                        {formatCurrency(jupiterDca.usdcBalanceVault)} USDC
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </a>
+            )}
           </div>
         )}
+
+        {accountInfo.tokenBalances.length === 0 &&
+          accountInfo.solBalance === 0 &&
+          jupiterDca === undefined && (
+            <div className="text-center py-4">
+              <p className="text-gray-500 text-sm">No holdings found</p>
+            </div>
+          )}
       </CardContent>
     </Card>
   );
