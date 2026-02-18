@@ -11,7 +11,6 @@ import { Loader, Plus, Trash2, X } from "lucide-react";
 import { PythStakingInfo } from "@/types/pythTypes";
 import { useWalletInfosStore } from "@/store/store";
 import { getOISStakingInfo } from "@/action/pythActions";
-import { StakingHelpPopup } from "@/components/staking-help-popup";
 import toast from "react-hot-toast";
 
 interface WalletDropdownProps {
@@ -53,12 +52,8 @@ export function WalletDropdown({ isOpen, onClose }: WalletDropdownProps) {
     const formData = new FormData(e.currentTarget);
     const name = formData.get("wallet-name") as string;
     const address = formData.get("wallet-address") as string;
-    const stakingAddress = formData.get("staking-address") as string;
 
-    if (
-      wallets.some((wallet) => wallet.address === address) ||
-      wallets.some((wallet) => wallet.stakingAddress === stakingAddress)
-    ) {
+    if (wallets.some((wallet) => wallet.address === address)) {
       onClose();
       toast.error("This wallet address is already added.", {
         duration: 4000,
@@ -70,20 +65,16 @@ export function WalletDropdown({ isOpen, onClose }: WalletDropdownProps) {
       });
       return;
     }
-    fetchPythStakingInfo(address, stakingAddress, name);
+    fetchPythStakingInfo(address, name);
   }
 
-  async function fetchPythStakingInfo(
-    walletAddress: string,
-    stakingAddress: string,
-    name: string
-  ) {
+  async function fetchPythStakingInfo(walletAddress: string, name: string) {
     setIsLoading(true);
     try {
-      const pythStakingInfo: PythStakingInfo = await getOISStakingInfo(
-        walletAddress,
-        stakingAddress
+      const { stakingAddress, stakingInfo } = await getOISStakingInfo(
+        walletAddress
       );
+      const pythStakingInfo: PythStakingInfo = stakingInfo;
 
       if (!pythStakingInfo) {
         throw new Error("Failed to fetch Pyth staking info");
@@ -126,7 +117,7 @@ export function WalletDropdown({ isOpen, onClose }: WalletDropdownProps) {
 
       // Error toast with different styling
       toast.error(
-        "Failed to add wallet. Please check the addresses and try again.",
+        "Failed to add wallet. Please check the wallet address and try again.",
         {
           duration: 5000,
           style: {
@@ -195,12 +186,6 @@ export function WalletDropdown({ isOpen, onClose }: WalletDropdownProps) {
                           {wallet.address.slice(0, 5) +
                             "..." +
                             wallet.address.slice(-4)}
-                        </p>
-                        <p className="text-gray-400 text-xs sm:text-sm font-mono break-all group-hover:text-gray-300 transition-colors">
-                          Staking:{" "}
-                          {wallet.stakingAddress.slice(0, 5) +
-                            "..." +
-                            wallet.stakingAddress.slice(-4)}
                         </p>
                         <p className="text-gray-400 text-xs sm:text-sm group-hover:text-green-300 transition-colors">
                           Staked:{" "}
@@ -276,25 +261,6 @@ export function WalletDropdown({ isOpen, onClose }: WalletDropdownProps) {
                   name="wallet-address"
                   type="text"
                   placeholder="Enter Solana wallet address"
-                  className="bg-[#2a2f3e] border-gray-600 text-white font-mono text-xs sm:text-sm"
-                  required
-                />
-              </div>
-              <div className="space-y-2 sm:space-y-4">
-                <div className="flex items-center gap-2 mb-1 sm:mb-2">
-                  <Label
-                    htmlFor="staking-address"
-                    className="text-gray-300 text-sm"
-                  >
-                    Staking Account Address
-                  </Label>
-                  <StakingHelpPopup />
-                </div>
-                <Input
-                  id="staking-address"
-                  name="staking-address"
-                  type="text"
-                  placeholder="Enter your pyth staking address"
                   className="bg-[#2a2f3e] border-gray-600 text-white font-mono text-xs sm:text-sm"
                   required
                 />

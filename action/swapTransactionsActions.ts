@@ -3,19 +3,15 @@
 import { PublicKey, Connection } from "@solana/web3.js";
 import { PYTHIAN_COUNCIL_OPS_MULTISIG_ADDRESS, TOKEN_SYMBOLS } from "@/data/pythReserveAddresses";
 import type { SwapTransaction } from "@/types/pythTypes";
+import { getSolanaRpcEndpoints } from "@/lib/solana-rpc";
 
 // RPC endpoints with fallback support
-const RPC_ENDPOINTS = [
-  "https://solana-mainnet.g.alchemy.com/v2/VAWGO1qOMcxkm0B9H0xUPzpNMzBnIvo8",
-  "https://api.mainnet-beta.solana.com",
-  "https://rpc.ankr.com/solana",
-  "https://solana-api.projectserum.com",
-];
+const RPC_ENDPOINTS = getSolanaRpcEndpoints();
 
 const CONNECTION_CONFIG = {
   commitment: "confirmed" as const,
   confirmTransactionInitialTimeout: 60000,
-  disableRetryOnRateLimit: false,
+  disableRetryOnRateLimit: true,
   httpHeaders: {
     "User-Agent": "PythBoard/1.0",
   },

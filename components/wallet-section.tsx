@@ -47,9 +47,6 @@ export function WalletSection({ wallet }: WalletSectionProps) {
               <p className="text-gray-400 font-mono text-xs sm:text-sm break-all">
                 Solana Address: {wallet.address}
               </p>
-              <p className="text-gray-400 font-mono text-xs sm:text-sm break-all">
-                Staking Account: {wallet.stakingAddress}
-              </p>
             </div>
             <div className="text-left sm:text-right space-y-3">
               <Button

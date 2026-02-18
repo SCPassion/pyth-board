@@ -52,6 +52,16 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
+### RPC configuration (required for reliability)
+
+Set dedicated Solana RPC endpoints in `.env.local`:
+
+```bash
+SOLANA_RPC_ENDPOINTS=https://your-primary-rpc,https://your-secondary-rpc
+```
+
+If this is not set, the app falls back to the public mainnet endpoint, which is often rate-limited.
+
 ## Available scripts
 
 ```bash
@@ -72,9 +82,7 @@ npm run rebuild      # npm rebuild
 
 ## Current limitations
 
-- Wallet onboarding currently requires both:
-  - Solana wallet address
-  - Staking account address
+- Wallet onboarding uses Solana wallet address only; staking account is derived automatically.
 - Reserve valuation currently focuses on tracked assets (SOL, PYTH, USDC, USDT).
 - No dedicated automated test suite is included yet.
 - Network/RPC reliability can affect freshness; fallback endpoints are used when possible.
@@ -83,3 +91,4 @@ npm run rebuild      # npm rebuild
 
 - This app is read-only and does not request wallet signing.
 - No private keys are stored by the app.
+

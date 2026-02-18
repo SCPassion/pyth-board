@@ -10,22 +10,18 @@ import {
   PythStakingClient,
 } from "@pythnetwork/staking-sdk";
 import { PublicKey, Connection } from "@solana/web3.js";
+import { getSolanaRpcEndpoints } from "@/lib/solana-rpc";
 
 const INITIAL_REWARD_POOL_SIZE = 60_000_000_000_000n;
 
 // RPC endpoints with fallback support
-const RPC_ENDPOINTS = [
-  "https://solana-mainnet.g.alchemy.com/v2/VAWGO1qOMcxkm0B9H0xUPzpNMzBnIvo8",
-  "https://api.mainnet-beta.solana.com",
-  "https://rpc.ankr.com/solana",
-  "https://solana-api.projectserum.com",
-];
+const RPC_ENDPOINTS = getSolanaRpcEndpoints();
 
 // Connection configuration for better performance
 const CONNECTION_CONFIG = {
   commitment: "confirmed" as const,
   confirmTransactionInitialTimeout: 60000,
-  disableRetryOnRateLimit: false,
+  disableRetryOnRateLimit: true,
   httpHeaders: {
     "User-Agent": "PythBoard/1.0",
   },
@@ -45,199 +41,279 @@ function isValidSolanaAddress(address: string): boolean {
   }
 }
 
+type OISStakingInfoResult = {
+  stakingAddress: string;
+  stakingInfo: PythStakingInfo;
+};
+
+const CACHE_TTL_MS = 60_000;
+const STALE_CACHE_TTL_MS = 10 * 60_000;
+const walletStakingInfoCache = new Map<
+  string,
+  { value: OISStakingInfoResult; updatedAt: number }
+>();
+const inflightWalletRequests = new Map<string, Promise<OISStakingInfoResult>>();
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : "Unknown error";
+}
+
+function isRateLimitError(errorMessage: string): boolean {
+  const msg = errorMessage.toLowerCase();
+  return (
+    msg.includes("429") ||
+    msg.includes("too many requests") ||
+    msg.includes("rate limit") ||
+    msg.includes("compute units per second")
+  );
+}
+
+function isTransientRpcError(errorMessage: string): boolean {
+  const msg = errorMessage.toLowerCase();
+  return (
+    isRateLimitError(msg) ||
+    msg.includes("fetch") ||
+    msg.includes("network") ||
+    msg.includes("timeout") ||
+    msg.includes("temporarily unavailable")
+  );
+}
+
+function isNonRetryableStakingError(errorMessage: string): boolean {
+  return (
+    errorMessage.includes("No staking account found for this wallet") ||
+    errorMessage.includes("Staking account does not exist or is invalid") ||
+    errorMessage.includes("Invalid wallet address format") ||
+    errorMessage.includes("Invalid address format")
+  );
+}
+
+async function sleep(ms: number): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function fetchOISStakingInfoWithClient(
+  client: PythStakingClient,
+  walletPublicKey: PublicKey,
+  endpointIndex: number
+): Promise<OISStakingInfoResult> {
+  // Avoid getMainStakeAccount(): it performs extra per-account RPC calls.
+  const stakeAccounts = await client.getAllStakeAccountPositions(walletPublicKey);
+  const stakeAccount = stakeAccounts[0];
+  if (!stakeAccount) {
+    throw new Error("No staking account found for this wallet. Stake with Pyth first.");
+  }
+
+  // Rewards are best-effort to keep wallet-add responsive under RPC pressure.
+  let rewards = { totalRewards: 0n };
+  for (let i = 0; i < RPC_ENDPOINTS.length; i++) {
+    const currentIndex = (endpointIndex + i) % RPC_ENDPOINTS.length;
+    const rewardsClient =
+      i === 0
+        ? client
+        : createPythStakingClientWithFallback(walletPublicKey, currentIndex);
+    try {
+      rewards = await getClaimableRewards(rewardsClient, stakeAccount);
+      break;
+    } catch (error) {
+      const message = getErrorMessage(error);
+      if (!isTransientRpcError(message) || i === RPC_ENDPOINTS.length - 1) {
+        rewards = { totalRewards: 0n };
+        break;
+      }
+      await sleep(100);
+    }
+  }
+
+  // Fetch required data in parallel and avoid duplicate pool-account RPCs.
+  const [targetAccount, poolData, rewardCustodyAccount, positions] =
+    await Promise.all([
+      client.getTargetAccount(),
+      client.getPoolDataAccount(),
+      client.getRewardCustodyAccount(),
+      client.getStakeAccountPositions(stakeAccount),
+    ]);
+
+  const generalStats: PythGeneralStats = {
+    totalGovernance:
+      Number(targetAccount.locked + targetAccount.deltaLocked) * 1e-6,
+    totalStaked:
+      Number(
+        sumDelegations(poolData.delState) + sumDelegations(poolData.selfDelState)
+      ) * 1e-6,
+    rewardsDistributed:
+      Number(
+        poolData.claimableRewards +
+          INITIAL_REWARD_POOL_SIZE -
+          rewardCustodyAccount.amount
+      ) * 1e-6,
+  };
+
+  const publisherPoolData = extractPublisherData(poolData).map(
+    ({ pubkey, apyHistory }) => ({
+      pubkey: pubkey.toBase58(),
+      apy: apyHistory[apyHistory.length - 1]?.apy ?? 0,
+    })
+  );
+
+  // Calculate claimable rewards in PYTH
+  const claimableRewards = Number(rewards?.totalRewards || 0n) * 1e-6;
+
+  // Process positions more efficiently
+  const StakeForEachPublisher: MyPublisherInfo[] = positions.data.positions
+    .map((p) => {
+      const publisher = p.targetWithParameters.integrityPool?.publisher;
+      if (!publisher) return null;
+
+      const key = String(publisher);
+      const publisherData = publisherPoolData.find((data) => data.pubkey === key);
+
+      return {
+        publisherKey: key,
+        stakedAmount: Number(p.amount) * 1e-6,
+        apy: publisherData?.apy ?? 0,
+        rewards: 0, // Will be calculated after totalStakedPyth is known
+      };
+    })
+    .filter((p): p is MyPublisherInfo => p !== null);
+
+  // Calculate total staked amount more efficiently
+  const totalStakedPyth = StakeForEachPublisher.reduce(
+    (acc, publisher) => acc + publisher.stakedAmount,
+    0
+  );
+
+  // Calculate rewards per validator proportionally based on staked amount
+  StakeForEachPublisher.forEach((publisher) => {
+    if (totalStakedPyth > 0 && claimableRewards > 0) {
+      publisher.rewards =
+        (publisher.stakedAmount / totalStakedPyth) * claimableRewards;
+    } else {
+      // Ensure rewards is always a number, default to 0
+      publisher.rewards = 0;
+    }
+  });
+
+  return {
+    stakingAddress: stakeAccount.toBase58(),
+    stakingInfo: {
+      StakeForEachPublisher,
+      totalStakedPyth,
+      claimableRewards,
+      generalStats,
+    },
+  };
+}
+
 /**
- * Retrieves staking information for a given wallet address and staking address.
+ * Retrieves staking information for a given wallet address.
+ * The staking account is derived from the wallet owner.
  * @param {string} walletAddress - The public key of the wallet to use.
- * @param {string} stakingAddress - The public key of the staking account.
- * @returns {Promise<PythStakingInfo>} - A promise that resolves to an object containing staking information.
+ * @returns {Promise<OISStakingInfoResult>} - A promise that resolves to staking account + staking information.
  */
 export async function getOISStakingInfo(
-  walletAddress: string,
-  stakingAddress: string
-): Promise<PythStakingInfo> {
+  walletAddress: string
+): Promise<OISStakingInfoResult> {
   // Input validation
-  if (!walletAddress || !stakingAddress) {
-    throw new Error("Wallet address and staking address are required");
+  if (!walletAddress) {
+    throw new Error("Wallet address is required");
   }
 
   if (!isValidSolanaAddress(walletAddress)) {
     throw new Error("Invalid wallet address format");
   }
 
-  if (!isValidSolanaAddress(stakingAddress)) {
-    throw new Error("Invalid staking address format");
-  }
-
-  let stakeAccount: PublicKey;
   let walletPublicKey: PublicKey;
-  let client: PythStakingClient;
 
   try {
-    stakeAccount = new PublicKey(stakingAddress);
     walletPublicKey = new PublicKey(walletAddress);
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
+    const errorMessage = getErrorMessage(error);
     throw new Error(`Invalid address format: ${errorMessage}`);
   }
 
-  try {
-    client = createPythStakingClientWithFallback(walletPublicKey, 0);
-  } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
-    throw new Error(`Failed to create Pyth staking client: ${errorMessage}`);
+  const cacheEntry = walletStakingInfoCache.get(walletAddress);
+  const now = Date.now();
+  if (cacheEntry && now - cacheEntry.updatedAt < CACHE_TTL_MS) {
+    return cacheEntry.value;
   }
 
-  try {
-    try {
-      const accountInfo = await client.connection.getAccountInfo(stakeAccount);
-      if (!accountInfo) {
-        throw new Error("Staking account does not exist");
-      }
-    } catch (accountError) {
-      throw new Error("Staking account does not exist or is invalid");
-    }
+  const existingInFlight = inflightWalletRequests.get(walletAddress);
+  if (existingInFlight) {
+    return existingInFlight;
+  }
 
-    // Try to fetch rewards with fallback mechanism
-    let rewards;
-    let rewardsSuccess = false;
+  const request = (async () => {
+    const endpointErrors: string[] = [];
 
-    // Try with current client first
-    try {
-      rewards = await getClaimableRewards(client, stakeAccount);
-      rewardsSuccess = true;
-    } catch (rewardError) {
-      // Try with different RPC endpoints
-      for (let i = 1; i < RPC_ENDPOINTS.length && !rewardsSuccess; i++) {
-        try {
-          const fallbackClient = createPythStakingClientWithFallback(
-            walletPublicKey,
-            i
-          );
-          rewards = await getClaimableRewards(fallbackClient, stakeAccount);
-          rewardsSuccess = true;
-        } catch (fallbackError) {
-          // Continue to next endpoint
+    for (let i = 0; i < RPC_ENDPOINTS.length; i++) {
+      try {
+        const client = createPythStakingClientWithFallback(walletPublicKey, i);
+        const result = await fetchOISStakingInfoWithClient(
+          client,
+          walletPublicKey,
+          i
+        );
+        walletStakingInfoCache.set(walletAddress, {
+          value: result,
+          updatedAt: Date.now(),
+        });
+        return result;
+      } catch (error) {
+        const errorMessage = getErrorMessage(error);
+        endpointErrors.push(`RPC #${i + 1}: ${errorMessage}`);
+
+        if (isNonRetryableStakingError(errorMessage)) {
+          throw error;
+        }
+
+        if (isTransientRpcError(errorMessage)) {
+          await sleep(200 * (i + 1));
         }
       }
-
-      if (!rewardsSuccess) {
-        rewards = { totalRewards: 0n };
-      }
     }
 
-    // Fetch other data in parallel
-    const [generalStats, positions, publisherPoolData] = await Promise.all([
-      getPythGeneralStats(client),
-      client.getStakeAccountPositions(stakeAccount),
-      getPublisherPoolData(client),
-    ]);
+    const staleEntry = walletStakingInfoCache.get(walletAddress);
+    if (staleEntry && Date.now() - staleEntry.updatedAt < STALE_CACHE_TTL_MS) {
+      return staleEntry.value;
+    }
 
-    // Calculate claimable rewards in PYTH
-    const claimableRewards = Number(rewards?.totalRewards || 0n) * 1e-6;
+    throw new Error(endpointErrors.join(" | "));
+  })();
 
-    // Process positions more efficiently
-    const StakeForEachPublisher: MyPublisherInfo[] = positions.data.positions
-      .map((p) => {
-        const publisher = p.targetWithParameters.integrityPool?.publisher;
-        if (!publisher) return null;
+  inflightWalletRequests.set(walletAddress, request);
 
-        const key = String(publisher);
-        const publisherData = publisherPoolData.find(
-          (data) => data.pubkey === key
-        );
-
-        return {
-          publisherKey: key,
-          stakedAmount: Number(p.amount) * 1e-6,
-          apy: publisherData?.apy ?? 0,
-          rewards: 0, // Will be calculated after totalStakedPyth is known
-        };
-      })
-      .filter((p): p is MyPublisherInfo => p !== null);
-
-    // Calculate total staked amount more efficiently
-    const totalStakedPyth = StakeForEachPublisher.reduce(
-      (acc, publisher) => acc + publisher.stakedAmount,
-      0
-    );
-
-    // Calculate rewards per validator proportionally based on staked amount
-    StakeForEachPublisher.forEach((publisher) => {
-      if (totalStakedPyth > 0 && claimableRewards > 0) {
-        publisher.rewards =
-          (publisher.stakedAmount / totalStakedPyth) * claimableRewards;
-      } else {
-        // Ensure rewards is always a number, default to 0
-        publisher.rewards = 0;
-      }
-    });
-
-    return {
-      StakeForEachPublisher,
-      totalStakedPyth,
-      claimableRewards,
-      generalStats,
-    };
+  try {
+    return await request;
   } catch (error) {
     console.error("Error retrieving staking information:", error);
+    const errorMessage = getErrorMessage(error);
 
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
-
-    // Provide more specific error messages
     if (errorMessage.includes("Account does not exist")) {
       throw new Error("Staking account does not exist or has no positions");
-    } else if (
-      errorMessage.includes("Slot") &&
-      errorMessage.includes("was skipped")
-    ) {
+    }
+    if (errorMessage.includes("Slot") && errorMessage.includes("was skipped")) {
       throw new Error(
         "RPC data unavailable: Historical slot data is missing. Please try again later."
       );
-    } else if (
-      errorMessage.includes("fetch") ||
-      errorMessage.includes("network")
-    ) {
-      throw new Error("Network error: Unable to connect to Solana network");
-    } else if (errorMessage.includes("Invalid public key")) {
-      throw new Error("Invalid wallet or staking address format");
-    } else {
+    }
+    if (isRateLimitError(errorMessage)) {
       throw new Error(
-        `Failed to retrieve staking information: ${errorMessage}`
+        "RPC rate limit reached across providers. Please try again in a few seconds."
       );
     }
+    if (errorMessage.includes("fetch") || errorMessage.includes("network")) {
+      throw new Error(
+        "RPC providers are currently unavailable. Please try again in a few seconds."
+      );
+    }
+    if (errorMessage.includes("Invalid public key")) {
+      throw new Error("Invalid wallet address format");
+    }
+    throw new Error(`Failed to retrieve staking information: ${errorMessage}`);
+  } finally {
+    inflightWalletRequests.delete(walletAddress);
   }
-}
-
-/**
- * Creates a Pyth Staking Client with the provided wallet public key.
- * Includes fallback RPC endpoints for better reliability.
- * @param {PublicKey} walletPublicKey - The public key of the wallet to use.
- * @returns {PythStakingClient} - An instance of PythStakingClient.
- */
-function createPythStakingClient(
-  walletPublicKey: PublicKey
-): PythStakingClient {
-  // Try to create connection with primary endpoint first
-  let connection: Connection;
-
-  try {
-    connection = new Connection(RPC_ENDPOINTS[0], CONNECTION_CONFIG);
-  } catch (error) {
-    console.warn("Primary RPC endpoint failed, using fallback");
-    connection = new Connection(RPC_ENDPOINTS[1], CONNECTION_CONFIG);
-  }
-
-  return new PythStakingClient({
-    connection,
-    wallet: {
-      publicKey: walletPublicKey,
-      signAllTransactions: () => Promise.reject("Not implemented"),
-      signTransaction: () => Promise.reject("Not implemented"),
-    },
-  });
 }
 
 /**
@@ -273,8 +349,7 @@ function createPythStakingClientWithFallback(
  */
 async function getClaimableRewards(
   client: PythStakingClient,
-  stakeAccount: PublicKey,
-  retryCount: number = 0
+  stakeAccount: PublicKey
 ) {
   try {
     const result = await client.getClaimableRewards(stakeAccount);
@@ -288,18 +363,6 @@ async function getClaimableRewards(
       return { totalRewards: 0n };
     }
 
-    // If it's a network error and we haven't tried all endpoints, retry with different RPC
-    if (
-      retryCount < RPC_ENDPOINTS.length - 1 &&
-      (errorMessage.includes("fetch") || errorMessage.includes("network"))
-    ) {
-      const newClient = createPythStakingClientWithFallback(
-        client.wallet.publicKey,
-        retryCount + 1
-      );
-      return await getClaimableRewards(newClient, stakeAccount, retryCount + 1);
-    }
-
     throw new Error(`Failed to fetch claimable rewards: ${errorMessage}`);
   }
 }
@@ -311,69 +374,6 @@ const sumDelegations = (
     (acc, value) => acc + value.totalDelegation + value.deltaDelegation,
     0n
   );
-
-/**
- * Retrieves general statistics about the Pyth staking pool.
- * @param client - The Pyth Staking Client instance.
- * @description Retrieves general statistics about the Pyth staking pool, including total governance, total staked, and rewards distributed.
- * @returns {Promise<{ totalGovernance: number; totalStaked: number; rewardsDistributed: number }>} - A promise that resolves to an object containing the statistics.
- */
-async function getPythGeneralStats(
-  client: PythStakingClient
-): Promise<PythGeneralStats> {
-  try {
-    const [targetAccount, poolData, rewardCustodyAccount] = await Promise.all([
-      client.getTargetAccount(),
-      client.getPoolDataAccount(),
-      client.getRewardCustodyAccount(),
-    ]);
-
-    return {
-      totalGovernance:
-        Number(targetAccount.locked + targetAccount.deltaLocked) * 1e-6,
-      totalStaked:
-        Number(
-          sumDelegations(poolData.delState) +
-            sumDelegations(poolData.selfDelState)
-        ) * 1e-6,
-      rewardsDistributed:
-        Number(
-          poolData.claimableRewards +
-            INITIAL_REWARD_POOL_SIZE -
-            rewardCustodyAccount.amount
-        ) * 1e-6,
-    };
-  } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
-    throw new Error(`Failed to fetch general stats: ${errorMessage}`);
-  }
-}
-
-/**
- * Retrieves the publisher pool data from the Pyth Staking Client.
- * @param {PythStakingClient} client - The Pyth Staking Client instance.
- * @returns {Promise<Array<{ totalDelegation: bigint; totalDelegationDelta: bigint; pubkey: string; apy: number }>>} - A promise that resolves to an array of publisher data.
- */
-async function getPublisherPoolData(client: PythStakingClient) {
-  try {
-    const poolData = await client.getPoolDataAccount();
-    const publisherData = extractPublisherData(poolData);
-
-    return publisherData.map(
-      ({ totalDelegation, totalDelegationDelta, pubkey, apyHistory }) => ({
-        totalDelegation,
-        totalDelegationDelta,
-        pubkey: pubkey.toBase58(),
-        apy: apyHistory[apyHistory.length - 1]?.apy ?? 0,
-      })
-    );
-  } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
-    throw new Error(`Failed to fetch publisher pool data: ${errorMessage}`);
-  }
-}
 
 /**
  * Fetches the latest Pyth price for a specific asset.
