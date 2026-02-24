@@ -121,22 +121,22 @@ export function ReservePythHoldingChart({
       : "-";
 
   return (
-    <div className="space-y-5 min-h-[calc(100vh-240px)]">
-      <Card className="bg-[#2a2f3e] border-gray-700 min-h-[calc(100vh-360px)] h-[calc(100vh-360px)] flex flex-col overflow-hidden">
-        <div className="grid h-full min-h-0 grid-cols-1 lg:grid-cols-[320px_1fr]">
+    <div className="space-y-5">
+      <Card className="bg-[#2a2f3e] border-gray-700 flex flex-col lg:min-h-[calc(100vh-360px)] lg:h-[calc(100vh-360px)] lg:overflow-hidden">
+        <div className="grid min-h-0 grid-cols-1 lg:grid-cols-[320px_1fr] lg:h-full">
           <div className="border-b lg:border-b-0 lg:border-r border-gray-700 p-6 space-y-6">
             <div>
               <p className="text-gray-400 text-sm mb-2">
                 Current Reserve Size (PYTH)
               </p>
-              <p className="text-white text-4xl font-semibold tracking-tight">
+              <p className="text-white text-3xl sm:text-4xl font-semibold tracking-tight">
                 {latestValue !== null ? latestValue.toLocaleString() : "-"}
               </p>
             </div>
 
             <div>
               <p className="text-gray-400 text-sm mb-2">$PYTH Purchased</p>
-              <p className="text-white text-3xl font-semibold tracking-tight">
+              <p className="text-white text-2xl sm:text-3xl font-semibold tracking-tight">
                 {cumulativePurchasedSinceTracking !== null
                   ? cumulativePurchasedSinceTracking.toLocaleString()
                   : "-"}
@@ -150,7 +150,7 @@ export function ReservePythHoldingChart({
               <p className="text-gray-400 text-sm mb-2">
                 Average Daily PYTH Purchased
               </p>
-              <p className="text-white text-3xl font-semibold tracking-tight">
+              <p className="text-white text-2xl sm:text-3xl font-semibold tracking-tight">
                 {averageDailyPurchased !== null
                   ? averageDailyPurchased.toLocaleString()
                   : "-"}
@@ -161,7 +161,7 @@ export function ReservePythHoldingChart({
               <p className="text-gray-400 text-sm mb-2">
                 Average Daily PYTH Purchased (USD)
               </p>
-              <p className="text-white text-3xl font-semibold tracking-tight">
+              <p className="text-white text-2xl sm:text-3xl font-semibold tracking-tight">
                 {averageDailyPurchasedUsd !== null
                   ? new Intl.NumberFormat("en-US", {
                       style: "currency",
@@ -174,10 +174,10 @@ export function ReservePythHoldingChart({
             </div>
           </div>
 
-          <div className="min-h-0 flex flex-col p-6">
+          <div className="flex min-w-0 flex-col p-6 lg:min-h-0">
             <CardHeader className="px-0 pt-0 pb-4 flex-row items-start justify-between space-y-0">
               <div>
-                <CardTitle className="text-white text-3xl">
+                <CardTitle className="text-white text-2xl sm:text-3xl">
                   Reserve PYTH Holdings over time
                 </CardTitle>
                 <CardDescription className="text-gray-400 mt-1">
@@ -188,30 +188,31 @@ export function ReservePythHoldingChart({
               </div>
             </CardHeader>
 
-            <CardContent className="px-0 pb-0 flex-1 min-h-0 flex flex-col">
+            <CardContent className="mt-2 min-w-0 px-0 pb-0 lg:mt-0 lg:flex lg:min-h-0 lg:flex-1 lg:flex-col">
               {!rawHistory ? (
-                <div className="flex-1 min-h-0 flex items-center justify-center text-gray-400">
+                <div className="h-[260px] sm:h-[320px] lg:h-full flex items-center justify-center text-gray-400">
                   <Loader2 className="h-5 w-5 animate-spin mr-2" />
                   Loading history...
                 </div>
               ) : chartData.length === 0 ? (
-                <div className="flex-1 min-h-0 flex items-center justify-center text-gray-400 text-sm">
+                <div className="h-[260px] sm:h-[320px] lg:h-full flex items-center justify-center text-gray-400 text-sm">
                   No snapshots yet. Wait for the daily cron to populate data.
                 </div>
               ) : (
-                <ChartContainer
-                  className="h-full w-full aspect-auto"
-                  config={{
-                    totalPythHeld: {
-                      label: "Current Holdings (in PYTH)",
-                      color: "#a855f7",
-                    },
-                  }}
-                >
-                  <AreaChart
-                    data={chartData}
-                    margin={{ left: 0, right: 10, top: 10, bottom: 6 }}
+                <div className="h-[260px] w-full min-w-0 sm:h-[320px] lg:h-full">
+                  <ChartContainer
+                    className="!block h-full w-full min-w-0 aspect-auto"
+                    config={{
+                      totalPythHeld: {
+                        label: "PYTH",
+                        color: "#a855f7",
+                      },
+                    }}
                   >
+                    <AreaChart
+                      data={chartData}
+                      margin={{ left: 0, right: 10, top: 10, bottom: 6 }}
+                    >
                     <defs>
                       <linearGradient
                         id="pythHoldingsFill"
@@ -275,10 +276,9 @@ export function ReservePythHoldingChart({
                     <ChartTooltip
                       content={
                         <ChartTooltipContent
-                          formatter={(value) => [
-                            `${Number(value).toLocaleString()} PYTH`,
-                            "Current Holdings",
-                          ]}
+                          formatter={(value) =>
+                            `${Number(value).toLocaleString()} PYTH`
+                          }
                           labelFormatter={(_, payload) => {
                             const timestampMs =
                               payload?.[0]?.payload?.timestampMs;
@@ -288,17 +288,18 @@ export function ReservePythHoldingChart({
                         />
                       }
                     />
-                    <Area
-                      dataKey="totalPythHeld"
-                      type="natural"
-                      stroke="var(--color-totalPythHeld)"
-                      fill="url(#pythHoldingsFill)"
-                      strokeWidth={4}
-                      dot={false}
-                      activeDot={{ r: 4, fill: "var(--color-totalPythHeld)" }}
-                    />
-                  </AreaChart>
-                </ChartContainer>
+                      <Area
+                        dataKey="totalPythHeld"
+                        type="natural"
+                        stroke="var(--color-totalPythHeld)"
+                        fill="url(#pythHoldingsFill)"
+                        strokeWidth={4}
+                        dot={false}
+                        activeDot={{ r: 4, fill: "var(--color-totalPythHeld)" }}
+                      />
+                    </AreaChart>
+                  </ChartContainer>
+                </div>
               )}
             </CardContent>
           </div>
