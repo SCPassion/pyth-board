@@ -127,7 +127,7 @@ export function ReservePythHoldingChart({
           <div className="border-b lg:border-b-0 lg:border-r border-gray-700 p-6 space-y-6">
             <div>
               <p className="text-gray-400 text-sm mb-2">
-                Current Reserve Size (PYTH)
+                Current Reserve Size ($PYTH)
               </p>
               <p className="text-white text-3xl sm:text-4xl font-semibold tracking-tight">
                 {latestValue !== null ? latestValue.toLocaleString() : "-"}
@@ -148,7 +148,7 @@ export function ReservePythHoldingChart({
 
             <div>
               <p className="text-gray-400 text-sm mb-2">
-                Average Daily PYTH Purchased
+                Average Daily $PYTH Purchased
               </p>
               <p className="text-white text-2xl sm:text-3xl font-semibold tracking-tight">
                 {averageDailyPurchased !== null
@@ -159,7 +159,7 @@ export function ReservePythHoldingChart({
 
             <div>
               <p className="text-gray-400 text-sm mb-2">
-                Average Daily PYTH Purchased (USD)
+                Average Daily Purchased in USD
               </p>
               <p className="text-white text-2xl sm:text-3xl font-semibold tracking-tight">
                 {averageDailyPurchasedUsd !== null
@@ -213,81 +213,83 @@ export function ReservePythHoldingChart({
                       data={chartData}
                       margin={{ left: 0, right: 10, top: 10, bottom: 6 }}
                     >
-                    <defs>
-                      <linearGradient
-                        id="pythHoldingsFill"
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
-                      >
-                        <stop
-                          offset="0%"
-                          stopColor="var(--color-totalPythHeld)"
-                          stopOpacity={0.4}
-                        />
-                        <stop
-                          offset="55%"
-                          stopColor="var(--color-totalPythHeld)"
-                          stopOpacity={0.16}
-                        />
-                        <stop
-                          offset="100%"
-                          stopColor="var(--color-totalPythHeld)"
-                          stopOpacity={0.03}
-                        />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid
-                      vertical={false}
-                      strokeDasharray="3 3"
-                      stroke="rgba(148, 163, 184, 0.25)"
-                    />
-                    <XAxis
-                      dataKey="minuteBucketMs"
-                      type="number"
-                      scale="time"
-                      domain={["dataMin", "dataMax"]}
-                      ticks={axisTicks}
-                      tickLine={false}
-                      axisLine={false}
-                      minTickGap={24}
-                      tick={{ fill: "#94a3b8", fontSize: 12 }}
-                      tickFormatter={(value) =>
-                        axisMode === "monthly"
-                          ? new Date(value).toLocaleDateString([], {
-                              year: "2-digit",
-                              month: "short",
-                            })
-                          : new Date(value).toLocaleDateString([], {
-                              month: "short",
-                              day: "2-digit",
-                            })
-                      }
-                    />
-                    <YAxis
-                      tickLine={false}
-                      axisLine={false}
-                      width={96}
-                      domain={[firstValue ?? "dataMin", "dataMax"]}
-                      tick={{ fill: "#94a3b8", fontSize: 12 }}
-                      tickFormatter={(value) => Number(value).toLocaleString()}
-                    />
-                    <ChartTooltip
-                      content={
-                        <ChartTooltipContent
-                          formatter={(value) =>
-                            `${Number(value).toLocaleString()} PYTH`
-                          }
-                          labelFormatter={(_, payload) => {
-                            const timestampMs =
-                              payload?.[0]?.payload?.timestampMs;
-                            if (!timestampMs) return "";
-                            return new Date(timestampMs).toLocaleString();
-                          }}
-                        />
-                      }
-                    />
+                      <defs>
+                        <linearGradient
+                          id="pythHoldingsFill"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="0%"
+                            stopColor="var(--color-totalPythHeld)"
+                            stopOpacity={0.4}
+                          />
+                          <stop
+                            offset="55%"
+                            stopColor="var(--color-totalPythHeld)"
+                            stopOpacity={0.16}
+                          />
+                          <stop
+                            offset="100%"
+                            stopColor="var(--color-totalPythHeld)"
+                            stopOpacity={0.03}
+                          />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid
+                        vertical={false}
+                        strokeDasharray="3 3"
+                        stroke="rgba(148, 163, 184, 0.25)"
+                      />
+                      <XAxis
+                        dataKey="minuteBucketMs"
+                        type="number"
+                        scale="time"
+                        domain={["dataMin", "dataMax"]}
+                        ticks={axisTicks}
+                        tickLine={false}
+                        axisLine={false}
+                        minTickGap={24}
+                        tick={{ fill: "#94a3b8", fontSize: 12 }}
+                        tickFormatter={(value) =>
+                          axisMode === "monthly"
+                            ? new Date(value).toLocaleDateString([], {
+                                year: "2-digit",
+                                month: "short",
+                              })
+                            : new Date(value).toLocaleDateString([], {
+                                month: "short",
+                                day: "2-digit",
+                              })
+                        }
+                      />
+                      <YAxis
+                        tickLine={false}
+                        axisLine={false}
+                        width={96}
+                        domain={[firstValue ?? "dataMin", "dataMax"]}
+                        tick={{ fill: "#94a3b8", fontSize: 12 }}
+                        tickFormatter={(value) =>
+                          Number(value).toLocaleString()
+                        }
+                      />
+                      <ChartTooltip
+                        content={
+                          <ChartTooltipContent
+                            formatter={(value) =>
+                              `${Number(value).toLocaleString()} PYTH`
+                            }
+                            labelFormatter={(_, payload) => {
+                              const timestampMs =
+                                payload?.[0]?.payload?.timestampMs;
+                              if (!timestampMs) return "";
+                              return new Date(timestampMs).toLocaleString();
+                            }}
+                          />
+                        }
+                      />
                       <Area
                         dataKey="totalPythHeld"
                         type="natural"
