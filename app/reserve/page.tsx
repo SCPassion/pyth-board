@@ -5,7 +5,10 @@ import { ReserveSummary } from "@/components/reserve-summary";
 import { ReserveAccountCard } from "@/components/reserve-account-card";
 import { SwapTransactions } from "@/components/swap-transactions";
 import { ReservePythHoldingChart } from "@/components/reserve-pyth-holding-chart";
-import { getPythReserveSummary } from "@/action/pythReserveActions";
+import {
+  getCurrentPythPriceUsd,
+  getPythReserveSummary,
+} from "@/action/pythReserveActions";
 import { getSwapTransactionsPage } from "@/action/swapTransactionsActions";
 import { getJupiterDcaCouncilOps } from "@/action/jupiterDcaActions";
 import { getDcaCardHref } from "@/components/jupiter-dca-card";
@@ -39,6 +42,7 @@ export default function ReservePage() {
   const [swapError, setSwapError] = useState<string | null>(null);
   const [dcaStatus, setDcaStatus] =
     useState<JupiterDcaCouncilOpsStatus | null>(null);
+  const [currentPythPriceUsd, setCurrentPythPriceUsd] = useState(0);
   const [dcaLoading, setDcaLoading] = useState(true);
   const hasFetchedRef = useRef(false);
   const isFetchingReserveRef = useRef(false);
@@ -115,12 +119,14 @@ export default function ReservePage() {
       setLoading(true);
       setReserveError(null);
       setDcaLoading(true);
-      const [data, dca] = await Promise.all([
+      const [data, dca, pythPriceUsd] = await Promise.all([
         getPythReserveSummary(),
         getJupiterDcaCouncilOps(),
+        getCurrentPythPriceUsd(),
       ]);
       setReserveSummary(data);
       setDcaStatus(dca);
+      setCurrentPythPriceUsd(pythPriceUsd);
       hasFetchedRef.current = true;
     } catch (err) {
       const errorMessage =
@@ -346,7 +352,7 @@ export default function ReservePage() {
           </Card>
         </>
       ) : (
-        <ReservePythHoldingChart />
+        <ReservePythHoldingChart currentPythPriceUsd={currentPythPriceUsd} />
       )}
     </div>
   );
