@@ -3,7 +3,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { PythReserveSummary } from "@/types/pythTypes";
-import { TrendingUp, Coins, Building2 } from "lucide-react";
+import { TrendingUp } from "lucide-react";
 import Image from "next/image";
 
 interface ReserveSummaryProps {

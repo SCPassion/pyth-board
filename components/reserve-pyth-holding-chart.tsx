@@ -33,6 +33,25 @@ export function ReservePythHoldingChart() {
   }, [rawHistory]);
 
   const latestValue = chartData.at(-1)?.totalPythHeld ?? null;
+  const firstTrackedTimestampMs = chartData.at(0)?.timestampMs ?? null;
+  const latestTrackedTimestampMs = chartData.at(-1)?.timestampMs ?? null;
+  const earliestValue = chartData.at(0)?.totalPythHeld ?? null;
+  const cumulativePurchasedSinceTracking =
+    latestValue !== null && earliestValue !== null
+      ? Number((latestValue - earliestValue).toFixed(2))
+      : null;
+  const elapsedDays =
+    typeof latestTrackedTimestampMs === "number" &&
+    typeof firstTrackedTimestampMs === "number" &&
+    latestTrackedTimestampMs > firstTrackedTimestampMs
+      ? (latestTrackedTimestampMs - firstTrackedTimestampMs) / DAY_MS
+      : null;
+  const averageDailyPurchased =
+    cumulativePurchasedSinceTracking !== null &&
+    typeof elapsedDays === "number" &&
+    elapsedDays > 0
+      ? Number((cumulativePurchasedSinceTracking / elapsedDays).toFixed(2))
+      : null;
   const firstValue = chartData.at(0)?.totalPythHeld ?? null;
   const lastUpdated = chartData.at(-1)?.timestampMs;
   const spanMs =
@@ -86,6 +105,11 @@ export function ReservePythHoldingChart() {
     return ticks;
   }, [axisMode, chartData]);
 
+  const formattedTrackingStart =
+    typeof firstTrackedTimestampMs === "number"
+      ? new Date(firstTrackedTimestampMs).toLocaleDateString()
+      : "-";
+
   return (
     <div className="space-y-5 min-h-[calc(100vh-240px)]">
       <Card className="bg-[#2a2f3e] border-gray-700 min-h-[calc(100vh-360px)] h-[calc(100vh-360px)] flex flex-col overflow-hidden">
@@ -97,6 +121,31 @@ export function ReservePythHoldingChart() {
               </p>
               <p className="text-white text-4xl font-semibold tracking-tight">
                 {latestValue !== null ? latestValue.toLocaleString() : "-"}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-gray-400 text-sm mb-2">
+                Cumulated $PYTH Purchased
+              </p>
+              <p className="text-white text-3xl font-semibold tracking-tight">
+                {cumulativePurchasedSinceTracking !== null
+                  ? cumulativePurchasedSinceTracking.toLocaleString()
+                  : "-"}
+              </p>
+              <p className="text-gray-500 text-xs mt-2">
+                Since tracking started: {formattedTrackingStart}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-gray-400 text-sm mb-2">
+                Average Daily PYTH Purchased
+              </p>
+              <p className="text-white text-3xl font-semibold tracking-tight">
+                {averageDailyPurchased !== null
+                  ? averageDailyPurchased.toLocaleString()
+                  : "-"}
               </p>
             </div>
           </div>

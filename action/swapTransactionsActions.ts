@@ -2,7 +2,7 @@
 
 import { PublicKey, Connection } from "@solana/web3.js";
 import { PYTHIAN_COUNCIL_OPS_MULTISIG_ADDRESS, TOKEN_SYMBOLS } from "@/data/pythReserveAddresses";
-import type { SwapTransaction } from "@/types/pythTypes";
+import type { SwapTrackingSummary, SwapTransaction } from "@/types/pythTypes";
 
 // RPC endpoints with fallback support
 const RPC_ENDPOINTS = [
@@ -194,17 +194,120 @@ export interface SwapTransactionsPage {
   pageSize: number;
 }
 
+type CollectSwapTransactionsOptions = {
+  targetCount?: number;
+};
+
+const TRACKING_WINDOW_SECONDS = 365 * 24 * 60 * 60;
+const MAX_SIGNATURE_SCAN = 5000;
+
+async function collectSwapTransactions(
+  connection: Connection,
+  options: CollectSwapTransactionsOptions = {}
+): Promise<{ transactions: SwapTransaction[]; hasMore: boolean }> {
+  const councilOpsAddress = new PublicKey(PYTHIAN_COUNCIL_OPS_MULTISIG_ADDRESS);
+  const batchLimit = 50;
+  let beforeSignature: string | undefined;
+  let collected: SwapTransaction[] = [];
+  let hasMore = false;
+  let scannedSignatures = 0;
+
+  while (true) {
+    if (options.targetCount && collected.length >= options.targetCount) {
+      break;
+    }
+    if (scannedSignatures >= MAX_SIGNATURE_SCAN) {
+      hasMore = true;
+      break;
+    }
+
+    const response = await connection.getSignaturesForAddress(councilOpsAddress, {
+      limit: batchLimit,
+      before: beforeSignature,
+    });
+
+    if (response.length === 0) {
+      hasMore = false;
+      break;
+    }
+
+    scannedSignatures += response.length;
+    beforeSignature = response[response.length - 1].signature;
+    hasMore = response.length === batchLimit;
+
+    const signatureStrings = response.map((sig) => sig.signature);
+    const parsed = await connection.getParsedTransactions(signatureStrings, {
+      maxSupportedTransactionVersion: 0,
+    });
+
+    const parsedTransactions = parsed
+      .map((parsedTx, index) => {
+        const sig = response[index];
+        const tx = parseSwapTransactionFromParsed(sig.signature, parsedTx);
+        if (!tx) {
+          return null;
+        }
+
+        let blockTime: number | null = null;
+        const now = Math.floor(Date.now() / 1000);
+        const oneYearAgo = now - TRACKING_WINDOW_SECONDS;
+
+        if (sig.blockTime !== null && sig.blockTime !== undefined && sig.blockTime > 0) {
+          if (sig.blockTime <= now && sig.blockTime >= oneYearAgo) {
+            blockTime = sig.blockTime;
+          }
+        }
+
+        if (!blockTime && tx.timestamp && tx.timestamp > 0) {
+          if (tx.timestamp <= now && tx.timestamp >= oneYearAgo) {
+            blockTime = tx.timestamp;
+          }
+        }
+
+        if (!blockTime || blockTime <= 0) {
+          return null;
+        }
+
+        const transactionDate = new Date(blockTime * 1000);
+        const formattedDate = new Intl.DateTimeFormat("en-US", {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+          timeZone: "UTC",
+          timeZoneName: "short",
+        }).format(transactionDate);
+
+        return {
+          ...tx,
+          timestamp: blockTime,
+          date: formattedDate,
+        };
+      })
+      .filter((tx): tx is SwapTransaction => tx !== null);
+
+    collected = collected.concat(parsedTransactions);
+
+    if (response.length < batchLimit) {
+      break;
+    }
+  }
+
+  return {
+    transactions: collected,
+    hasMore,
+  };
+}
+
 export async function getSwapTransactionsPage(
   page: number,
   pageSize: number
 ): Promise<SwapTransactionsPage> {
   try {
     let connection = createConnection(0);
-    const councilOpsAddress = new PublicKey(PYTHIAN_COUNCIL_OPS_MULTISIG_ADDRESS);
-
     const targetCount = page * pageSize;
-    const batchLimit = 50;
-    let beforeSignature: string | undefined;
     let collected: SwapTransaction[] = [];
     let hasMore = false;
 
@@ -212,76 +315,11 @@ export async function getSwapTransactionsPage(
     for (let i = 0; i < RPC_ENDPOINTS.length; i++) {
       try {
         connection = createConnection(i);
-
-        while (collected.length < targetCount) {
-          const response = await connection.getSignaturesForAddress(councilOpsAddress, {
-            limit: batchLimit,
-            before: beforeSignature,
-          });
-
-          if (response.length === 0) {
-            hasMore = false;
-            break;
-          }
-
-          beforeSignature = response[response.length - 1].signature;
-          hasMore = response.length === batchLimit;
-
-          const signatureStrings = response.map((sig) => sig.signature);
-          const parsed = await connection.getParsedTransactions(signatureStrings, {
-            maxSupportedTransactionVersion: 0,
-          });
-
-          const parsedTransactions = parsed
-            .map((parsedTx, index) => {
-              const sig = response[index];
-              const tx = parseSwapTransactionFromParsed(sig.signature, parsedTx);
-              if (!tx) {
-                return null;
-              }
-
-              let blockTime: number | null = null;
-              const now = Math.floor(Date.now() / 1000);
-              const oneYearAgo = now - 365 * 24 * 60 * 60;
-
-              if (sig.blockTime !== null && sig.blockTime !== undefined && sig.blockTime > 0) {
-                if (sig.blockTime <= now && sig.blockTime >= oneYearAgo) {
-                  blockTime = sig.blockTime;
-                }
-              }
-
-              if (!blockTime && tx.timestamp && tx.timestamp > 0) {
-                if (tx.timestamp <= now && tx.timestamp >= oneYearAgo) {
-                  blockTime = tx.timestamp;
-                }
-              }
-
-              if (!blockTime || blockTime <= 0) {
-                return null;
-              }
-
-              const transactionDate = new Date(blockTime * 1000);
-              const formattedDate = new Intl.DateTimeFormat("en-US", {
-                year: "numeric",
-                month: "short",
-                day: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-                hour12: true,
-                timeZone: "UTC",
-                timeZoneName: "short",
-              }).format(transactionDate);
-
-              return {
-                ...tx,
-                timestamp: blockTime,
-                date: formattedDate,
-              };
-            })
-            .filter((tx): tx is SwapTransaction => tx !== null);
-
-          collected = collected.concat(parsedTransactions);
-        }
+        const collectedResult = await collectSwapTransactions(connection, {
+          targetCount,
+        });
+        collected = collectedResult.transactions;
+        hasMore = collectedResult.hasMore;
 
         break;
       } catch (error) {
@@ -312,6 +350,49 @@ export async function getSwapTransactionsPage(
       hasMore: false,
       page,
       pageSize,
+    };
+  }
+}
+
+export async function getSwapTrackingSummary(): Promise<SwapTrackingSummary> {
+  try {
+    const trackingStartedAt = Math.floor(Date.now() / 1000) - TRACKING_WINDOW_SECONDS;
+    let connection = createConnection(0);
+    let allTransactions: SwapTransaction[] = [];
+
+    for (let i = 0; i < RPC_ENDPOINTS.length; i++) {
+      try {
+        connection = createConnection(i);
+        const collectedResult = await collectSwapTransactions(connection);
+        allTransactions = collectedResult.transactions;
+        break;
+      } catch (error) {
+        if (i === RPC_ENDPOINTS.length - 1) {
+          throw error;
+        }
+      }
+    }
+
+    const sorted = allTransactions.sort((a, b) => b.timestamp - a.timestamp);
+    const cumulativePythPurchased = sorted.reduce(
+      (sum, tx) => sum + tx.outputAmount,
+      0
+    );
+
+    return {
+      cumulativePythPurchased,
+      trackingStartedAt,
+      totalSwapsTracked: sorted.length,
+    };
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+    console.error("Error fetching swap tracking summary:", errorMessage);
+    return {
+      cumulativePythPurchased: 0,
+      trackingStartedAt:
+        Math.floor(Date.now() / 1000) - TRACKING_WINDOW_SECONDS,
+      totalSwapsTracked: 0,
     };
   }
 }
