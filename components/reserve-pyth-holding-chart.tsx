@@ -20,7 +20,13 @@ import { Loader2 } from "lucide-react";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-export function ReservePythHoldingChart() {
+interface ReservePythHoldingChartProps {
+  currentPythPriceUsd: number;
+}
+
+export function ReservePythHoldingChart({
+  currentPythPriceUsd,
+}: ReservePythHoldingChartProps) {
   const rawHistory = useQuery(api.reserveSnapshots.getPythHoldingHistory, {});
 
   const chartData = useMemo(() => {
@@ -51,6 +57,10 @@ export function ReservePythHoldingChart() {
     typeof elapsedDays === "number" &&
     elapsedDays > 0
       ? Number((cumulativePurchasedSinceTracking / elapsedDays).toFixed(2))
+      : null;
+  const averageDailyPurchasedUsd =
+    averageDailyPurchased !== null && currentPythPriceUsd > 0
+      ? averageDailyPurchased * currentPythPriceUsd
       : null;
   const firstValue = chartData.at(0)?.totalPythHeld ?? null;
   const lastUpdated = chartData.at(-1)?.timestampMs;
@@ -125,9 +135,7 @@ export function ReservePythHoldingChart() {
             </div>
 
             <div>
-              <p className="text-gray-400 text-sm mb-2">
-                Cumulated $PYTH Purchased
-              </p>
+              <p className="text-gray-400 text-sm mb-2">$PYTH Purchased</p>
               <p className="text-white text-3xl font-semibold tracking-tight">
                 {cumulativePurchasedSinceTracking !== null
                   ? cumulativePurchasedSinceTracking.toLocaleString()
@@ -145,6 +153,22 @@ export function ReservePythHoldingChart() {
               <p className="text-white text-3xl font-semibold tracking-tight">
                 {averageDailyPurchased !== null
                   ? averageDailyPurchased.toLocaleString()
+                  : "-"}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-gray-400 text-sm mb-2">
+                Average Daily PYTH Purchased (USD)
+              </p>
+              <p className="text-white text-3xl font-semibold tracking-tight">
+                {averageDailyPurchasedUsd !== null
+                  ? new Intl.NumberFormat("en-US", {
+                      style: "currency",
+                      currency: "USD",
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    }).format(averageDailyPurchasedUsd)
                   : "-"}
               </p>
             </div>

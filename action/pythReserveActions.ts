@@ -193,6 +193,10 @@ async function getPythPrice(): Promise<number> {
   return await getPriceFromHermes(PYTH_PRICE_ID);
 }
 
+export async function getCurrentPythPriceUsd(): Promise<number> {
+  return await getPythPrice();
+}
+
 /**
  * Fetches SOL price for USD value calculations
  */
@@ -448,4 +452,3 @@ export async function getPythReserveSummary(): Promise<PythReserveSummary> {
     );
   }
 }
-
