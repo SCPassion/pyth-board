@@ -41,11 +41,19 @@ export function ReservePythHoldingChart({
   const latestValue = chartData.at(-1)?.totalPythHeld ?? null;
   const firstTrackedTimestampMs = chartData.at(0)?.timestampMs ?? null;
   const latestTrackedTimestampMs = chartData.at(-1)?.timestampMs ?? null;
-  const earliestValue = chartData.at(0)?.totalPythHeld ?? null;
-  const cumulativePurchasedSinceTracking =
-    latestValue !== null && earliestValue !== null
-      ? Number((latestValue - earliestValue).toFixed(2))
-      : null;
+  const cumulativePurchasedSinceTracking = useMemo(() => {
+    if (chartData.length === 0) return null;
+
+    let purchased = 0;
+    for (let i = 1; i < chartData.length; i += 1) {
+      const delta = chartData[i].totalPythHeld - chartData[i - 1].totalPythHeld;
+      if (delta > 0) {
+        purchased += delta;
+      }
+    }
+
+    return Number(purchased.toFixed(2));
+  }, [chartData]);
   const elapsedDays =
     typeof latestTrackedTimestampMs === "number" &&
     typeof firstTrackedTimestampMs === "number" &&

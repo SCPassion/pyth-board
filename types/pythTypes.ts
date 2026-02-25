@@ -77,12 +77,6 @@ export type SwapTransaction = {
   explorerUrl: string;
 };
 
-export type SwapTrackingSummary = {
-  cumulativePythPurchased: number;
-  trackingStartedAt: number | null;
-  totalSwapsTracked: number;
-};
-
 /** Jupiter DCA time-based order (USDC -> PYTH relevant fields) */
 export type JupiterDcaOrder = {
   orderKey: string;

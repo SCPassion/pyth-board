@@ -2,7 +2,7 @@
 
 import { PublicKey, Connection } from "@solana/web3.js";
 import { PYTHIAN_COUNCIL_OPS_MULTISIG_ADDRESS, TOKEN_SYMBOLS } from "@/data/pythReserveAddresses";
-import type { SwapTrackingSummary, SwapTransaction } from "@/types/pythTypes";
+import type { SwapTransaction } from "@/types/pythTypes";
 
 // RPC endpoints with fallback support
 const RPC_ENDPOINTS = [
@@ -350,49 +350,6 @@ export async function getSwapTransactionsPage(
       hasMore: false,
       page,
       pageSize,
-    };
-  }
-}
-
-export async function getSwapTrackingSummary(): Promise<SwapTrackingSummary> {
-  try {
-    const trackingStartedAt = Math.floor(Date.now() / 1000) - TRACKING_WINDOW_SECONDS;
-    let connection = createConnection(0);
-    let allTransactions: SwapTransaction[] = [];
-
-    for (let i = 0; i < RPC_ENDPOINTS.length; i++) {
-      try {
-        connection = createConnection(i);
-        const collectedResult = await collectSwapTransactions(connection);
-        allTransactions = collectedResult.transactions;
-        break;
-      } catch (error) {
-        if (i === RPC_ENDPOINTS.length - 1) {
-          throw error;
-        }
-      }
-    }
-
-    const sorted = allTransactions.sort((a, b) => b.timestamp - a.timestamp);
-    const cumulativePythPurchased = sorted.reduce(
-      (sum, tx) => sum + tx.outputAmount,
-      0
-    );
-
-    return {
-      cumulativePythPurchased,
-      trackingStartedAt,
-      totalSwapsTracked: sorted.length,
-    };
-  } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
-    console.error("Error fetching swap tracking summary:", errorMessage);
-    return {
-      cumulativePythPurchased: 0,
-      trackingStartedAt:
-        Math.floor(Date.now() / 1000) - TRACKING_WINDOW_SECONDS,
-      totalSwapsTracked: 0,
     };
   }
 }
