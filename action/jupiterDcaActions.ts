@@ -50,6 +50,7 @@ type JupiterRecurringResponse = {
 /**
  * Fetches Jupiter DCA status for the Pythian Council Ops address.
  * Returns whether it is using Jupiter DCA to swap USDC for PYTH and the USDC balance in the DCA vault(s).
+ * Balance is computed as deposited - used - withdrawn per order.
  */
 export async function getJupiterDcaCouncilOps(): Promise<JupiterDcaCouncilOpsStatus> {
   const user = PYTHIAN_COUNCIL_OPS_MULTISIG_ADDRESS;
@@ -62,7 +63,7 @@ export async function getJupiterDcaCouncilOps(): Promise<JupiterDcaCouncilOpsSta
   try {
     const res = await fetch(url.toString(), {
       headers: { "User-Agent": "PythBoard/1.0" },
-      next: { revalidate: 60 },
+      cache: "no-store",
     });
 
     if (!res.ok) {
@@ -94,10 +95,10 @@ export async function getJupiterDcaCouncilOps(): Promise<JupiterDcaCouncilOpsSta
         updatedAt: o.updatedAt,
       }));
 
-    const usdcBalanceVault = usdcToPythOrders.reduce(
-      (sum, o) => sum + Math.max(0, o.inDeposited - o.inUsed),
-      0
-    );
+    const usdcBalanceVault = usdcToPythOrders.reduce((sum, o) => {
+      const remaining = o.inDeposited - o.inUsed - o.inWithdrawn;
+      return sum + Math.max(0, remaining);
+    }, 0);
 
     return {
       usingDca: usdcToPythOrders.length > 0,
