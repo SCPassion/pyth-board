@@ -96,7 +96,7 @@ export type JupiterDcaOrder = {
 /** Status of Jupiter DCA usage for Council Ops (USDC -> PYTH) */
 export type JupiterDcaCouncilOpsStatus = {
   usingDca: boolean;
-  /** Total USDC balance remaining in DCA vault(s) (inDeposited - inUsed across orders) */
+  /** Total USDC balance remaining in DCA vault(s) (inDeposited - inUsed - inWithdrawn across orders) */
   usdcBalanceVault: number;
   orders: JupiterDcaOrder[];
 };
