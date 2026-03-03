@@ -3,6 +3,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Wallet } from "lucide-react";
+import Link from "next/link";
 
 interface PortfolioSummaryProps {
   connectedWallets: number;
@@ -66,9 +67,12 @@ export function PortfolioSummary({
                     current market value and claimable rewards summarized here.
                   </p>
                 </div>
-                <div className="inline-flex rounded-2xl bg-[#23144d] px-5 py-3 text-sm font-semibold text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]">
+                <Link
+                  href="/wallets"
+                  className="inline-flex rounded-2xl bg-[#23144d] px-5 py-3 text-sm font-semibold text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)] hover:bg-[#2a1958]"
+                >
                   {connectedWallets} Wallet{connectedWallets === 1 ? "" : "s"} connected
-                </div>
+                </Link>
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">

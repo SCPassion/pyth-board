@@ -28,7 +28,7 @@ export function MetricCards({
   pythPrice,
   totalStaked,
 }: MetricCardsProps) {
-  const priceHistory = usePythPriceHistory();
+  const { history: priceHistory, isRateLimited } = usePythPriceHistory();
   const wallets = useWalletInfosStore((state) => state.wallets);
 
   const walletData = wallets.map((wallet) => ({
@@ -181,8 +181,10 @@ export function MetricCards({
                     </AreaChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="flex h-full items-center justify-center rounded-2xl border border-dashed border-white/10 bg-black/10 text-xs text-[#8f88a9]">
-                    Loading 24h price curve...
+                  <div className="flex h-full items-center justify-center rounded-2xl border border-dashed border-white/10 bg-black/10 px-4 text-center text-xs text-[#8f88a9]">
+                    {isRateLimited
+                      ? "Price data is being rate-limited right now. Please refresh again later."
+                      : "Loading 24h price curve..."}
                   </div>
                 )}
               </div>

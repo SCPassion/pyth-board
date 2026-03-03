@@ -78,6 +78,30 @@
       -webkit-tap-highlight-color: transparent;
     }
   }
+
+  :where(a[href], button, [role="button"], summary):not(
+      :disabled,
+      [aria-disabled="true"]
+    ) {
+    cursor: pointer;
+    transition:
+      opacity 160ms ease,
+      transform 160ms ease,
+      filter 160ms ease,
+      background-color 160ms ease,
+      border-color 160ms ease,
+      box-shadow 160ms ease;
+  }
+
+  @media (hover: hover) {
+    :where(a[href], button, [role="button"], summary):not(
+        :disabled,
+        [aria-disabled="true"]
+      ):hover {
+      filter: brightness(1.04);
+      transform: translateY(-1px);
+    }
+  }
 }
 
 /* Custom scrollbar */

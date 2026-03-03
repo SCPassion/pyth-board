@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, Menu, X } from "lucide-react";
 import { usePathname } from "next/navigation";
@@ -18,6 +18,7 @@ export function TopHeader({
 }: TopHeaderProps) {
   const [showWalletDropdown, setShowWalletDropdown] = useState(false);
   const pathname = usePathname();
+  const walletMenuRef = useRef<HTMLDivElement>(null);
 
   const pageTitle =
     pathname === "/"
@@ -58,7 +59,7 @@ export function TopHeader({
           <PriceTicker />
         </div>
 
-        <div className="relative">
+        <div ref={walletMenuRef} className="relative">
           <Button
             variant="ghost"
             className="h-10 rounded-2xl border border-white/8 bg-[#2f2942] px-3 text-sm text-white hover:bg-[#3a3350]"
@@ -72,6 +73,7 @@ export function TopHeader({
           <WalletDropdown
             isOpen={showWalletDropdown}
             onClose={() => setShowWalletDropdown(false)}
+            containerRef={walletMenuRef}
           />
         </div>
       </div>

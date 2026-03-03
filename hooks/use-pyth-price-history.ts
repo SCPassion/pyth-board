@@ -78,6 +78,7 @@ async function fetchPythPriceAtTimestamp(
 
 export function usePythPriceHistory() {
   const [history, setHistory] = useState<PythPriceHistoryPoint[]>([]);
+  const [isRateLimited, setIsRateLimited] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -85,16 +86,28 @@ export function usePythPriceHistory() {
 
     async function fetchHistory() {
       const now = Math.floor(Date.now() / 1000);
+      let sawRateLimit = false;
       const timestamps = Array.from(
         { length: HISTORY_HOURS + 1 },
         (_, index) => now - (HISTORY_HOURS - index) * SAMPLE_INTERVAL_SECONDS
       );
 
       try {
+        setIsRateLimited(false);
+
         const points = await Promise.all(
           timestamps.map((timestamp) =>
             fetchPythPriceAtTimestamp(timestamp, controller.signal).catch(
-              () => null
+              (error) => {
+                if (
+                  error instanceof Error &&
+                  error.message.includes("HTTP 429")
+                ) {
+                  sawRateLimit = true;
+                }
+
+                return null;
+              }
             )
           )
         );
@@ -107,6 +120,7 @@ export function usePythPriceHistory() {
           .sort((a, b) => a.timestamp - b.timestamp);
 
         setHistory(validPoints);
+        setIsRateLimited(sawRateLimit);
       } catch (error) {
         if (!(error instanceof Error) || error.name !== "AbortError") {
           console.error("Failed to fetch Pyth 24h price history", error);
@@ -124,5 +138,5 @@ export function usePythPriceHistory() {
     };
   }, []);
 
-  return history;
+  return { history, isRateLimited };
 }

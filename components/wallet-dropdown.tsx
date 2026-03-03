@@ -17,9 +17,14 @@ import toast from "react-hot-toast";
 interface WalletDropdownProps {
   isOpen: boolean;
   onClose: () => void;
+  containerRef?: React.RefObject<HTMLDivElement | null>;
 }
 
-export function WalletDropdown({ isOpen, onClose }: WalletDropdownProps) {
+export function WalletDropdown({
+  isOpen,
+  onClose,
+  containerRef,
+}: WalletDropdownProps) {
   const { wallets, addWallet, removeWallet } = useWalletInfosStore();
   const [showAddForm, setShowAddForm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -28,9 +33,13 @@ export function WalletDropdown({ isOpen, onClose }: WalletDropdownProps) {
   // Handle click outside to close dropdown
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
+      const target = event.target as Node;
+      const clickedInsideContainer = containerRef?.current?.contains(target);
+
       if (
         dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
+        !dropdownRef.current.contains(target) &&
+        !clickedInsideContainer
       ) {
         onClose();
       }
@@ -43,7 +52,7 @@ export function WalletDropdown({ isOpen, onClose }: WalletDropdownProps) {
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [isOpen, onClose]);
+  }, [containerRef, isOpen, onClose]);
 
   if (!isOpen) return null;
 

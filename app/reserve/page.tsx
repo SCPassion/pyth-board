@@ -241,7 +241,7 @@ export default function ReservePage() {
         </div>
       </section>
 
-      <div className="flex items-center gap-2 rounded-[24px] border border-white/8 bg-[#312940] p-2">
+      <div className="flex items-center justify-center gap-2 rounded-[24px] border border-white/8 bg-[#312940] p-2">
         <Button
           size="sm"
           variant={activeTab === "overview" ? "default" : "ghost"}
