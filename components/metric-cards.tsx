@@ -219,53 +219,63 @@ export function MetricCards({
               </Badge>
             </div>
 
-            <p className="text-3xl font-bold text-white">{wallets.length} Wallets</p>
+            <p className="text-3xl font-bold text-white">
+              {wallets.length === 0 ? "No wallets connected" : `${wallets.length} Wallets`}
+            </p>
 
             <div className="flex h-28 items-center justify-center rounded-[22px] bg-[#312940] ring-1 ring-white/6 sm:h-32">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={walletData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={20}
-                    outerRadius={40}
-                    paddingAngle={2}
-                    dataKey="value"
-                  >
-                    {walletData.map((_, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={walletColors[index % walletColors.length]}
-                      />
-                    ))}
-                  </Pie>
-                </PieChart>
-              </ResponsiveContainer>
+              {wallets.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={walletData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={20}
+                      outerRadius={40}
+                      paddingAngle={2}
+                      dataKey="value"
+                    >
+                      {walletData.map((_, index) => (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={walletColors[index % walletColors.length]}
+                        />
+                      ))}
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <p className="px-4 text-center text-sm text-[#9b94b6]">
+                  Connect a wallet to see your staking distribution.
+                </p>
+              )}
             </div>
 
-            <div className="flex flex-wrap justify-center gap-x-2 gap-y-1 sm:gap-x-3">
-              {walletData.map((wallet, index) => (
-                <div
-                  key={wallet.name}
-                  className="flex items-center gap-1 rounded-xl bg-[#2f2942] px-2 py-1 text-xs text-[#d7d1eb] sm:gap-2 sm:text-sm"
-                >
+            {wallets.length > 0 ? (
+              <div className="flex flex-wrap justify-center gap-x-2 gap-y-1 sm:gap-x-3">
+                {walletData.map((wallet, index) => (
                   <div
-                    className="h-2 w-2 shrink-0 rounded-full sm:h-3 sm:w-3"
-                    style={{
-                      backgroundColor:
-                        walletColors[index % walletColors.length],
-                    }}
-                  />
-                  <span className="max-w-[8rem] truncate text-[#bcb5d4]">
-                    {wallet.name}
-                  </span>
-                  <span className="font-medium text-white">
-                    {wallet.percentage}%
-                  </span>
-                </div>
-              ))}
-            </div>
+                    key={wallet.name}
+                    className="flex items-center gap-1 rounded-xl bg-[#2f2942] px-2 py-1 text-xs text-[#d7d1eb] sm:gap-2 sm:text-sm"
+                  >
+                    <div
+                      className="h-2 w-2 shrink-0 rounded-full sm:h-3 sm:w-3"
+                      style={{
+                        backgroundColor:
+                          walletColors[index % walletColors.length],
+                      }}
+                    />
+                    <span className="max-w-[8rem] truncate text-[#bcb5d4]">
+                      {wallet.name}
+                    </span>
+                    <span className="font-medium text-white">
+                      {wallet.percentage}%
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : null}
           </CardContent>
         </Card>
       </div>

@@ -2,11 +2,10 @@
 
 import { useEffect, useState } from "react";
 
-const PYTH_PRICE_ID =
-  "0bbf28e9a841a1cc788f6a361b17ca072d0ea3098a1e5df1c3922d06719579ff";
-const HERMES_BASE_URL = "https://hermes.pyth.network";
+const BENCHMARKS_BASE_URL = "https://benchmarks.pyth.network";
+const PYTH_SYMBOL = "Crypto.PYTH/USD";
 const HISTORY_HOURS = 24;
-const SAMPLE_INTERVAL_SECONDS = 60 * 60;
+const HISTORY_SAFETY_DELAY_SECONDS = 90;
 
 export type PythPriceHistoryPoint = {
   label: string;
@@ -14,10 +13,6 @@ export type PythPriceHistoryPoint = {
   timestamp: number;
   tooltipLabel: string;
 };
-
-function formatPrice(rawPrice: string | number, expo: number) {
-  return Number(rawPrice) * 10 ** expo;
-}
 
 function formatTimeLabel(timestamp: number) {
   return new Intl.DateTimeFormat(undefined, {
@@ -35,16 +30,19 @@ function formatTooltipLabel(timestamp: number) {
   }).format(new Date(timestamp * 1000));
 }
 
-async function fetchPythPriceAtTimestamp(
-  timestamp: number,
+async function fetchPythPriceHistory(
+  fromTimestamp: number,
+  toTimestamp: number,
   signal: AbortSignal
-): Promise<PythPriceHistoryPoint | null> {
+): Promise<PythPriceHistoryPoint[]> {
   const params = new URLSearchParams();
-  params.append("ids[]", PYTH_PRICE_ID);
-  params.append("parsed", "true");
+  params.append("symbol", PYTH_SYMBOL);
+  params.append("resolution", "60");
+  params.append("from", String(fromTimestamp));
+  params.append("to", String(toTimestamp));
 
   const response = await fetch(
-    `${HERMES_BASE_URL}/v2/updates/price/${timestamp}?${params.toString()}`,
+    `${BENCHMARKS_BASE_URL}/v1/shims/tradingview/history?${params.toString()}`,
     {
       method: "GET",
       headers: {
@@ -60,20 +58,32 @@ async function fetchPythPriceAtTimestamp(
   }
 
   const data = await response.json();
-  const parsedPrice = data.parsed?.[0]?.price;
+  const timestamps = Array.isArray(data.t) ? data.t : [];
+  const closePrices = Array.isArray(data.c) ? data.c : [];
 
-  if (!parsedPrice) {
-    throw new Error("Invalid historical price payload");
+  if (data.s !== "ok" || timestamps.length === 0 || closePrices.length === 0) {
+    return [];
   }
 
-  const publishTime = Number(parsedPrice.publish_time ?? timestamp);
+  return timestamps
+    .map((timestamp: number, index: number) => {
+      const price = Number(closePrices[index]);
 
-  return {
-    label: formatTimeLabel(publishTime),
-    price: formatPrice(parsedPrice.price, Number(parsedPrice.expo ?? -8)),
-    timestamp: publishTime,
-    tooltipLabel: formatTooltipLabel(publishTime),
-  };
+      if (!Number.isFinite(timestamp) || !Number.isFinite(price)) {
+        return null;
+      }
+
+      return {
+        label: formatTimeLabel(timestamp),
+        price,
+        timestamp,
+        tooltipLabel: formatTooltipLabel(timestamp),
+      };
+    })
+    .filter(
+      (point: PythPriceHistoryPoint | null): point is PythPriceHistoryPoint =>
+        point !== null && Number.isFinite(point.price)
+    );
 }
 
 export function usePythPriceHistory() {
@@ -85,39 +95,27 @@ export function usePythPriceHistory() {
     const timeoutId = setTimeout(() => controller.abort(), 15000);
 
     async function fetchHistory() {
-      const now = Math.floor(Date.now() / 1000);
+      const endTimestamp =
+        Math.floor(Date.now() / 1000) - HISTORY_SAFETY_DELAY_SECONDS;
+      const startTimestamp = endTimestamp - HISTORY_HOURS * 60 * 60;
       let sawRateLimit = false;
-      const timestamps = Array.from(
-        { length: HISTORY_HOURS + 1 },
-        (_, index) => now - (HISTORY_HOURS - index) * SAMPLE_INTERVAL_SECONDS
-      );
 
       try {
         setIsRateLimited(false);
 
-        const points = await Promise.all(
-          timestamps.map((timestamp) =>
-            fetchPythPriceAtTimestamp(timestamp, controller.signal).catch(
-              (error) => {
-                if (
-                  error instanceof Error &&
-                  error.message.includes("HTTP 429")
-                ) {
-                  sawRateLimit = true;
-                }
+        const points = await fetchPythPriceHistory(
+          startTimestamp,
+          endTimestamp,
+          controller.signal
+        ).catch((error) => {
+          if (error instanceof Error && error.message.includes("HTTP 429")) {
+            sawRateLimit = true;
+          }
 
-                return null;
-              }
-            )
-          )
-        );
+          return [];
+        });
 
-        const validPoints = points
-          .filter(
-            (point): point is PythPriceHistoryPoint =>
-              point !== null && Number.isFinite(point.price)
-          )
-          .sort((a, b) => a.timestamp - b.timestamp);
+        const validPoints = points.sort((a, b) => a.timestamp - b.timestamp);
 
         setHistory(validPoints);
         setIsRateLimited(sawRateLimit);

@@ -21,6 +21,8 @@ export function PortfolioSummary({
   pythPrice,
 }: PortfolioSummaryProps) {
   const amountInUSD = pythPrice ? totalStaked * pythPrice : 0;
+  const exposureValueLabel =
+    connectedWallets === 0 ? "0" : amountInUSD ? amountInUSD.toFixed(0) : "...";
 
   return (
     <div className="space-y-5">
@@ -84,7 +86,7 @@ export function PortfolioSummary({
                     Exposure Value
                   </p>
                   <p className="mt-2 text-2xl font-bold text-white">
-                    ${amountInUSD ? amountInUSD.toFixed(0) : "..."}
+                    ${exposureValueLabel}
                   </p>
                   <p className="mt-2 text-xs text-white/65">
                     Live value based on the current PYTH price
