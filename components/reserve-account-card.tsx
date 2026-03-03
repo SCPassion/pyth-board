@@ -68,18 +68,18 @@ export function ReserveAccountCard({
   };
 
   return (
-    <Card className="bg-[#2a2f3e] border-gray-700 hover:border-purple-400 hover:shadow-lg hover:shadow-purple-500/30 transition-all duration-300 group">
-      <CardHeader>
+    <Card className="group rounded-[28px] border-white/10 bg-[linear-gradient(148deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.02)_100%)] py-0 shadow-[0_20px_55px_rgba(8,5,18,0.2)] transition-all duration-300 hover:border-white/15">
+      <CardHeader className="px-7 pt-7 pb-3 sm:px-8">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-3 min-w-0 flex-1">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
-              <Wallet className="h-5 w-5 sm:h-6 sm:w-6 text-purple-400" />
+            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl bg-[#2a2238] ring-1 ring-white/8 sm:h-12 sm:w-12">
+              <Wallet className="h-5 w-5 text-[#c4a6ff] sm:h-6 sm:w-6" />
             </div>
             <div className="min-w-0 flex-1">
               <CardTitle className="text-white text-lg sm:text-xl truncate">
                 {accountInfo.name}
               </CardTitle>
-              <p className="text-gray-400 text-xs sm:text-sm font-mono mt-1 truncate">
+              <p className="mt-1 truncate font-mono text-xs text-[#a8a1bf] sm:text-sm">
                 {formatAddress(accountInfo.address)}
               </p>
             </div>
@@ -88,13 +88,13 @@ export function ReserveAccountCard({
             href={solanaExplorerUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-gray-400 hover:text-purple-400 transition-colors flex-shrink-0"
+            className="flex-shrink-0 text-[#8f88a9] transition-colors hover:text-white"
           >
             <ExternalLink className="h-4 w-4" />
           </a>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-5 px-7 pb-7 sm:px-8 sm:pb-8">
         {/* Total USD Value */}
         {/* Wallet tokens + SOL; add Jupiter DCA vault USDC when present (vault is separate, no double count) */}
         {(() => {
@@ -110,15 +110,15 @@ export function ReserveAccountCard({
           const calculatedTotal = solValue + tokenTotal + dcaVaultUsd;
 
           return (
-            <div className="bg-gray-800/50 rounded-lg p-4 sm:p-6">
-              <p className="text-gray-400 text-xs sm:text-sm mb-1">
+            <div className="rounded-2xl bg-[#2f2942] p-4 sm:p-6 ring-1 ring-white/6">
+              <p className="mb-1 text-xs text-[#a8a1bf] sm:text-sm">
                 Total Value
               </p>
               <p className="text-2xl sm:text-3xl font-bold text-white break-words">
                 {formatCurrency(calculatedTotal)}
               </p>
               {dcaVaultUsd > 0 && (
-                <p className="text-gray-500 text-xs mt-1">includes DCA vault</p>
+                <p className="mt-1 text-xs text-[#8f88a9]">includes DCA vault</p>
               )}
             </div>
           );
@@ -127,10 +127,10 @@ export function ReserveAccountCard({
         {/* SOL Balance */}
         {accountInfo.solBalance > 0 && (
           <div>
-            <p className="text-gray-400 text-xs sm:text-sm font-medium mb-3">
+            <p className="mb-3 text-xs font-medium text-[#a8a1bf] sm:text-sm">
               Solana Balance
             </p>
-            <div className="flex items-center justify-between p-3 sm:p-4 bg-gray-800/30 rounded-lg gap-2">
+            <div className="flex items-center justify-between gap-2 rounded-2xl bg-[#2f2942] p-3 sm:p-4 ring-1 ring-white/6">
               <div className="flex items-center gap-2 min-w-0 flex-1">
                 <div className="w-6 h-6 flex items-center justify-center flex-shrink-0">
                   <Image
@@ -141,13 +141,13 @@ export function ReserveAccountCard({
                     className="w-6 h-6"
                   />
                 </div>
-                <span className="text-gray-300 text-xs sm:text-sm">SOL</span>
+                <span className="text-xs text-[#d8d3ea] sm:text-sm">SOL</span>
               </div>
               <div className="text-right flex-shrink-0">
                 <p className="text-white font-semibold text-sm sm:text-base">
                   {formatTokenAmount(accountInfo.solBalance, 4)}
                 </p>
-                <p className="text-gray-400 text-xs">
+                <p className="text-xs text-[#a8a1bf]">
                   {formatCurrency(
                     accountInfo.solBalance * (accountInfo.solPrice || 150),
                   )}
@@ -161,10 +161,10 @@ export function ReserveAccountCard({
         {accountInfo.tokenBalances.length > 0 && (
           <div>
             <div className="mb-3">
-              <p className="text-gray-400 text-xs sm:text-sm font-medium">
+              <p className="text-xs font-medium text-[#a8a1bf] sm:text-sm">
                 Token Holdings
               </p>
-              <p className="text-gray-500 text-xs mt-1">
+              <p className="mt-1 text-xs text-[#8f88a9]">
                 SOL balance is required for token operations on Solana
               </p>
             </div>
@@ -172,7 +172,7 @@ export function ReserveAccountCard({
               {accountInfo.tokenBalances.map((token, index) => (
                 <div
                   key={`${token.mint}-${index}`}
-                  className="flex items-center gap-2 px-3 py-2 bg-gray-800/30 rounded-lg hover:bg-gray-800/50 transition-colors flex-1 min-w-[140px] sm:min-w-0"
+                  className="flex min-w-[140px] flex-1 items-center gap-2 rounded-2xl bg-[#2f2942] px-3 py-2 ring-1 ring-white/6 transition-colors hover:bg-[#352d47] sm:min-w-0"
                 >
                   <div className="w-5 h-5 flex items-center justify-center flex-shrink-0">
                     {getTokenIcon(token.symbol) ? (
@@ -185,21 +185,21 @@ export function ReserveAccountCard({
                       />
                     ) : (
                       <div className="w-5 h-5 bg-purple-500/20 rounded-full flex items-center justify-center">
-                        <span className="text-purple-400 text-xs font-bold">
+                        <span className="text-xs font-bold text-[#c4a6ff]">
                           {token.symbol.slice(0, 2).toUpperCase()}
                         </span>
                       </div>
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-gray-300 text-xs font-medium truncate">
+                    <p className="truncate text-xs font-medium text-[#d8d3ea]">
                       {token.symbol}
                     </p>
                     <p className="text-white font-semibold text-sm">
                       {formatTokenAmount(token.amount, token.decimals)}
                     </p>
                     {token.usdValue !== undefined && token.usdValue > 0 && (
-                      <p className="text-gray-400 text-xs">
+                      <p className="text-xs text-[#a8a1bf]">
                         {formatCurrency(token.usdValue)}
                       </p>
                     )}
@@ -213,11 +213,11 @@ export function ReserveAccountCard({
         {/* Jupiter DCA (when this account owns it) */}
         {jupiterDca !== undefined && (
           <div>
-            <p className="text-gray-400 text-xs sm:text-sm font-medium mb-2">
+            <p className="mb-2 text-xs font-medium text-[#a8a1bf] sm:text-sm">
               Jupiter DCA
             </p>
             {dcaLoading ? (
-              <div className="p-3 sm:p-4 bg-gray-800/30 rounded-lg flex items-center gap-3">
+              <div className="flex items-center gap-3 rounded-2xl bg-[#2f2942] p-3 sm:p-4 ring-1 ring-white/6">
                 <div className="w-9 h-9 bg-gray-600 rounded-lg animate-pulse flex-shrink-0" />
                 <div className="space-y-1 flex-1 min-w-0">
                   <div className="h-3 bg-gray-600 rounded animate-pulse w-28" />
@@ -229,11 +229,11 @@ export function ReserveAccountCard({
                 href={jupiterDca?.vaultUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block p-3 sm:p-4 bg-gray-800/30 rounded-lg hover:bg-gray-800/50 transition-colors border border-transparent hover:border-emerald-500/40"
+                className="block rounded-2xl border border-white/6 bg-[#2f2942] p-3 transition-colors hover:border-emerald-500/30 hover:bg-[#352d47] sm:p-4"
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">
-                    <div className="w-9 h-9 bg-emerald-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-emerald-500/20">
                       <Repeat className="h-4 w-4 text-emerald-400" />
                     </div>
                     <div className="min-w-0">
@@ -253,10 +253,10 @@ export function ReserveAccountCard({
                             </span>
                           </>
                         )}
-                        <ExternalLink className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                            <ExternalLink className="h-4 w-4 flex-shrink-0 text-[#8f88a9]" />
                       </div>
                       {!jupiterDca?.usingDca && (
-                        <p className="text-gray-500 text-xs mt-0.5">
+                        <p className="mt-0.5 text-xs text-[#8f88a9]">
                           No active USDC → PYTH orders
                         </p>
                       )}
@@ -286,7 +286,7 @@ export function ReserveAccountCard({
           accountInfo.solBalance === 0 &&
           jupiterDca === undefined && (
             <div className="text-center py-4">
-              <p className="text-gray-500 text-sm">No holdings found</p>
+              <p className="text-sm text-[#8f88a9]">No holdings found</p>
             </div>
           )}
       </CardContent>

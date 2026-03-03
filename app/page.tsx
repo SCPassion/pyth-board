@@ -60,7 +60,7 @@ export default function Dashboard() {
       <PortfolioSummary
         connectedWallets={connectedWallets}
         totalStaked={totalStaked}
-        uniqueValidatorSize={uniqueValidatorSize}
+        totalClaimableRewards={totalClaimableRewards}
         pythPrice={pythPrice}
       >
         Portfolio Summary

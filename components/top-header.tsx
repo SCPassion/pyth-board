@@ -18,14 +18,13 @@ export function TopHeader({
   const [showWalletDropdown, setShowWalletDropdown] = useState(false);
 
   return (
-    <header className="h-16 border-b border-gray-800 bg-[#1a1f2e] grid grid-cols-[1fr_auto] items-center gap-2 px-3 sm:px-6 relative min-w-0 sm:flex sm:justify-between">
-      <div className="flex items-center gap-2 sm:gap-6 min-w-0">
-        {/* Mobile menu button */}
+    <header className="flex h-20 items-center justify-between gap-3 border-b border-white/6 bg-[#241b35] px-3 sm:px-6">
+      <div className="flex min-w-0 items-center gap-3">
         <Button
           variant="ghost"
           size="sm"
           onClick={onMobileMenuToggle}
-          className="md:hidden bg-transparent text-white hover:bg-[#2a2f3e] p-2 flex-shrink-0"
+          className="md:hidden rounded-full bg-transparent p-2 text-white hover:bg-white/5"
         >
           {isMobileMenuOpen ? (
             <X className="h-5 w-5" />
@@ -33,32 +32,33 @@ export function TopHeader({
             <Menu className="h-5 w-5" />
           )}
         </Button>
-        <h1 className="text-white text-lg sm:text-xl font-medium truncate">
-          Pyth Dashboard
-        </h1>
-        <span
-          className="hidden sm:inline-block text-xs text-gray-400 bg-gray-800/50 px-2 py-0.5 rounded border border-gray-700 whitespace-nowrap flex-shrink-0"
-          suppressHydrationWarning
-        >
-          v0.2.1
-        </span>
+
+        <div className="hidden h-10 w-10 items-center justify-center rounded-full bg-[#2f2942] text-white md:flex">
+          <div className="h-2.5 w-2.5 rounded-full border border-white/40" />
+        </div>
+
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-white">Home</p>
+          <p className="hidden text-xs text-[#9f97bb] sm:block">
+            Portfolio activity and network overview
+          </p>
+        </div>
       </div>
 
-      <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0 justify-end">
-        {/* Price Ticker - Shown on medium screens and up */}
-        <div className="hidden md:flex items-center">
+      <div className="flex items-center gap-2 sm:gap-3">
+        <div className="hidden items-center md:flex">
           <PriceTicker />
         </div>
 
         <div className="relative">
           <Button
             variant="ghost"
-            className="text-white gap-2 bg-green-500/10 hover:bg-green-500/20 cursor-pointer text-sm sm:text-base"
+            className="h-10 rounded-2xl border border-white/8 bg-[#2f2942] px-3 text-sm text-white hover:bg-[#3a3350]"
             onClick={() => setShowWalletDropdown(!showWalletDropdown)}
           >
-            <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0"></div>
+            <div className="h-2 w-2 rounded-full bg-emerald-400" />
             Wallets
-            <ChevronDown className="h-4 w-4 flex-shrink-0" />
+            <ChevronDown className="h-4 w-4 shrink-0 text-[#9f97bb]" />
           </Button>
 
           <WalletDropdown

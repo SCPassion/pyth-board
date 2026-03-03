@@ -147,9 +147,9 @@ export function WalletDropdown({ isOpen, onClose }: WalletDropdownProps) {
       {/* Dropdown */}
       <Card
         ref={dropdownRef}
-        className="absolute top-full right-2 sm:right-0 mt-2 w-80 sm:w-96 bg-[#2a2f3e] border-gray-700 z-50 max-h-[calc(100vh-6rem)] sm:max-h-[calc(100vh-8rem)] overflow-y-auto"
+        className="absolute top-full right-2 sm:right-0 mt-2 w-80 sm:w-96 rounded-[28px] border-white/10 bg-[linear-gradient(148deg,rgba(58,48,84,0.98)_0%,rgba(44,36,66,0.98)_100%)] py-0 shadow-[0_24px_60px_rgba(8,5,18,0.4)] z-50 max-h-[calc(100vh-6rem)] sm:max-h-[calc(100vh-8rem)] overflow-y-auto"
       >
-        <CardHeader className="flex flex-row items-center justify-between pb-3">
+        <CardHeader className="flex flex-row items-center justify-between px-6 pt-6 pb-3">
           <CardTitle className="text-white text-base sm:text-lg">
             Manage wallets
           </CardTitle>
@@ -157,21 +157,21 @@ export function WalletDropdown({ isOpen, onClose }: WalletDropdownProps) {
             variant="ghost"
             size="sm"
             onClick={onClose}
-            className="text-gray-400 hover:text-white cursor-pointer"
+            className="h-8 w-8 rounded-full p-0 text-[#8f88a9] hover:bg-white/5 hover:text-white cursor-pointer"
           >
             <X className="h-4 w-4" />
           </Button>
         </CardHeader>
 
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 px-6 pb-6">
           <div className="space-y-2">
             {wallets.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 text-center">
-                <div className="w-12 h-12 bg-gray-700 rounded-full flex items-center justify-center mb-3">
-                  <Plus className="w-6 h-6 text-gray-400" />
+                <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-[#312940] ring-1 ring-white/8">
+                  <Plus className="h-6 w-6 text-[#a8a1bf]" />
                 </div>
-                <p className="text-gray-400 text-sm">No wallets connected</p>
-                <p className="text-gray-500 text-xs mt-1">
+                <p className="text-[#b4aec8] text-sm">No wallets connected</p>
+                <p className="text-[#8f88a9] text-xs mt-1">
                   Add your first wallet below
                 </p>
               </div>
@@ -179,30 +179,30 @@ export function WalletDropdown({ isOpen, onClose }: WalletDropdownProps) {
               wallets.map((wallet) => (
                 <div
                   key={wallet.id}
-                  className="p-3 rounded-lg border transition-all duration-300 bg-[#1a1f2e] border-gray-700 hover:border-purple-400 hover:shadow-lg hover:shadow-purple-500/30 group"
+                  className="rounded-2xl border border-white/8 bg-[#2f2942] p-4 transition-all duration-300 hover:bg-[#352d47] hover:border-white/12 group"
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-3 flex-1 min-w-0">
-                      <div className="w-6 h-6 sm:w-8 sm:h-8 bg-blue-500/20 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-blue-500/30 transition-colors">
+                      <div className="w-6 h-6 sm:w-8 sm:h-8 bg-blue-500/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-blue-500/30 transition-colors">
                         {/* Wallet Icon */}
                       </div>
                       <div className="flex flex-col gap-1 sm:gap-2 min-w-0 flex-1">
                         <p className="text-white font-medium text-sm sm:text-base group-hover:text-purple-100 transition-colors">
                           {wallet.name}
                         </p>
-                        <p className="text-gray-400 text-xs sm:text-sm font-mono break-all group-hover:text-gray-300 transition-colors">
+                        <p className="text-[#a8a1bf] text-xs sm:text-sm font-mono break-all transition-colors">
                           Solana:{" "}
                           {wallet.address.slice(0, 5) +
                             "..." +
                             wallet.address.slice(-4)}
                         </p>
-                        <p className="text-gray-400 text-xs sm:text-sm font-mono break-all group-hover:text-gray-300 transition-colors">
+                        <p className="text-[#a8a1bf] text-xs sm:text-sm font-mono break-all transition-colors">
                           Staking:{" "}
                           {wallet.stakingAddress.slice(0, 5) +
                             "..." +
                             wallet.stakingAddress.slice(-4)}
                         </p>
-                        <p className="text-gray-400 text-xs sm:text-sm group-hover:text-green-300 transition-colors">
+                        <p className="text-[#a8a1bf] text-xs sm:text-sm transition-colors">
                           Staked:{" "}
                           {wallet.stakingInfo?.totalStakedPyth.toFixed(2)} PYTH
                         </p>
@@ -234,7 +234,7 @@ export function WalletDropdown({ isOpen, onClose }: WalletDropdownProps) {
                           );
                           onClose();
                         }}
-                        className="text-red-400 hover:text-red-300 hover:bg-red-500/10 cursor-pointer p-1 group-hover:bg-red-500/20 transition-all duration-200"
+                        className="h-8 w-8 rounded-full p-0 text-red-400 hover:text-red-300 hover:bg-red-500/10 cursor-pointer transition-all duration-200"
                       >
                         <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
                       </Button>
@@ -249,10 +249,10 @@ export function WalletDropdown({ isOpen, onClose }: WalletDropdownProps) {
           {showAddForm ? (
             <form
               onSubmit={handleAddWallet}
-              className="space-y-3 p-3 bg-[#1a1f2e] rounded-lg border border-gray-700 flex-shrink-0 hover:border-purple-400 hover:shadow-lg hover:shadow-purple-500/30 transition-all duration-300"
+              className="flex-shrink-0 space-y-3 rounded-2xl border border-white/8 bg-[#2f2942] p-4 transition-all duration-300"
             >
               <div className="space-y-2 sm:space-y-4">
-                <Label htmlFor="wallet-name" className="text-gray-300 text-sm">
+                <Label htmlFor="wallet-name" className="text-[#d8d3ea] text-sm">
                   Wallet Name
                 </Label>
                 <Input
@@ -260,14 +260,14 @@ export function WalletDropdown({ isOpen, onClose }: WalletDropdownProps) {
                   name="wallet-name"
                   type="text"
                   placeholder="e.g., Trading Wallet"
-                  className="bg-[#2a2f3e] border-gray-600 text-white text-sm"
+                  className="rounded-2xl border-white/8 bg-[#241d34] text-white text-sm"
                   required
                 />
               </div>
               <div className="space-y-2 sm:space-y-4">
                 <Label
                   htmlFor="wallet-address"
-                  className="text-gray-300 text-sm"
+                  className="text-[#d8d3ea] text-sm"
                 >
                   Solana Wallet Address
                 </Label>
@@ -276,7 +276,7 @@ export function WalletDropdown({ isOpen, onClose }: WalletDropdownProps) {
                   name="wallet-address"
                   type="text"
                   placeholder="Enter Solana wallet address"
-                  className="bg-[#2a2f3e] border-gray-600 text-white font-mono text-xs sm:text-sm"
+                  className="rounded-2xl border-white/8 bg-[#241d34] text-white font-mono text-xs sm:text-sm"
                   required
                 />
               </div>
@@ -284,7 +284,7 @@ export function WalletDropdown({ isOpen, onClose }: WalletDropdownProps) {
                 <div className="flex items-center gap-2 mb-1 sm:mb-2">
                   <Label
                     htmlFor="staking-address"
-                    className="text-gray-300 text-sm"
+                    className="text-[#d8d3ea] text-sm"
                   >
                     Staking Account Address
                   </Label>
@@ -295,7 +295,7 @@ export function WalletDropdown({ isOpen, onClose }: WalletDropdownProps) {
                   name="staking-address"
                   type="text"
                   placeholder="Enter your pyth staking address"
-                  className="bg-[#2a2f3e] border-gray-600 text-white font-mono text-xs sm:text-sm"
+                  className="rounded-2xl border-white/8 bg-[#241d34] text-white font-mono text-xs sm:text-sm"
                   required
                 />
               </div>
@@ -303,7 +303,7 @@ export function WalletDropdown({ isOpen, onClose }: WalletDropdownProps) {
                 <Button
                   type="submit"
                   size="sm"
-                  className="bg-purple-600 hover:bg-purple-700 w-full sm:w-auto hover:shadow-lg hover:shadow-purple-500/30 transition-all duration-300"
+                  className="h-10 w-full rounded-2xl bg-[#9f1df0] px-4 text-white shadow-[0_10px_24px_rgba(159,29,240,0.32)] hover:bg-[#b12bff] sm:w-auto transition-all duration-300"
                   disabled={isLoading}
                 >
                   {isLoading ? (
@@ -316,7 +316,7 @@ export function WalletDropdown({ isOpen, onClose }: WalletDropdownProps) {
                   variant="outline"
                   size="sm"
                   onClick={() => setShowAddForm(false)}
-                  className="border-gray-600 text-gray-300 w-full sm:w-auto hover:border-gray-500 hover:bg-gray-700 hover:text-white transition-all duration-300"
+                  className="h-10 w-full rounded-2xl border-white/8 bg-[#241d34] text-[#b4aec8] sm:w-auto hover:bg-white/5 hover:text-white transition-all duration-300"
                   disabled={isLoading}
                 >
                   Cancel
@@ -326,7 +326,7 @@ export function WalletDropdown({ isOpen, onClose }: WalletDropdownProps) {
           ) : (
             <Button
               onClick={() => setShowAddForm(true)}
-              className="w-full bg-purple-600 hover:bg-purple-700 gap-2 cursor-pointer hover:shadow-lg hover:shadow-purple-500/30 transition-all duration-300"
+              className="h-11 w-full rounded-2xl bg-[#9f1df0] text-white hover:bg-[#b12bff] gap-2 cursor-pointer shadow-[0_12px_26px_rgba(159,29,240,0.32)] transition-all duration-300"
             >
               <Plus className="h-4 w-4" />
               Add New Wallet

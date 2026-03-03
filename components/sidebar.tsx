@@ -1,13 +1,12 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Github,
   LayoutDashboard,
   Wallet,
   Image as ImageIcon,
   Building2,
+  ArrowUpRight,
 } from "lucide-react";
 import { TwitterIcon } from "@/components/icons/twitter-icon";
 import { cn } from "@/lib/utils";
@@ -25,6 +24,12 @@ export function Sidebar({
   onMobileMenuToggle,
 }: SidebarProps) {
   const pathname = usePathname();
+  const navItems = [
+    { href: "/", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/wallets", label: "Wallets", icon: Wallet },
+    { href: "/pythenians", label: "Pythenians", icon: ImageIcon },
+    { href: "/reserve", label: "Reserve", icon: Building2 },
+  ];
 
   const isActive = (path: string) => {
     if (path === "/" && pathname === "/") return true;
@@ -44,133 +49,83 @@ export function Sidebar({
       {/* Sidebar */}
       <div
         className={cn(
-          "w-64 bg-[#1a1f2e] border-r border-gray-800 flex flex-col fixed md:relative h-full z-50 transition-transform duration-300",
+          "fixed md:relative inset-y-0 left-0 z-50 flex w-64 md:w-24 flex-col border-r border-white/8 bg-[#241b35] transition-transform duration-300",
           isMobileMenuOpen
             ? "translate-x-0"
             : "-translate-x-full md:translate-x-0"
         )}
       >
-        {/* Pyth Network Logo */}
-        <div className="p-6 border-b border-gray-800">
-          <div className="flex items-center gap-3 w-full overflow-hidden">
-            <div className="relative w-full max-w-[200px] h-auto">
+        <div className="flex h-full flex-col px-4 py-6 md:px-0 md:items-center">
+          <div className="mb-8 flex w-full items-center justify-start md:justify-center">
+            <div className="relative h-9 w-9 overflow-hidden rounded-2xl bg-[#37294f] ring-1 ring-white/10">
               <Image
                 src="/PythLight.svg"
                 width={3285}
                 height={1120}
                 alt="Pyth Network"
-                className="w-full h-auto object-contain"
+                className="h-full w-full object-contain p-1.5"
                 priority
               />
             </div>
           </div>
-        </div>
+          <nav className="flex flex-col gap-3">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const active = isActive(item.href);
 
-        <div className="p-4">
-          <nav className="space-y-2">
-            <Link href="/" onClick={() => onMobileMenuToggle()}>
-              <Button
-                variant="ghost"
-                className={cn(
-                  "w-full justify-start gap-3 text-gray-300 hover:text-white hover:bg-purple-500/10 cursor-pointer",
-                  isActive("/") &&
-                    "bg-purple-500/20 text-white border-r-2 border-purple-500"
-                )}
-              >
-                <LayoutDashboard className="h-5 w-5" />
-                Dashboard
-              </Button>
-            </Link>
-
-            <Link href="/wallets" onClick={() => onMobileMenuToggle()}>
-              <Button
-                variant="ghost"
-                className={cn(
-                  "w-full justify-start gap-3 text-gray-300 hover:text-white hover:bg-purple-500/10 cursor-pointer",
-                  isActive("/wallets") &&
-                    "bg-purple-500/20 text-white border-r-2 border-purple-500"
-                )}
-              >
-                <Wallet className="h-5 w-5" />
-                Wallets
-              </Button>
-            </Link>
-
-            <Link href="/pythenians" onClick={() => onMobileMenuToggle()}>
-              <Button
-                variant="ghost"
-                className={cn(
-                  "w-full justify-start gap-3 text-gray-300 hover:text-white hover:bg-purple-500/10 cursor-pointer",
-                  isActive("/pythenians") &&
-                    "bg-purple-500/20 text-white border-r-2 border-purple-500"
-                )}
-              >
-                <ImageIcon className="h-5 w-5" />
-                Pythenians
-              </Button>
-            </Link>
-
-            <Link href="/reserve" onClick={() => onMobileMenuToggle()}>
-              <Button
-                variant="ghost"
-                className={cn(
-                  "w-full justify-start gap-3 text-gray-300 hover:text-white hover:bg-purple-500/10 cursor-pointer",
-                  isActive("/reserve") &&
-                    "bg-purple-500/20 text-white border-r-2 border-purple-500"
-                )}
-              >
-                <Building2 className="h-5 w-5" />
-                Reserve
-              </Button>
-            </Link>
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => onMobileMenuToggle()}
+                  className={cn(
+                    "group flex h-[52px] w-full items-center gap-3 rounded-2xl px-4 text-sm font-medium text-[#978fb1] transition-colors md:h-10 md:w-10 md:justify-center md:px-0",
+                    active
+                      ? "bg-[#3a2d48] text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]"
+                      : "hover:bg-white/5 hover:text-white"
+                  )}
+                  title={item.label}
+                >
+                  <Icon className="h-5 w-5 shrink-0" />
+                  <span className="md:hidden">{item.label}</span>
+                </Link>
+              );
+            })}
           </nav>
-        </div>
 
-        {/* Staking Rewards - Bottom Left */}
-        <div className="mt-auto p-4">
-          <Card className="bg-[#2a2f3e] border-gray-700">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-white text-lg">
-                Staking Rewards
-              </CardTitle>
-              <p className="text-gray-400 text-sm">
-                Earn rewards by staking PYTH
-              </p>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <Button
-                className="w-full bg-purple-600 hover:bg-purple-700 cursor-pointer hover:shadow-lg transition-all duration-200"
+          <div className="mt-auto w-full space-y-4 md:flex md:flex-col md:items-center md:space-y-3">
+            <button
+              className="flex w-full items-center justify-between rounded-2xl bg-[#342645] px-4 py-3 text-left text-white ring-1 ring-white/8 transition-colors hover:bg-[#3a2b4d] md:h-10 md:w-10 md:justify-center md:rounded-full md:p-0"
+              onClick={() => window.open("https://staking.pyth.network/", "_blank")}
+              type="button"
+              title="Start Staking"
+            >
+              <span className="text-sm font-semibold md:hidden">Stake</span>
+              <ArrowUpRight className="h-4 w-4 shrink-0" />
+            </button>
+
+            <div className="flex items-center gap-3 md:flex-col">
+              <button
+                className="flex h-10 w-10 items-center justify-center rounded-full text-[#978fb1] transition-colors hover:bg-white/5 hover:text-white"
                 onClick={() =>
-                  window.open("https://staking.pyth.network/", "_blank")
+                  window.open("https://github.com/SCPassion/pyth-board", "_blank")
                 }
+                type="button"
+                title="GitHub"
               >
-                Start Staking
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Social Links */}
-          <div className="flex items-center justify-center gap-3 pt-2 border-t border-gray-800">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-gray-400 hover:text-white hover:bg-gray-800/50 p-2 cursor-pointer"
-              onClick={() =>
-                window.open("https://github.com/SCPassion/pyth-board", "_blank")
-              }
-            >
-              <Github className="h-10 w-10" />
-              <span className="sr-only">GitHub</span>
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-gray-400 hover:text-white hover:bg-gray-800/50 p-2 cursor-pointer"
-              onClick={() => window.open("https://x.com/KaiCryptohk", "_blank")}
-            >
-              <TwitterIcon className="h-10 w-10" />
-              <span className="sr-only">Twitter</span>
-            </Button>
+                <Github className="h-5 w-5" />
+                <span className="sr-only">GitHub</span>
+              </button>
+              <button
+                className="flex h-10 w-10 items-center justify-center rounded-full text-[#978fb1] transition-colors hover:bg-white/5 hover:text-white"
+                onClick={() => window.open("https://x.com/KaiCryptohk", "_blank")}
+                type="button"
+                title="Twitter"
+              >
+                <TwitterIcon className="h-5 w-5" />
+                <span className="sr-only">Twitter</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>

@@ -92,13 +92,13 @@ export function SwapTransactions({
   const hasTransactions = transactions.length > 0;
 
   return (
-      <Card className="bg-[#2a2f3e] border-gray-700 hover:border-purple-400 hover:shadow-lg hover:shadow-purple-500/30 transition-all duration-300">
-      <CardHeader>
-        <p className="text-gray-400 text-xs">
+      <Card className="rounded-[28px] border-white/10 bg-[linear-gradient(148deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.02)_100%)] py-0 shadow-[0_20px_55px_rgba(8,5,18,0.2)] transition-all duration-300">
+      <CardHeader className="px-7 pt-7 pb-3 sm:px-8">
+        <p className="text-[#a8a1bf] text-xs">
           Showing swaps {rangeLabel} to PYTH by Pythian Council Ops Multisig
         </p>
       </CardHeader>
-          <CardContent>
+          <CardContent className="px-7 pb-7 sm:px-8 sm:pb-8">
             {error ? (
               <div className="flex items-center gap-2 text-red-400 text-sm mb-4">
                 <ExternalLink className="w-4 h-4" />
@@ -107,7 +107,7 @@ export function SwapTransactions({
             ) : null}
             {isLoading && !hasTransactions ? (
               <div className="flex items-center justify-center py-10">
-                <div className="flex items-center gap-2 text-gray-400 text-sm">
+                <div className="flex items-center gap-2 text-[#a8a1bf] text-sm">
                   <Loader2 className="h-4 w-4 animate-spin" />
                   Loading swaps...
                 </div>
@@ -115,13 +115,13 @@ export function SwapTransactions({
             ) : null}
             {!isLoading && !hasTransactions ? (
               <div className="text-center py-8 sm:py-12 px-4">
-                <div className="w-16 h-16 sm:w-24 sm:h-24 mx-auto mb-4 bg-gray-800 rounded-full flex items-center justify-center">
-                  <ExternalLink className="w-8 h-8 sm:w-12 sm:h-12 text-gray-400" />
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#312940] ring-1 ring-white/8 sm:h-24 sm:w-24">
+                  <ExternalLink className="h-8 w-8 text-[#a8a1bf] sm:h-12 sm:w-12" />
                 </div>
                 <h3 className="text-lg sm:text-xl font-semibold text-white mb-2">
                   No Swap Transactions Found
                 </h3>
-                <p className="text-sm sm:text-base text-gray-400 max-w-md mx-auto">
+                <p className="max-w-md mx-auto text-sm text-[#b4aec8] sm:text-base">
                   No recent swap operations have been detected for the Pyth Council Ops wallet.
                 </p>
               </div>
@@ -129,28 +129,28 @@ export function SwapTransactions({
             {hasTransactions ? (
               <>
                 {/* Table Header - Desktop Only */}
-                <div className="hidden md:flex items-center justify-evenly gap-4 pb-3 mb-3 border-b border-gray-700 px-3">
+                <div className="mb-3 hidden items-center justify-evenly gap-4 border-b border-white/8 px-3 pb-3 md:flex">
                   <div className="flex items-center gap-2 flex-1 min-w-0">
                     <div className="w-6 h-6 flex-shrink-0"></div>
                     <div className="min-w-0">
-                      <p className="text-gray-400 text-xs font-medium">Input Token</p>
+                      <p className="text-[#8f88a9] text-xs font-medium">Input Token</p>
                     </div>
                   </div>
                   <div className="flex-shrink-0 w-4"></div>
                   <div className="flex items-center gap-2 flex-1 min-w-0">
                     <div className="w-6 h-6 flex-shrink-0"></div>
                     <div className="min-w-0">
-                      <p className="text-gray-400 text-xs font-medium">Output (PYTH)</p>
+                      <p className="text-[#8f88a9] text-xs font-medium">Output (PYTH)</p>
                     </div>
                   </div>
                   <div className="flex-1 text-center min-w-0">
-                    <p className="text-gray-400 text-xs font-medium">Signature</p>
+                    <p className="text-[#8f88a9] text-xs font-medium">Signature</p>
                   </div>
                   <div className="flex-1 text-center min-w-0">
-                    <p className="text-gray-400 text-xs font-medium">Date/Time</p>
+                    <p className="text-[#8f88a9] text-xs font-medium">Date/Time</p>
                   </div>
                   <div className="flex-1 text-center">
-                    <p className="text-gray-400 text-xs font-medium">Block</p>
+                    <p className="text-[#8f88a9] text-xs font-medium">Block</p>
                   </div>
                   <div className="flex-shrink-0 w-4"></div>
                 </div>
@@ -161,10 +161,10 @@ export function SwapTransactions({
                       href={tx.explorerUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="block p-3 bg-gray-800/30 rounded-lg hover:bg-gray-800/50 transition-all duration-200 ease-in-out hover:scale-[1.02] hover:shadow-md hover:shadow-purple-500/20 border border-transparent hover:border-purple-500/30"
+                      className="block rounded-2xl border border-white/6 bg-[#2f2942] p-3 transition-all duration-200 ease-in-out hover:scale-[1.01] hover:border-white/12 hover:bg-[#352d47]"
                     >
                       {/* Mobile Layout */}
-                      <div className="md:hidden space-y-3">
+                      <div className="space-y-3 md:hidden">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 flex-1 min-w-0">
                     <div className="w-6 h-6 flex items-center justify-center flex-shrink-0">
@@ -188,10 +188,10 @@ export function SwapTransactions({
                       <p className="text-white font-semibold text-sm">
                         {formatTokenAmount(tx.inputAmount)}
                       </p>
-                      <p className="text-gray-400 text-xs truncate">{tx.inputToken}</p>
+                      <p className="truncate text-xs text-[#a8a1bf]">{tx.inputToken}</p>
                     </div>
                   </div>
-                  <ArrowRight className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                  <ArrowRight className="w-4 h-4 text-[#8f88a9] flex-shrink-0" />
                   <div className="flex items-center gap-2 flex-1 min-w-0 justify-end">
                     <div className="w-6 h-6 flex items-center justify-center flex-shrink-0">
                       <Image
@@ -209,28 +209,28 @@ export function SwapTransactions({
                     </div>
                   </div>
                 </div>
-                <div className="pt-2 border-t border-gray-700">
+                <div className="border-t border-white/8 pt-2">
                   <div className="grid grid-cols-2 gap-2">
                     <div className="col-span-2 min-w-0">
-                      <p className="text-gray-400 text-xs mb-1">Signature</p>
-                      <p className="text-gray-300 text-xs font-mono truncate">
+                      <p className="mb-1 text-xs text-[#8f88a9]">Signature</p>
+                      <p className="truncate font-mono text-xs text-[#d8d3ea]">
                         {formatAddress(tx.signature)}
                       </p>
                     </div>
                     <div className="min-w-0">
-                      <p className="text-gray-400 text-xs mb-1">Date/Time</p>
+                      <p className="mb-1 text-xs text-[#8f88a9]">Date/Time</p>
                       <p className="text-white text-xs font-medium truncate">
                         {formatDate(tx.date)}
                       </p>
                     </div>
                     <div className="min-w-0 flex items-end justify-between gap-2">
                       <div className="min-w-0">
-                        <p className="text-gray-400 text-xs mb-1">Block</p>
+                        <p className="mb-1 text-xs text-[#8f88a9]">Block</p>
                         <p className="text-white text-sm font-semibold truncate">
                           {formatBlock(tx.block)}
                         </p>
                       </div>
-                      <ExternalLink className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                      <ExternalLink className="w-4 h-4 text-[#8f88a9] flex-shrink-0" />
                     </div>
                   </div>
                 </div>
@@ -261,12 +261,12 @@ export function SwapTransactions({
                     <p className="text-white font-semibold text-sm">
                       {formatTokenAmount(tx.inputAmount)}
                     </p>
-                    <p className="text-gray-400 text-xs truncate">{tx.inputToken}</p>
+                      <p className="truncate text-xs text-[#a8a1bf]">{tx.inputToken}</p>
                   </div>
                 </div>
 
                 {/* Arrow */}
-                <ArrowRight className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                <ArrowRight className="w-4 h-4 text-[#8f88a9] flex-shrink-0" />
 
                 {/* Output Token (PYTH) */}
                 <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -288,12 +288,12 @@ export function SwapTransactions({
 
                 {/* Signature */}
                 <div className="flex-1 text-center min-w-0">
-                  <p className="text-gray-300 text-xs font-mono truncate">{formatAddress(tx.signature)}</p>
+                  <p className="truncate font-mono text-xs text-[#d8d3ea]">{formatAddress(tx.signature)}</p>
                 </div>
 
                 {/* Date/Time */}
                 <div className="flex-1 text-center min-w-0">
-                  <p className="text-gray-300 text-xs truncate">
+                  <p className="truncate text-xs text-[#d8d3ea]">
                     {formatDate(tx.date)}
                   </p>
                 </div>
@@ -305,7 +305,7 @@ export function SwapTransactions({
 
                 {/* External Link */}
                 <div className="flex-shrink-0">
-                  <ExternalLink className="w-4 h-4 text-gray-500 hover:text-purple-400 transition-colors" />
+                  <ExternalLink className="w-4 h-4 text-[#8f88a9] transition-colors hover:text-white" />
                 </div>
                 </div>
             </a>
@@ -314,7 +314,7 @@ export function SwapTransactions({
       </>
         ) : null}
         <div className="mt-4 flex items-center justify-between gap-3">
-          <div className="text-xs text-gray-400">{pageSize} per page</div>
+          <div className="text-xs text-[#a8a1bf]">{pageSize} per page</div>
           <div className="flex items-center gap-2">
             {throttleActive ? (
               <div className="text-xs text-purple-300 mr-1">
@@ -324,7 +324,7 @@ export function SwapTransactions({
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 hover:bg-gray-800 hover:text-white transition-colors hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-400"
+              className="h-8 w-8 rounded-xl hover:bg-white/5 hover:text-white transition-colors hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-[#8f88a9]"
               onClick={() => onPageChange(1)}
               disabled={page === 1 || isLoading || throttleActive}
             >
@@ -333,7 +333,7 @@ export function SwapTransactions({
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 hover:bg-gray-800 hover:text-white transition-colors hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-400"
+              className="h-8 w-8 rounded-xl hover:bg-white/5 hover:text-white transition-colors hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-[#8f88a9]"
               onClick={() => onPageChange(Math.max(1, page - 1))}
               disabled={page === 1 || isLoading || throttleActive}
             >

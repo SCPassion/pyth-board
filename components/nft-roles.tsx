@@ -24,15 +24,15 @@ export function NFTRoles({ nftRoles }: NFTRolesProps) {
   // Ensure we have data before rendering
   if (!safeNftRoles || safeNftRoles.length === 0) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-5">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <h2 className="text-xl sm:text-2xl font-bold text-white">
             Pythenians Partnerships
           </h2>
         </div>
         <div className="text-center py-8 sm:py-12 px-4">
-          <div className="w-16 h-16 sm:w-24 sm:h-24 mx-auto mb-4 bg-gray-800 rounded-full flex items-center justify-center">
-            <ImageIcon className="w-8 h-8 sm:w-12 sm:h-12 text-gray-400" />
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#312940] ring-1 ring-white/8 sm:h-24 sm:w-24">
+            <ImageIcon className="h-8 w-8 text-[#a8a1bf] sm:h-12 sm:w-12" />
           </div>
           <h3 className="text-lg sm:text-xl font-semibold text-white mb-2">
             Loading NFT Roles...
@@ -62,7 +62,7 @@ export function NFTRoles({ nftRoles }: NFTRolesProps) {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <h2 className="text-xl sm:text-2xl font-bold text-white">
           Pythenians Partnerships
@@ -70,7 +70,7 @@ export function NFTRoles({ nftRoles }: NFTRolesProps) {
         <div className="flex items-center gap-3">
           <Badge
             variant="outline"
-            className="text-gray-400 border-gray-600 text-sm"
+            className="rounded-xl border-white/8 bg-[#2f2942] px-3 py-1 text-sm text-[#b8b0d0]"
           >
             {filteredRoles.length}{" "}
             {filter === "all"
@@ -85,29 +85,27 @@ export function NFTRoles({ nftRoles }: NFTRolesProps) {
 
       {/* Search and Filter Section */}
       <div className="flex flex-col xl:flex-row gap-4 items-stretch lg:items-center justify-between">
-        {/* Search Box */}
         <div className="relative w-full lg:max-w-md">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#8f88a9] w-4 h-4" />
           <Input
             type="text"
             placeholder="Search project names..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 pr-10 bg-gray-800 border-gray-600 text-white placeholder-gray-400 focus:border-purple-400 focus:ring-purple-400 w-full"
+            className="w-full rounded-2xl border-white/8 bg-[#2f2942] pl-10 pr-10 text-white placeholder:text-[#8f88a9] focus:border-[#7b57e3] focus:ring-[#7b57e3]"
           />
           {searchQuery && (
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setSearchQuery("")}
-              className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 text-gray-400 hover:text-white hover:bg-gray-700"
+              className="absolute right-1 top-1/2 h-6 w-6 -translate-y-1/2 p-0 text-[#8f88a9] hover:bg-white/5 hover:text-white"
             >
               <X className="w-4 h-4" />
             </Button>
           )}
         </div>
 
-        {/* Filter Buttons */}
         <div className="flex flex-wrap gap-2 justify-center lg:justify-end">
           <Button
             variant={filter === "all" ? "default" : "outline"}
@@ -115,8 +113,8 @@ export function NFTRoles({ nftRoles }: NFTRolesProps) {
             onClick={() => setFilter("all")}
             className={`flex items-center gap-2 text-xs sm:text-sm ${
               filter === "all"
-                ? "bg-blue-600 hover:bg-blue-700 text-white"
-                : "border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white"
+                ? "bg-[#6f4bd8] text-white hover:bg-[#7b57e3]"
+                : "border-white/8 bg-[#2f2942] text-[#b8b0d0] hover:bg-white/5 hover:text-white"
             }`}
           >
             <Filter className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -129,8 +127,8 @@ export function NFTRoles({ nftRoles }: NFTRolesProps) {
             onClick={() => setFilter("claimable")}
             className={`flex items-center gap-2 text-xs sm:text-sm ${
               filter === "claimable"
-                ? "bg-green-600 hover:bg-green-700 text-white"
-                : "border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white"
+                ? "bg-emerald-600 text-white hover:bg-emerald-500"
+                : "border-white/8 bg-[#2f2942] text-[#b8b0d0] hover:bg-white/5 hover:text-white"
             }`}
           >
             Claimable
@@ -141,8 +139,8 @@ export function NFTRoles({ nftRoles }: NFTRolesProps) {
             onClick={() => setFilter("not-claimable")}
             className={`flex items-center gap-2 text-xs sm:text-sm ${
               filter === "not-claimable"
-                ? "bg-red-600 hover:bg-red-700 text-white"
-                : "border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white"
+                ? "bg-rose-600 text-white hover:bg-rose-500"
+                : "border-white/8 bg-[#2f2942] text-[#b8b0d0] hover:bg-white/5 hover:text-white"
             }`}
           >
             <span className="hidden sm:inline">Not Claimable</span>
@@ -159,8 +157,8 @@ export function NFTRoles({ nftRoles }: NFTRolesProps) {
 
       {filteredRoles.length === 0 && (
         <div className="text-center py-8 sm:py-12 px-4">
-          <div className="w-16 h-16 sm:w-24 sm:h-24 mx-auto mb-4 bg-gray-800 rounded-full flex items-center justify-center">
-            <ImageIcon className="w-8 h-8 sm:w-12 sm:h-12 text-gray-400" />
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#312940] ring-1 ring-white/8 sm:h-24 sm:w-24">
+            <ImageIcon className="h-8 w-8 text-[#a8a1bf] sm:h-12 sm:w-12" />
           </div>
           <h3 className="text-lg sm:text-xl font-semibold text-white mb-2">
             {searchQuery
@@ -171,7 +169,7 @@ export function NFTRoles({ nftRoles }: NFTRolesProps) {
               ? "No Claimable Roles"
               : "No Non-Claimable Roles"}
           </h3>
-          <p className="text-sm sm:text-base text-gray-400 max-w-md mx-auto">
+          <p className="text-sm sm:text-base text-[#b4aec8] max-w-md mx-auto">
             {searchQuery
               ? "Try adjusting your search terms or filters."
               : filter === "all"
