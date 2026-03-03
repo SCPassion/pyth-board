@@ -129,25 +129,25 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <LoadingContext.Provider value={{ isLoading }}>
-      <div className="flex h-screen bg-[#0f1419] overflow-x-hidden">
+      <div className="flex h-screen overflow-x-hidden bg-[#261e35]">
         <Sidebar
           isMobileMenuOpen={isMobileMenuOpen}
           onMobileMenuToggle={toggleMobileMenu}
         />
 
-        <div className="flex-1 flex flex-col md:ml-0 min-w-0">
+        <div className="flex min-w-0 flex-1 flex-col md:ml-0">
           <TopHeader
             isMobileMenuOpen={isMobileMenuOpen}
             onMobileMenuToggle={toggleMobileMenu}
           />
 
-          <main className="flex-1 overflow-auto overflow-x-hidden p-3 sm:p-6 space-y-4 sm:space-y-6 min-w-0">
+          <main className="flex-1 overflow-auto overflow-x-hidden bg-[radial-gradient(circle_at_top_right,rgba(135,80,255,0.12),transparent_22%),linear-gradient(180deg,#261e35_0%,#251c34_100%)] p-3 sm:p-6 min-w-0">
             {isLoading && (
-              <div className="fixed top-4 right-4 bg-blue-500 text-white px-4 py-2 rounded-lg z-50">
+              <div className="fixed right-4 top-4 z-50 rounded-2xl bg-[#6f4bd8] px-4 py-2 text-white shadow-lg">
                 Loading wallet data...
               </div>
             )}
-            {children}
+            <div className="mx-auto max-w-[1360px] space-y-5">{children}</div>
           </main>
         </div>
       </div>

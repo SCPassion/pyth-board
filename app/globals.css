@@ -64,8 +64,11 @@
   body {
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
-    /* fallback for dark mode background */
-    background-color: #0a0e14;
+    background-color: #261e35;
+    background-image:
+      radial-gradient(circle at top right, rgba(124, 89, 255, 0.14), transparent 24%),
+      radial-gradient(circle at 20% 0%, rgba(255, 112, 166, 0.08), transparent 18%),
+      linear-gradient(180deg, #261e35 0%, #241c34 100%);
   }
 
   /* Mobile-specific improvements */
@@ -73,6 +76,30 @@
     body {
       -webkit-text-size-adjust: 100%;
       -webkit-tap-highlight-color: transparent;
+    }
+  }
+
+  :where(a[href], button, [role="button"], summary):not(
+      :disabled,
+      [aria-disabled="true"]
+    ) {
+    cursor: pointer;
+    transition:
+      opacity 160ms ease,
+      transform 160ms ease,
+      filter 160ms ease,
+      background-color 160ms ease,
+      border-color 160ms ease,
+      box-shadow 160ms ease;
+  }
+
+  @media (hover: hover) {
+    :where(a[href], button, [role="button"], summary):not(
+        :disabled,
+        [aria-disabled="true"]
+      ):hover {
+      filter: brightness(1.04);
+      transform: translateY(-1px);
     }
   }
 }
@@ -87,10 +114,10 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: hsl(var(--muted-foreground) / 0.3);
+  background: rgba(196, 186, 229, 0.24);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--muted-foreground) / 0.5);
+  background: rgba(196, 186, 229, 0.36);
 }

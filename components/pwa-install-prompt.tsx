@@ -88,17 +88,17 @@ export function PWAInstallPrompt() {
 
   return (
     <div className="fixed bottom-4 right-4 z-50 max-w-sm">
-      <div className="bg-[#2a2f3e] border border-gray-700 rounded-lg p-4 shadow-lg">
+      <div className="rounded-[20px] border border-white/10 bg-[linear-gradient(148deg,rgba(58,48,84,0.98)_0%,rgba(44,36,66,0.98)_100%)] p-4 shadow-[0_24px_60px_rgba(8,5,18,0.4)]">
         <div className="flex items-start justify-between mb-3">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-purple-500/20 rounded-lg flex items-center justify-center">
-              <Smartphone className="w-4 h-4 text-purple-400" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#312940] ring-1 ring-white/8">
+              <Smartphone className="w-4 h-4 text-[#c4a6ff]" />
             </div>
             <div>
               <h3 className="text-white font-medium text-sm">
                 Install Pyth Dashboard
               </h3>
-              <p className="text-gray-400 text-xs">
+              <p className="text-[#a8a1bf] text-xs">
                 Add to home screen for quick access
               </p>
             </div>
@@ -107,7 +107,7 @@ export function PWAInstallPrompt() {
             variant="ghost"
             size="sm"
             onClick={handleDismiss}
-            className="text-gray-400 hover:text-white p-1"
+            className="h-8 w-8 rounded-full p-0 text-[#8f88a9] hover:bg-white/5 hover:text-white"
           >
             <X className="w-4 h-4" />
           </Button>
@@ -116,7 +116,7 @@ export function PWAInstallPrompt() {
         <div className="flex gap-2">
           <Button
             onClick={handleInstallClick}
-            className="flex-1 bg-purple-600 hover:bg-purple-700 text-white text-sm gap-2"
+            className="flex-1 rounded-xl bg-[#9f1df0] hover:bg-[#b12bff] text-white text-sm gap-2 shadow-[0_12px_26px_rgba(159,29,240,0.32)]"
           >
             <Download className="w-4 h-4" />
             Install
@@ -124,7 +124,7 @@ export function PWAInstallPrompt() {
           <Button
             variant="outline"
             onClick={handleDismiss}
-            className="border-gray-600 text-gray-300 hover:bg-gray-700 text-sm"
+            className="rounded-xl border-white/8 bg-[#241d34] text-[#b4aec8] hover:bg-white/5 hover:text-white text-sm"
           >
             Later
           </Button>

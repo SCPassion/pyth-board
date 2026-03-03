@@ -130,11 +130,10 @@ export function ReservePythHoldingChart({
 
   return (
     <div className="space-y-5">
-      <Card className="bg-[#2a2f3e] border-gray-700 flex flex-col lg:min-h-[calc(100vh-360px)] lg:h-[calc(100vh-360px)] lg:overflow-hidden">
-        <div className="grid min-h-0 grid-cols-1 lg:grid-cols-[320px_1fr] lg:h-full">
-          <div className="border-b lg:border-b-0 lg:border-r border-gray-700 p-6 space-y-6">
+      <div className="grid min-h-0 grid-cols-1 lg:grid-cols-[320px_1fr] lg:min-h-[calc(100vh-360px)] lg:h-[calc(100vh-360px)] lg:overflow-hidden">
+          <div className="border-b lg:border-b-0 lg:border-r border-white/8 p-6 space-y-6">
             <div>
-              <p className="text-gray-400 text-sm mb-2">
+              <p className="text-[#a8a1bf] text-sm mb-2">
                 Current Reserve Size ($PYTH)
               </p>
               <p className="text-white text-3xl sm:text-4xl font-semibold tracking-tight">
@@ -143,19 +142,19 @@ export function ReservePythHoldingChart({
             </div>
 
             <div>
-              <p className="text-gray-400 text-sm mb-2">$PYTH Purchased</p>
+              <p className="text-[#a8a1bf] text-sm mb-2">$PYTH Purchased</p>
               <p className="text-white text-2xl sm:text-3xl font-semibold tracking-tight">
                 {cumulativePurchasedSinceTracking !== null
                   ? cumulativePurchasedSinceTracking.toLocaleString()
                   : "-"}
               </p>
-              <p className="text-gray-500 text-xs mt-2">
+              <p className="text-[#8f88a9] text-xs mt-2">
                 Since tracking started: {formattedTrackingStart}
               </p>
             </div>
 
             <div>
-              <p className="text-gray-400 text-sm mb-2">
+              <p className="text-[#a8a1bf] text-sm mb-2">
                 Average Daily $PYTH Purchased
               </p>
               <p className="text-white text-2xl sm:text-3xl font-semibold tracking-tight">
@@ -166,7 +165,7 @@ export function ReservePythHoldingChart({
             </div>
 
             <div>
-              <p className="text-gray-400 text-sm mb-2">
+              <p className="text-[#a8a1bf] text-sm mb-2">
                 Average Daily Purchased in USD
               </p>
               <p className="text-white text-2xl sm:text-3xl font-semibold tracking-tight">
@@ -188,7 +187,7 @@ export function ReservePythHoldingChart({
                 <CardTitle className="text-white text-2xl sm:text-3xl">
                   Reserve PYTH Holdings over time
                 </CardTitle>
-                <CardDescription className="text-gray-400 mt-1">
+                <CardDescription className="text-[#a8a1bf] mt-1">
                   {lastUpdated
                     ? `Updated ${new Date(lastUpdated).toLocaleString()}`
                     : "Waiting for first snapshot"}
@@ -198,12 +197,12 @@ export function ReservePythHoldingChart({
 
             <CardContent className="mt-2 min-w-0 px-0 pb-0 lg:mt-0 lg:flex lg:min-h-0 lg:flex-1 lg:flex-col">
               {!rawHistory ? (
-                <div className="h-[260px] sm:h-[320px] lg:h-full flex items-center justify-center text-gray-400">
+                <div className="h-[260px] sm:h-[320px] lg:h-full flex items-center justify-center text-[#a8a1bf]">
                   <Loader2 className="h-5 w-5 animate-spin mr-2" />
                   Loading history...
                 </div>
               ) : chartData.length === 0 ? (
-                <div className="h-[260px] sm:h-[320px] lg:h-full flex items-center justify-center text-gray-400 text-sm">
+                <div className="h-[260px] sm:h-[320px] lg:h-full flex items-center justify-center text-[#a8a1bf] text-sm">
                   No snapshots yet. Wait for the daily cron to populate data.
                 </div>
               ) : (
@@ -313,8 +312,7 @@ export function ReservePythHoldingChart({
               )}
             </CardContent>
           </div>
-        </div>
-      </Card>
+      </div>
     </div>
   );
 }

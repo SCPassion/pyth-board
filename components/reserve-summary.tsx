@@ -41,7 +41,7 @@ export function ReserveSummary({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <h2 className="text-xl sm:text-2xl font-bold text-white">
           Pyth Reserve Summary
@@ -49,32 +49,31 @@ export function ReserveSummary({
         <div className="flex items-center gap-2">
           <Badge
             variant="outline"
-            className="text-gray-400 border-gray-600 text-xs"
+            className="rounded-xl border-white/8 bg-[#2f2942] px-3 py-1 text-xs text-[#b8b0d0]"
           >
             OP-PIP-87
           </Badge>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-        {/* Total Reserve Value */}
-        <Card className="bg-[#2a2f3e] border-gray-700 hover:border-purple-400 hover:shadow-lg hover:shadow-purple-500/30 transition-all duration-300 group">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 sm:gap-5">
+        <Card className="rounded-[28px] border-white/10 bg-[linear-gradient(148deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.02)_100%)] py-0 shadow-[0_20px_55px_rgba(8,5,18,0.2)]">
           <CardContent className="p-4 sm:p-6">
             <div className="flex items-center gap-3 sm:gap-4">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-500/20 rounded-lg flex items-center justify-center group-hover:bg-purple-500/30 transition-colors">
-                <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-purple-400 group-hover:text-purple-300 transition-colors" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#2a2238] ring-1 ring-white/8 sm:h-12 sm:w-12">
+                <TrendingUp className="h-5 w-5 text-[#c4a6ff] sm:h-6 sm:w-6" />
               </div>
               <div>
-                <p className="text-gray-400 text-xs sm:text-sm group-hover:text-gray-300 transition-colors">
+                <p className="text-xs text-[#a8a1bf] sm:text-sm">
                   Total Reserve Value
                 </p>
-                <p className="text-2xl sm:text-3xl font-bold text-white group-hover:text-purple-100 transition-colors">
+                <p className="text-2xl font-bold text-white sm:text-3xl">
                   {formatCurrency(
                     reserveSummary.totalReserveValue + dcaVaultUsdc
                   )}
                 </p>
                 {dcaVaultUsdc > 0 && (
-                  <p className="text-gray-500 text-xs mt-1">
+                  <p className="mt-1 text-xs text-[#8f88a9]">
                     includes DCA vault
                   </p>
                 )}
@@ -83,11 +82,10 @@ export function ReserveSummary({
           </CardContent>
         </Card>
 
-        {/* Total PYTH Held */}
-        <Card className="bg-[#2a2f3e] border-gray-700 hover:border-blue-400 hover:shadow-lg hover:shadow-blue-500/30 transition-all duration-300 group">
+        <Card className="rounded-[28px] border-white/10 bg-[linear-gradient(148deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.02)_100%)] py-0 shadow-[0_20px_55px_rgba(8,5,18,0.2)]">
           <CardContent className="p-4 sm:p-6">
             <div className="flex items-center gap-3 sm:gap-4">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-500/20 rounded-lg flex items-center justify-center group-hover:bg-blue-500/30 transition-colors">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#2a2238] ring-1 ring-white/8 sm:h-12 sm:w-12">
                 <Image
                   src="/pyth.svg"
                   alt="PYTH"
@@ -97,10 +95,10 @@ export function ReserveSummary({
                 />
               </div>
               <div>
-                <p className="text-gray-400 text-xs sm:text-sm group-hover:text-gray-300 transition-colors">
+                <p className="text-xs text-[#a8a1bf] sm:text-sm">
                   Total PYTH Held
                 </p>
-                <p className="text-2xl sm:text-3xl font-bold text-white group-hover:text-blue-100 transition-colors">
+                <p className="text-2xl font-bold text-white sm:text-3xl">
                   {formatTokenAmount(reserveSummary.totalPythHeld)} PYTH
                 </p>
               </div>
