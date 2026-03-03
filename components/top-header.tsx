@@ -47,10 +47,13 @@ export function TopHeader({
           )}
         </Button>
 
-        <div className="min-w-0">
+        <div className="flex min-w-0 items-center gap-2">
           <p className="truncate text-lg font-semibold text-white sm:text-xl">
             {pageTitle}
           </p>
+          <span className="hidden rounded-xl border border-white/8 bg-[#2f2942] px-2.5 py-1 text-[11px] font-semibold tracking-[0.12em] text-[#b8b0d0] sm:inline-flex">
+            0.3.0
+          </span>
         </div>
       </div>
 

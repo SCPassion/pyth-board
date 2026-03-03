@@ -151,11 +151,57 @@ export default function ReservePage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-[400px] items-center justify-center">
-        <div className="rounded-[28px] border border-white/10 bg-[#39324a] px-8 py-10 text-center shadow-[0_20px_55px_rgba(8,5,18,0.2)]">
-          <Loader2 className="mx-auto h-8 w-8 animate-spin text-[#c4a6ff]" />
-          <p className="mt-4 text-sm text-[#b4aec8]">Loading reserve data...</p>
+      <div className="space-y-5 w-full min-w-0 overflow-x-hidden px-1 sm:px-2 lg:px-3">
+        <section className="relative overflow-hidden rounded-[30px] border border-white/10 bg-[linear-gradient(135deg,rgba(47,34,82,0.96)_0%,rgba(93,47,141,0.88)_54%,rgba(181,88,152,0.72)_100%)] px-6 py-7 shadow-[0_28px_70px_rgba(9,5,20,0.28)] sm:px-8">
+          <div className="pointer-events-none absolute -right-8 top-2 h-36 w-36 rounded-full bg-white/10 blur-3xl" />
+          <div className="pointer-events-none absolute bottom-[-28px] left-[38%] h-24 w-24 rounded-full bg-cyan-300/15 blur-2xl" />
+          <div className="relative flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between min-w-0">
+            <div className="space-y-3">
+              <div className="h-8 w-64 animate-pulse rounded-2xl bg-white/18" />
+              <div className="h-4 w-[32rem] max-w-full animate-pulse rounded-xl bg-white/12" />
+              <div className="h-4 w-[26rem] max-w-full animate-pulse rounded-xl bg-white/12" />
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="h-7 w-24 animate-pulse rounded-xl bg-white/14" />
+              <div className="flex h-10 items-center rounded-2xl bg-[#23144d] px-4 text-white/80">
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Loading
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div className="flex items-center justify-center gap-2 rounded-[24px] border border-white/8 bg-[#312940] p-2">
+          <div className="h-10 w-24 animate-pulse rounded-2xl bg-white/10" />
+          <div className="h-10 w-40 animate-pulse rounded-2xl bg-white/10" />
         </div>
+
+        <section className="grid gap-5 lg:grid-cols-2">
+          {[1, 2].map((index) => (
+            <div
+              key={index}
+              className="rounded-[28px] border border-white/10 bg-[linear-gradient(148deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.02)_100%)] p-5 shadow-[0_20px_50px_rgba(9,5,20,0.18)] sm:p-6"
+            >
+              <div className="space-y-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 animate-pulse rounded-2xl bg-white/10" />
+                    <div className="space-y-2">
+                      <div className="h-6 w-44 animate-pulse rounded-2xl bg-white/12" />
+                      <div className="h-4 w-32 animate-pulse rounded-xl bg-white/10" />
+                    </div>
+                  </div>
+                  <div className="h-5 w-5 animate-pulse rounded bg-white/10" />
+                </div>
+                <div className="h-28 animate-pulse rounded-[22px] bg-[#312940]" />
+                <div className="space-y-3">
+                  <div className="h-4 w-28 animate-pulse rounded-xl bg-white/10" />
+                  <div className="h-16 animate-pulse rounded-[20px] bg-[#312940]" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </section>
       </div>
     );
   }
