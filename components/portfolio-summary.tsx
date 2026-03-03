@@ -26,9 +26,6 @@ export function PortfolioSummary({
       <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <h2 className="text-xl font-bold text-white sm:text-2xl">{children}</h2>
-          <p className="mt-1 text-sm text-[#a8a1bf]">
-            The same portfolio metrics, restyled into a tighter dashboard shell.
-          </p>
         </div>
         <div className="flex items-center gap-2">
           <Badge

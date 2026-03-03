@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, Menu, X } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { WalletDropdown } from "@/components/wallet-dropdown";
 import { PriceTicker } from "@/components/price-ticker";
 
@@ -16,6 +17,18 @@ export function TopHeader({
   onMobileMenuToggle,
 }: TopHeaderProps) {
   const [showWalletDropdown, setShowWalletDropdown] = useState(false);
+  const pathname = usePathname();
+
+  const pageTitle =
+    pathname === "/"
+      ? "Dashboard"
+      : pathname.startsWith("/wallets")
+        ? "Wallets"
+        : pathname.startsWith("/pythenians")
+          ? "Pythenians"
+          : pathname.startsWith("/reserve")
+            ? "Reserve"
+            : "Pyth Dashboard";
 
   return (
     <header className="flex h-20 items-center justify-between gap-3 border-b border-white/6 bg-[#241b35] px-3 sm:px-6">
@@ -33,14 +46,9 @@ export function TopHeader({
           )}
         </Button>
 
-        <div className="hidden h-10 w-10 items-center justify-center rounded-full bg-[#2f2942] text-white md:flex">
-          <div className="h-2.5 w-2.5 rounded-full border border-white/40" />
-        </div>
-
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-white">Home</p>
-          <p className="hidden text-xs text-[#9f97bb] sm:block">
-            Portfolio activity and network overview
+          <p className="truncate text-lg font-semibold text-white sm:text-xl">
+            {pageTitle}
           </p>
         </div>
       </div>
