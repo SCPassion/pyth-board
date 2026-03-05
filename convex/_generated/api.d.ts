@@ -9,6 +9,7 @@
  */
 
 import type * as crons from "../crons.js";
+import type * as pythBuybackSnapshots from "../pythBuybackSnapshots.js";
 import type * as reserveSnapshots from "../reserveSnapshots.js";
 
 import type {
@@ -19,6 +20,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   crons: typeof crons;
+  pythBuybackSnapshots: typeof pythBuybackSnapshots;
   reserveSnapshots: typeof reserveSnapshots;
 }>;
 
