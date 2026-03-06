@@ -41,7 +41,7 @@ export function Sidebar({
       {/* Mobile overlay */}
       {isMobileMenuOpen && (
         <div
-          className="md:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
+          className="md:hidden fixed inset-0 bg-black/65 backdrop-blur-[2px] z-40"
           onClick={onMobileMenuToggle}
         />
       )}
@@ -52,7 +52,7 @@ export function Sidebar({
           "fixed md:relative inset-y-0 left-0 z-50 flex w-56 flex-col border-r border-white/8 bg-[#241b35] transition-transform duration-300",
           isMobileMenuOpen
             ? "translate-x-0"
-            : "-translate-x-full md:translate-x-0"
+            : "-translate-x-full md:translate-x-0",
         )}
       >
         <div className="flex h-full flex-col px-3 py-6 md:px-4">
@@ -81,7 +81,7 @@ export function Sidebar({
                     "group flex h-[52px] w-full items-center justify-start gap-3 rounded-2xl px-4 text-sm font-medium text-[#978fb1] transition-colors",
                     active
                       ? "bg-[#3a2d48] text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]"
-                      : "hover:bg-white/5 hover:text-white"
+                      : "hover:bg-white/5 hover:text-white",
                   )}
                   title={item.label}
                 >
@@ -95,7 +95,9 @@ export function Sidebar({
           <div className="mt-auto w-full space-y-4 md:space-y-3">
             <button
               className="flex w-full items-center justify-between rounded-2xl bg-[#342645] px-4 py-3 text-left text-white ring-1 ring-white/8 transition-colors hover:bg-[#3a2b4d]"
-              onClick={() => window.open("https://staking.pyth.network/", "_blank")}
+              onClick={() =>
+                window.open("https://staking.pyth.network/", "_blank")
+              }
               type="button"
               title="Start Staking"
             >
@@ -107,7 +109,10 @@ export function Sidebar({
               <button
                 className="flex h-10 w-10 items-center justify-center rounded-full text-[#978fb1] transition-colors hover:bg-white/5 hover:text-white"
                 onClick={() =>
-                  window.open("https://github.com/SCPassion/pyth-board", "_blank")
+                  window.open(
+                    "https://github.com/SCPassion/pyth-board",
+                    "_blank",
+                  )
                 }
                 type="button"
                 title="GitHub"
@@ -117,7 +122,9 @@ export function Sidebar({
               </button>
               <button
                 className="flex h-10 w-10 items-center justify-center rounded-full text-[#978fb1] transition-colors hover:bg-white/5 hover:text-white"
-                onClick={() => window.open("https://x.com/KaiCryptohk", "_blank")}
+                onClick={() =>
+                  window.open("https://x.com/KaiCryptohk", "_blank")
+                }
                 type="button"
                 title="Twitter"
               >
