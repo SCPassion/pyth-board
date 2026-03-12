@@ -23,5 +23,9 @@ export default defineSchema({
     latestProcessedSignature: v.optional(v.string()),
     totalUsdcSpent: v.number(),
     totalPythBought: v.number(),
+    totalUsdcSpentDirect: v.optional(v.number()),
+    totalPythBoughtDirect: v.optional(v.number()),
+    totalUsdcSpentDca: v.optional(v.number()),
+    totalPythBoughtDca: v.optional(v.number()),
   }).index("by_key", ["key"]),
 });

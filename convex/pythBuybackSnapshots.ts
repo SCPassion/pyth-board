@@ -12,6 +12,8 @@ const PYTHIAN_COUNCIL_OPS_MULTISIG_ADDRESS =
 const USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 const PYTH_MINT = "HZ1JovNiVvGrGNiiYvEozEVgZ58xaU3RKwX8eACQBCt3";
 const BUYBACK_STATE_KEY = "council_ops_usdc_pyth";
+const JUPITER_RECURRING_API =
+  "https://lite-api.jup.ag/recurring/v1/getRecurringOrders";
 
 const RPC_ENDPOINTS = [
   "https://solana-mainnet.g.alchemy.com/v2/VAWGO1qOMcxkm0B9H0xUPzpNMzBnIvo8",
@@ -27,6 +29,19 @@ const CONNECTION_CONFIG = {
   httpHeaders: {
     "User-Agent": "PythBoard/1.0",
   },
+};
+
+type JupiterRecurringOrder = {
+  orderKey: string;
+  inputMint: string;
+  outputMint: string;
+  inUsed: number;
+  outReceived: number;
+};
+
+type JupiterRecurringResponse = {
+  time?: JupiterRecurringOrder[];
+  hasMoreData?: boolean;
 };
 
 function computeWeightedAverage(totalUsdcSpent: number, totalPythBought: number) {
@@ -175,12 +190,95 @@ async function fetchLatestSignature(
   return page[0]?.signature;
 }
 
+async function fetchJupiterRecurringOrders(
+  orderStatus: "active" | "history"
+): Promise<JupiterRecurringOrder[]> {
+  const orders: JupiterRecurringOrder[] = [];
+  let page = 1;
+
+  while (true) {
+    const url = new URL(JUPITER_RECURRING_API);
+    url.searchParams.set("user", PYTHIAN_COUNCIL_OPS_MULTISIG_ADDRESS);
+    url.searchParams.set("recurringType", "time");
+    url.searchParams.set("includeFailedTx", "false");
+    url.searchParams.set("orderStatus", orderStatus);
+    url.searchParams.set("page", String(page));
+
+    const response = await fetch(url.toString(), {
+      headers: {
+        "User-Agent": "PythBoard/1.0",
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        `Jupiter recurring API failed (${orderStatus} page ${page}): ${response.status} ${response.statusText}`
+      );
+    }
+
+    const data = (await response.json()) as JupiterRecurringResponse;
+    const timeOrders = data.time ?? [];
+    orders.push(...timeOrders);
+
+    if (!data.hasMoreData || timeOrders.length === 0) {
+      break;
+    }
+
+    page += 1;
+  }
+
+  return orders;
+}
+
+async function fetchDcaBuybackTotals(): Promise<{
+  totalUsdcSpentDca: number;
+  totalPythBoughtDca: number;
+}> {
+  const [activeOrders, historyOrders] = await Promise.all([
+    fetchJupiterRecurringOrders("active"),
+    fetchJupiterRecurringOrders("history"),
+  ]);
+
+  const orderTotals = new Map<
+    string,
+    { totalUsdcSpentDca: number; totalPythBoughtDca: number }
+  >();
+
+  for (const order of [...activeOrders, ...historyOrders]) {
+    if (order.inputMint !== USDC_MINT || order.outputMint !== PYTH_MINT) {
+      continue;
+    }
+
+    orderTotals.set(order.orderKey, {
+      totalUsdcSpentDca: Math.max(0, order.inUsed ?? 0),
+      totalPythBoughtDca: Math.max(0, order.outReceived ?? 0),
+    });
+  }
+
+  let totalUsdcSpentDca = 0;
+  let totalPythBoughtDca = 0;
+
+  for (const totals of orderTotals.values()) {
+    totalUsdcSpentDca += totals.totalUsdcSpentDca;
+    totalPythBoughtDca += totals.totalPythBoughtDca;
+  }
+
+  return {
+    totalUsdcSpentDca,
+    totalPythBoughtDca,
+  };
+}
+
 export const upsertBuybackState = internalMutation({
   args: {
     key: v.string(),
     latestProcessedSignature: v.optional(v.string()),
     totalUsdcSpent: v.number(),
     totalPythBought: v.number(),
+    totalUsdcSpentDirect: v.optional(v.number()),
+    totalPythBoughtDirect: v.optional(v.number()),
+    totalUsdcSpentDca: v.optional(v.number()),
+    totalPythBoughtDca: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db
@@ -193,6 +291,10 @@ export const upsertBuybackState = internalMutation({
         latestProcessedSignature: args.latestProcessedSignature,
         totalUsdcSpent: args.totalUsdcSpent,
         totalPythBought: args.totalPythBought,
+        totalUsdcSpentDirect: args.totalUsdcSpentDirect,
+        totalPythBoughtDirect: args.totalPythBoughtDirect,
+        totalUsdcSpentDca: args.totalUsdcSpentDca,
+        totalPythBoughtDca: args.totalPythBoughtDca,
       });
       return existing._id;
     }
@@ -251,8 +353,21 @@ export const runPythBuybackSnapshotJob = internalAction({
         // historical backfill scans on first run.
         if (!state?.latestProcessedSignature) {
           const latestSignature = await fetchLatestSignature(connection, owner);
-          const totalUsdcSpent = state?.totalUsdcSpent ?? 0;
-          const totalPythBought = state?.totalPythBought ?? 0;
+          let totalUsdcSpentDca = state?.totalUsdcSpentDca ?? 0;
+          let totalPythBoughtDca = state?.totalPythBoughtDca ?? 0;
+
+          try {
+            const dcaTotals = await fetchDcaBuybackTotals();
+            totalUsdcSpentDca = dcaTotals.totalUsdcSpentDca;
+            totalPythBoughtDca = dcaTotals.totalPythBoughtDca;
+          } catch (error) {
+            console.warn("Failed to initialize DCA buyback totals:", error);
+          }
+
+          const totalUsdcSpentDirect = state?.totalUsdcSpentDirect ?? 0;
+          const totalPythBoughtDirect = state?.totalPythBoughtDirect ?? 0;
+          const totalUsdcSpent = totalUsdcSpentDirect + totalUsdcSpentDca;
+          const totalPythBought = totalPythBoughtDirect + totalPythBoughtDca;
           const avgBuyPriceUsd = computeWeightedAverage(
             totalUsdcSpent,
             totalPythBought
@@ -268,6 +383,10 @@ export const runPythBuybackSnapshotJob = internalAction({
               latestProcessedSignature: latestSignature,
               totalUsdcSpent,
               totalPythBought,
+              totalUsdcSpentDirect,
+              totalPythBoughtDirect,
+              totalUsdcSpentDca,
+              totalPythBoughtDca,
             }
           );
 
@@ -321,10 +440,24 @@ export const runPythBuybackSnapshotJob = internalAction({
           }
         }
 
-        const totalUsdcSpent =
-          (state?.totalUsdcSpent ?? 0) + Math.max(0, deltaUsdcSpent);
-        const totalPythBought =
-          (state?.totalPythBought ?? 0) + Math.max(0, deltaPythBought);
+        const totalUsdcSpentDirect =
+          (state?.totalUsdcSpentDirect ?? 0) + Math.max(0, deltaUsdcSpent);
+        const totalPythBoughtDirect =
+          (state?.totalPythBoughtDirect ?? 0) + Math.max(0, deltaPythBought);
+
+        let totalUsdcSpentDca = state?.totalUsdcSpentDca ?? 0;
+        let totalPythBoughtDca = state?.totalPythBoughtDca ?? 0;
+
+        try {
+          const dcaTotals = await fetchDcaBuybackTotals();
+          totalUsdcSpentDca = dcaTotals.totalUsdcSpentDca;
+          totalPythBoughtDca = dcaTotals.totalPythBoughtDca;
+        } catch (error) {
+          console.warn("Failed to refresh DCA buyback totals:", error);
+        }
+
+        const totalUsdcSpent = totalUsdcSpentDirect + totalUsdcSpentDca;
+        const totalPythBought = totalPythBoughtDirect + totalPythBoughtDca;
         const avgBuyPriceUsd = computeWeightedAverage(
           totalUsdcSpent,
           totalPythBought
@@ -345,6 +478,10 @@ export const runPythBuybackSnapshotJob = internalAction({
             latestProcessedSignature,
             totalUsdcSpent,
             totalPythBought,
+            totalUsdcSpentDirect,
+            totalPythBoughtDirect,
+            totalUsdcSpentDca,
+            totalPythBoughtDca,
           }
         );
 
