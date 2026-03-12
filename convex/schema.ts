@@ -27,5 +27,8 @@ export default defineSchema({
     totalPythBoughtDirect: v.optional(v.number()),
     totalUsdcSpentDca: v.optional(v.number()),
     totalPythBoughtDca: v.optional(v.number()),
+    baselineUsdcSpent: v.optional(v.number()),
+    baselinePythBought: v.optional(v.number()),
+    baselineStartedMs: v.optional(v.number()),
   }).index("by_key", ["key"]),
 });
