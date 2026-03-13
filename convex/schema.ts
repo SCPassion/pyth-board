@@ -9,4 +9,26 @@ export default defineSchema({
   })
     .index("by_minuteBucketMs", ["minuteBucketMs"])
     .index("by_timestampMs", ["timestampMs"]),
+  pythBuybackSnapshots: defineTable({
+    timestampMs: v.number(),
+    minuteBucketMs: v.number(),
+    totalUsdcSpent: v.number(),
+    totalPythBought: v.number(),
+    avgBuyPriceUsd: v.number(),
+  })
+    .index("by_minuteBucketMs", ["minuteBucketMs"])
+    .index("by_timestampMs", ["timestampMs"]),
+  pythBuybackState: defineTable({
+    key: v.string(),
+    latestProcessedSignature: v.optional(v.string()),
+    totalUsdcSpent: v.number(),
+    totalPythBought: v.number(),
+    totalUsdcSpentDirect: v.optional(v.number()),
+    totalPythBoughtDirect: v.optional(v.number()),
+    totalUsdcSpentDca: v.optional(v.number()),
+    totalPythBoughtDca: v.optional(v.number()),
+    baselineUsdcSpent: v.optional(v.number()),
+    baselinePythBought: v.optional(v.number()),
+    baselineStartedMs: v.optional(v.number()),
+  }).index("by_key", ["key"]),
 });

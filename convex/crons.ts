@@ -10,4 +10,11 @@ crons.interval(
   {}
 );
 
+crons.interval(
+  "fetch pyth buyback metrics hourly",
+  { hours: 1 },
+  internal.pythBuybackSnapshots.runPythBuybackSnapshotJob,
+  {}
+);
+
 export default crons;

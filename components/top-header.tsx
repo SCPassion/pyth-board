@@ -52,7 +52,7 @@ export function TopHeader({
             {pageTitle}
           </p>
           <span className="hidden rounded-xl border border-white/8 bg-[#2f2942] px-2.5 py-1 text-[11px] font-semibold tracking-[0.12em] text-[#b8b0d0] sm:inline-flex">
-            0.3.0
+            0.3.1
           </span>
         </div>
       </div>

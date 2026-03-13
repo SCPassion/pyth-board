@@ -2,7 +2,7 @@
 
 Pyth Board is a Next.js dashboard for tracking Pyth staking positions and monitoring the Pyth Strategic Reserve.
 
-Current stage: **v0.1.8 (beta)**.
+Current stage: **v0.3.1 (beta)**.
 
 ## What is live right now
 
@@ -15,6 +15,10 @@ Current stage: **v0.1.8 (beta)**.
   - DAO Treasury + Pythian Council Ops balances
   - USD valuation for tracked assets
   - Recent swaps into PYTH (paginated)
+  - Buyback metrics for Council Ops USDC -> PYTH execution:
+    - Total USDC spent
+    - Total PYTH bought
+    - Weighted average buy price over time (hourly snapshots)
 - Mobile-responsive layout with persistent sidebar/top header
 - Local wallet persistence (`localStorage`)
 - Installable PWA prompt + web manifest support
@@ -67,6 +71,8 @@ npm run rebuild      # npm rebuild
 
 - Wallet staking data is fetched via server actions using Pyth staking SDK + Solana RPC.
 - Reserve balances are fetched from Solana RPC for tracked reserve addresses.
+- Reserve buyback metrics are tracked in Convex via an hourly snapshot job that
+  incrementally processes new Council Ops swaps.
 - Token prices are fetched from Pyth Hermes; ticker 24h change uses CoinGecko.
 - Wallets are stored locally in browser `localStorage`.
 

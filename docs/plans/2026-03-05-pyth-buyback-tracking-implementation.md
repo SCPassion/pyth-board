@@ -1,0 +1,485 @@
+# PYTH Buyback Tracking Implementation Plan
+
+> **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
+
+**Goal:** Add durable hourly tracking of Council Ops `USDC -> PYTH` buybacks and display cumulative spend, cumulative PYTH bought, and weighted average buy price on the reserve page.
+
+**Architecture:** Use Convex as the source of truth for buyback snapshots. An hourly Convex internal action incrementally scans new Council Ops signatures, filters qualifying `USDC -> PYTH` swaps, updates cumulative totals idempotently, and persists a snapshot row. The reserve UI reads the latest buyback metrics and trend series from a dedicated Convex query.
+
+**Tech Stack:** Next.js App Router, TypeScript, Convex, Solana Web3.js, Recharts, Vitest.
+
+**Relevant skills:** @convex @nextjs-app-router-patterns @vercel-react-best-practices
+
+---
+
+### Task 1: Add test harness for buyback logic
+
+**Files:**
+- Modify: `package.json`
+- Create: `vitest.config.ts`
+- Create: `tests/smoke.test.ts`
+
+**Step 1: Write the failing test**
+
+```ts
+// tests/smoke.test.ts
+import { describe, expect, it } from "vitest";
+
+describe("test harness", () => {
+  it("runs vitest", () => {
+    expect(1 + 1).toBe(2);
+  });
+});
+```
+
+**Step 2: Run test to verify it fails**
+
+Run: `npx vitest run tests/smoke.test.ts`
+Expected: FAIL because `vitest` is not installed/configured.
+
+**Step 3: Write minimal implementation**
+
+```json
+// package.json (scripts/devDependencies excerpt)
+{
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "vitest": "^2.1.8"
+  }
+}
+```
+
+```ts
+// vitest.config.ts
+import { defineConfig } from "vitest/config";
+
+export default defineConfig({
+  test: {
+    environment: "node",
+    include: ["tests/**/*.test.ts"],
+  },
+});
+```
+
+**Step 4: Run test to verify it passes**
+
+Run: `npm run test -- tests/smoke.test.ts`
+Expected: PASS.
+
+**Step 5: Commit**
+
+```bash
+git add package.json vitest.config.ts tests/smoke.test.ts
+git commit -m "test: add vitest harness for buyback tracking"
+```
+
+### Task 2: Add pure buyback math/filter utilities with TDD
+
+**Files:**
+- Create: `lib/buyback/metrics.ts`
+- Test: `tests/lib/buyback/metrics.test.ts`
+
+**Step 1: Write the failing test**
+
+```ts
+// tests/lib/buyback/metrics.test.ts
+import { describe, expect, it } from "vitest";
+import {
+  computeWeightedAverage,
+  isUsdcToPythBuy,
+  accumulateBuyback,
+} from "@/lib/buyback/metrics";
+
+describe("buyback metrics", () => {
+  it("computes weighted average safely", () => {
+    expect(computeWeightedAverage(1000, 250)).toBe(4);
+    expect(computeWeightedAverage(1000, 0)).toBe(0);
+  });
+
+  it("filters only USDC->PYTH positive buys", () => {
+    expect(
+      isUsdcToPythBuy({ inputMint: "USDC", pythReceived: 1.2, usdcSpent: 4.5 })
+    ).toBe(true);
+    expect(
+      isUsdcToPythBuy({ inputMint: "SOL", pythReceived: 1.2, usdcSpent: 4.5 })
+    ).toBe(false);
+  });
+
+  it("accumulates cumulative totals", () => {
+    const next = accumulateBuyback(
+      { totalUsdcSpent: 10, totalPythBought: 5 },
+      { deltaUsdcSpent: 6, deltaPythBought: 2 }
+    );
+
+    expect(next.totalUsdcSpent).toBe(16);
+    expect(next.totalPythBought).toBe(7);
+    expect(next.avgBuyPriceUsd).toBeCloseTo(16 / 7, 8);
+  });
+});
+```
+
+**Step 2: Run test to verify it fails**
+
+Run: `npm run test -- tests/lib/buyback/metrics.test.ts`
+Expected: FAIL with module not found for `@/lib/buyback/metrics`.
+
+**Step 3: Write minimal implementation**
+
+```ts
+// lib/buyback/metrics.ts
+export type BuybackBase = {
+  totalUsdcSpent: number;
+  totalPythBought: number;
+};
+
+export function computeWeightedAverage(usdcSpent: number, pythBought: number) {
+  if (pythBought <= 0) return 0;
+  return usdcSpent / pythBought;
+}
+
+export function isUsdcToPythBuy(input: {
+  inputMint: string;
+  pythReceived: number;
+  usdcSpent: number;
+}) {
+  return (
+    input.inputMint === "USDC" &&
+    input.pythReceived > 0 &&
+    input.usdcSpent > 0
+  );
+}
+
+export function accumulateBuyback(
+  base: BuybackBase,
+  delta: { deltaUsdcSpent: number; deltaPythBought: number }
+) {
+  const totalUsdcSpent = base.totalUsdcSpent + Math.max(0, delta.deltaUsdcSpent);
+  const totalPythBought =
+    base.totalPythBought + Math.max(0, delta.deltaPythBought);
+
+  return {
+    totalUsdcSpent,
+    totalPythBought,
+    avgBuyPriceUsd: computeWeightedAverage(totalUsdcSpent, totalPythBought),
+  };
+}
+```
+
+**Step 4: Run test to verify it passes**
+
+Run: `npm run test -- tests/lib/buyback/metrics.test.ts`
+Expected: PASS.
+
+**Step 5: Commit**
+
+```bash
+git add lib/buyback/metrics.ts tests/lib/buyback/metrics.test.ts
+git commit -m "feat: add buyback metric utilities with tests"
+```
+
+### Task 3: Add Convex schema for buyback snapshots and state
+
+**Files:**
+- Modify: `convex/schema.ts`
+- Create: `convex/pythBuybackSnapshots.ts`
+- Modify: `convex/_generated/*` (generated by codegen)
+
+**Step 1: Write the failing test**
+
+```ts
+// tests/lib/buyback/schema-contract.test.ts
+import { describe, expect, it } from "vitest";
+import schema from "../../convex/schema";
+
+describe("buyback schema contract", () => {
+  it("defines pythBuybackSnapshots table", () => {
+    expect(schema).toBeTruthy();
+  });
+});
+```
+
+**Step 2: Run test to verify it fails**
+
+Run: `npm run test -- tests/lib/buyback/schema-contract.test.ts`
+Expected: FAIL initially due missing import path or table contract mismatch.
+
+**Step 3: Write minimal implementation**
+
+```ts
+// convex/schema.ts (additions)
+pythBuybackSnapshots: defineTable({
+  timestampMs: v.number(),
+  minuteBucketMs: v.number(),
+  totalUsdcSpent: v.number(),
+  totalPythBought: v.number(),
+  avgBuyPriceUsd: v.number(),
+}).index("by_timestampMs", ["timestampMs"])
+  .index("by_minuteBucketMs", ["minuteBucketMs"]),
+
+pythBuybackState: defineTable({
+  key: v.string(),
+  latestProcessedSignature: v.optional(v.string()),
+  totalUsdcSpent: v.number(),
+  totalPythBought: v.number(),
+}).index("by_key", ["key"]),
+```
+
+```ts
+// convex/pythBuybackSnapshots.ts (initial exports)
+export const getLatestBuybackSummary = query({ ... });
+export const getBuybackHistory = query({ ... });
+export const upsertBuybackState = internalMutation({ ... });
+export const insertBuybackSnapshot = internalMutation({ ... });
+```
+
+Run codegen:
+```bash
+npx convex codegen
+```
+
+**Step 4: Run test to verify it passes**
+
+Run:
+- `npm run test -- tests/lib/buyback/schema-contract.test.ts`
+- `npm run lint`
+Expected: PASS.
+
+**Step 5: Commit**
+
+```bash
+git add convex/schema.ts convex/pythBuybackSnapshots.ts convex/_generated tests/lib/buyback/schema-contract.test.ts
+git commit -m "feat: add convex buyback snapshot schema and queries"
+```
+
+### Task 4: Implement hourly incremental buyback snapshot job
+
+**Files:**
+- Modify: `convex/pythBuybackSnapshots.ts`
+- Modify: `convex/crons.ts`
+- Create: `tests/lib/buyback/incremental-job.test.ts`
+
+**Step 1: Write the failing test**
+
+```ts
+// tests/lib/buyback/incremental-job.test.ts
+import { describe, expect, it } from "vitest";
+import { accumulateBuyback } from "@/lib/buyback/metrics";
+
+describe("incremental buyback accumulation", () => {
+  it("is idempotent for duplicate signature batch", () => {
+    const base = { totalUsdcSpent: 100, totalPythBought: 20 };
+    const once = accumulateBuyback(base, { deltaUsdcSpent: 10, deltaPythBought: 2 });
+    const twice = accumulateBuyback(once, { deltaUsdcSpent: 0, deltaPythBought: 0 });
+    expect(twice.totalUsdcSpent).toBe(110);
+    expect(twice.totalPythBought).toBe(22);
+  });
+});
+```
+
+**Step 2: Run test to verify it fails**
+
+Run: `npm run test -- tests/lib/buyback/incremental-job.test.ts`
+Expected: FAIL until incremental job/state logic is wired and exported helpers compile.
+
+**Step 3: Write minimal implementation**
+
+Implement in `convex/pythBuybackSnapshots.ts`:
+- `runPythBuybackSnapshotJob` internal action
+- signature cursor logic using `pythBuybackState`
+- parser filtering for Council Ops `USDC -> PYTH`
+- cumulative update + snapshot insert
+
+Add cron:
+
+```ts
+// convex/crons.ts
+crons.interval(
+  "fetch pyth buyback metrics hourly",
+  { hours: 1 },
+  internal.pythBuybackSnapshots.runPythBuybackSnapshotJob,
+  {}
+);
+```
+
+**Step 4: Run test to verify it passes**
+
+Run:
+- `npm run test -- tests/lib/buyback/incremental-job.test.ts`
+- `npx convex codegen`
+- `npm run lint`
+Expected: PASS.
+
+**Step 5: Commit**
+
+```bash
+git add convex/pythBuybackSnapshots.ts convex/crons.ts convex/_generated tests/lib/buyback/incremental-job.test.ts
+git commit -m "feat: add hourly convex buyback snapshot job"
+```
+
+### Task 5: Add shared frontend types and formatting helpers
+
+**Files:**
+- Modify: `types/pythTypes.ts`
+- Create: `lib/buyback/format.ts`
+- Create: `tests/lib/buyback/format.test.ts`
+
+**Step 1: Write the failing test**
+
+```ts
+// tests/lib/buyback/format.test.ts
+import { describe, expect, it } from "vitest";
+import { formatUsd, formatPythAmount, formatUsdPerPyth } from "@/lib/buyback/format";
+
+describe("buyback formatters", () => {
+  it("formats USD and USD/PYTH", () => {
+    expect(formatUsd(1200.5)).toContain("$");
+    expect(formatUsdPerPyth(0.42)).toContain("/");
+  });
+
+  it("formats token amounts", () => {
+    expect(formatPythAmount(1234.567)).toContain("1,234");
+  });
+});
+```
+
+**Step 2: Run test to verify it fails**
+
+Run: `npm run test -- tests/lib/buyback/format.test.ts`
+Expected: FAIL with module not found.
+
+**Step 3: Write minimal implementation**
+
+```ts
+// lib/buyback/format.ts
+export const formatUsd = (value: number) =>
+  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value);
+
+export const formatPythAmount = (value: number) =>
+  new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(value);
+
+export const formatUsdPerPyth = (value: number) => `${formatUsd(value)} / PYTH`;
+```
+
+Add new types in `types/pythTypes.ts`:
+- `PythBuybackSnapshot`
+- `PythBuybackSummary`
+
+**Step 4: Run test to verify it passes**
+
+Run: `npm run test -- tests/lib/buyback/format.test.ts`
+Expected: PASS.
+
+**Step 5: Commit**
+
+```bash
+git add types/pythTypes.ts lib/buyback/format.ts tests/lib/buyback/format.test.ts
+git commit -m "feat: add buyback types and formatting helpers"
+```
+
+### Task 6: Build reserve buyback UI components and wire to Convex
+
+**Files:**
+- Create: `components/reserve-buyback-summary.tsx`
+- Create: `components/reserve-buyback-chart.tsx`
+- Modify: `app/reserve/page.tsx`
+- Modify: `components/reserve-summary.tsx` (only if placement/layout needs adjustment)
+
+**Step 1: Write the failing test**
+
+```ts
+// tests/lib/buyback/presenter.test.ts
+import { describe, expect, it } from "vitest";
+
+function mapChartPoints(points: Array<{ avgBuyPriceUsd: number }>) {
+  return points.map((p) => p.avgBuyPriceUsd);
+}
+
+describe("buyback presenter", () => {
+  it("keeps price points ordered", () => {
+    expect(mapChartPoints([{ avgBuyPriceUsd: 1.2 }, { avgBuyPriceUsd: 1.4 }])).toEqual([1.2, 1.4]);
+  });
+});
+```
+
+**Step 2: Run test to verify it fails**
+
+Run: `npm run build`
+Expected: FAIL because new components/imports/props are not implemented yet.
+
+**Step 3: Write minimal implementation**
+
+- `reserve-buyback-summary.tsx`:
+  - show `Total USDC Spent`, `Total PYTH Bought`, `Avg Buy Price`, `Last Updated`
+- `reserve-buyback-chart.tsx`:
+  - `useQuery(api.pythBuybackSnapshots.getBuybackHistory, {})`
+  - Recharts line/area for `avgBuyPriceUsd` over time
+- `app/reserve/page.tsx`:
+  - render new summary/chart sections
+  - preserve existing load/error behavior; add scoped fallback for buyback section
+
+**Step 4: Run test to verify it passes**
+
+Run:
+- `npm run lint`
+- `npm run build`
+Expected: PASS.
+
+**Step 5: Commit**
+
+```bash
+git add app/reserve/page.tsx components/reserve-buyback-summary.tsx components/reserve-buyback-chart.tsx components/reserve-summary.tsx
+git commit -m "feat: show buyback KPIs and average price trend on reserve page"
+```
+
+### Task 7: Validate end-to-end flow and update docs
+
+**Files:**
+- Modify: `README.md`
+- Modify: `docs/plans/2026-03-05-pyth-buyback-tracking-design.md` (link implementation PR/commit hash in footer notes)
+
+**Step 1: Write the failing test**
+
+```md
+# README acceptance checklist (manual)
+- [ ] Reserve page displays buyback summary block
+- [ ] Reserve page displays buyback price-over-time chart
+- [ ] Hourly cron exists for buyback snapshots
+```
+
+**Step 2: Run test to verify it fails**
+
+Run:
+- `npm run lint`
+- `npm run build`
+- `npm run test`
+Expected: Fail if any unresolved wiring/type issue remains.
+
+**Step 3: Write minimal implementation**
+
+Update README with:
+- new buyback metrics description
+- data freshness note (hourly Convex snapshots)
+- scope note (Council Ops `USDC -> PYTH` only)
+
+**Step 4: Run test to verify it passes**
+
+Run:
+- `npm run lint`
+- `npm run build`
+- `npm run test`
+Expected: PASS.
+
+**Step 5: Commit**
+
+```bash
+git add README.md docs/plans/2026-03-05-pyth-buyback-tracking-design.md
+git commit -m "docs: document reserve buyback tracking behavior"
+```
+
+## Rollout Notes
+- Deploy Convex functions before frontend release to avoid empty query errors.
+- Expect first meaningful buyback chart point within one hour of deployment.
+- If no qualifying swaps occur, chart may be flat but should still update timestamp.

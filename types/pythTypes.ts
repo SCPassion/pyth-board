@@ -100,3 +100,21 @@ export type JupiterDcaCouncilOpsStatus = {
   usdcBalanceVault: number;
   orders: JupiterDcaOrder[];
 };
+
+export type PythBuybackSnapshot = {
+  id: string;
+  timestampMs: number;
+  minuteBucketMs: number;
+  totalUsdcSpent: number;
+  totalPythBought: number;
+  avgBuyPriceUsd: number;
+};
+
+export type PythBuybackSummary = {
+  totalUsdcSpent: number;
+  totalPythBought: number;
+  avgBuyPriceUsd: number;
+  latestProcessedSignature: string | null;
+  lastUpdatedMs: number | null;
+  trackingStartedMs: number | null;
+};
