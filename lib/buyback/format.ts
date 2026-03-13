@@ -27,5 +27,10 @@ export function formatPythAmount(value: number): string {
 }
 
 export function formatUsdPerPyth(value: number): string {
-  return `${formatUsd(value)} / PYTH`;
+  return `${new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 5,
+    maximumFractionDigits: 5,
+  }).format(value)} / PYTH`;
 }
