@@ -27,10 +27,6 @@ export function ReserveBuybackSummary() {
         <div className="space-y-1">
           <h2 className="text-xl sm:text-2xl font-bold text-white">Buyback Metrics</h2>
           <p className="text-xs text-[#8f88a9]">
-            {summary.trackingStartedMs
-              ? `Tracking started ${new Date(summary.trackingStartedMs).toLocaleString()}`
-              : "Tracking start pending first snapshot"}
-            {" · "}
             {summary.lastUpdatedMs
               ? `Updated ${new Date(summary.lastUpdatedMs).toLocaleString()}`
               : "Waiting for first snapshot"}
