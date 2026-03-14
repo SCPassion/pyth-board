@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { ReserveSummary } from "@/components/reserve-summary";
 import { ReserveAccountCard } from "@/components/reserve-account-card";
+import { ReserveBuybackSummary } from "@/components/reserve-buyback-summary";
 import { SwapTransactions } from "@/components/swap-transactions";
 import { ReservePythHoldingChart } from "@/components/reserve-pyth-holding-chart";
 import {
@@ -346,6 +347,8 @@ export default function ReservePage() {
               />
             </div>
           </div>
+
+          <ReserveBuybackSummary />
 
           <div className="space-y-5">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
