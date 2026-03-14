@@ -190,6 +190,18 @@ async function fetchLatestSignature(
   return page[0]?.signature;
 }
 
+async function fetchBackfillBatch(
+  connection: Connection,
+  owner: PublicKey,
+  beforeSignature?: string
+): Promise<string[]> {
+  const page = await connection.getSignaturesForAddress(owner, {
+    limit: 150,
+    before: beforeSignature,
+  });
+  return page.map((entry) => entry.signature);
+}
+
 async function fetchJupiterRecurringOrders(
   orderStatus: "active" | "history"
 ): Promise<JupiterRecurringOrder[]> {
@@ -419,6 +431,48 @@ export const runPythBuybackSnapshotJob = internalAction({
           };
         }
 
+        // Step 1: Backfill batch (runs until wallet beginning is reached)
+        let backfillDeltaUsdcSpent = 0;
+        let backfillDeltaPythBought = 0;
+        let newBackfillCursor: string | undefined = state?.backfillCursor;
+        let newBackfillComplete: boolean = state?.backfillComplete ?? false;
+
+        if (!newBackfillComplete) {
+          try {
+            // state.latestProcessedSignature is guaranteed set in this branch (init guard above)
+            const backfillStartCursor =
+              newBackfillCursor ?? state?.latestProcessedSignature;
+            const backfillSigs = await fetchBackfillBatch(
+              connection,
+              owner,
+              backfillStartCursor
+            );
+
+            if (backfillSigs.length === 0) {
+              // Reached the wallet's beginning
+              newBackfillComplete = true;
+            } else {
+              const parsedBackfillTxs = await connection.getParsedTransactions(
+                backfillSigs,
+                { maxSupportedTransactionVersion: 0 }
+              );
+              for (const tx of parsedBackfillTxs) {
+                const deltas = getSwapDeltasForCouncilOps(
+                  tx,
+                  PYTHIAN_COUNCIL_OPS_MULTISIG_ADDRESS
+                );
+                backfillDeltaUsdcSpent += deltas.usdcSpent;
+                backfillDeltaPythBought += deltas.pythReceived;
+              }
+              // Advance cursor to oldest sig in this batch
+              newBackfillCursor = backfillSigs[backfillSigs.length - 1];
+            }
+          } catch (error) {
+            // Backfill failure is non-fatal: cursor unchanged, retries next hour
+            console.warn("Backfill batch failed, will retry next run:", error);
+          }
+        }
+
         const newSignatures = await fetchNewSignaturesSinceCursor(
           connection,
           owner,
@@ -445,9 +499,13 @@ export const runPythBuybackSnapshotJob = internalAction({
         }
 
         const totalUsdcSpentDirect =
-          (state?.totalUsdcSpentDirect ?? 0) + Math.max(0, deltaUsdcSpent);
+          (state?.totalUsdcSpentDirect ?? 0) +
+          Math.max(0, deltaUsdcSpent) +
+          Math.max(0, backfillDeltaUsdcSpent);
         const totalPythBoughtDirect =
-          (state?.totalPythBoughtDirect ?? 0) + Math.max(0, deltaPythBought);
+          (state?.totalPythBoughtDirect ?? 0) +
+          Math.max(0, deltaPythBought) +
+          Math.max(0, backfillDeltaPythBought);
 
         let totalUsdcSpentDca = state?.totalUsdcSpentDca ?? 0;
         let totalPythBoughtDca = state?.totalPythBoughtDca ?? 0;
@@ -486,6 +544,8 @@ export const runPythBuybackSnapshotJob = internalAction({
             totalPythBoughtDirect,
             totalUsdcSpentDca,
             totalPythBoughtDca,
+            backfillCursor: newBackfillCursor,
+            backfillComplete: newBackfillComplete,
           }
         );
 
@@ -506,6 +566,9 @@ export const runPythBuybackSnapshotJob = internalAction({
           processedSignatures: newSignatures.length,
           deltaUsdcSpent,
           deltaPythBought,
+          backfillDeltaUsdcSpent,
+          backfillDeltaPythBought,
+          backfillComplete: newBackfillComplete,
           totalUsdcSpent,
           totalPythBought,
           avgBuyPriceUsd,
