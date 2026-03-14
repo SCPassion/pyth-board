@@ -279,6 +279,8 @@ export const upsertBuybackState = internalMutation({
     totalPythBoughtDirect: v.optional(v.number()),
     totalUsdcSpentDca: v.optional(v.number()),
     totalPythBoughtDca: v.optional(v.number()),
+    backfillCursor: v.optional(v.string()),
+    backfillComplete: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db
@@ -295,6 +297,8 @@ export const upsertBuybackState = internalMutation({
         totalPythBoughtDirect: args.totalPythBoughtDirect,
         totalUsdcSpentDca: args.totalUsdcSpentDca,
         totalPythBoughtDca: args.totalPythBoughtDca,
+        backfillCursor: args.backfillCursor,
+        backfillComplete: args.backfillComplete,
       });
       return existing._id;
     }
@@ -557,6 +561,7 @@ export const getPythBuybackSummary = query({
       latestProcessedSignature: state?.latestProcessedSignature ?? null,
       lastUpdatedMs: latestSnapshot?.timestampMs ?? null,
       trackingStartedMs: firstSnapshot?.timestampMs ?? null,
+      backfillComplete: state?.backfillComplete ?? false,
     };
   },
 });
