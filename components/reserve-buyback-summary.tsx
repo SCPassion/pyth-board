@@ -32,22 +32,12 @@ export function ReserveBuybackSummary() {
               : "Waiting for first snapshot"}
           </p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          {!summary.backfillComplete && (
-            <Badge
-              variant="outline"
-              className="rounded-xl border-yellow-500/30 bg-yellow-500/10 px-3 py-1 text-xs text-yellow-300"
-            >
-              Syncing historical data…
-            </Badge>
-          )}
-          <Badge
-            variant="outline"
-            className="rounded-xl border-white/8 bg-[#2f2942] px-3 py-1 text-xs text-[#b8b0d0]"
-          >
-            Council Ops USDC -&gt; PYTH
-          </Badge>
-        </div>
+        <Badge
+          variant="outline"
+          className="rounded-xl border-white/8 bg-[#2f2942] px-3 py-1 text-xs text-[#b8b0d0]"
+        >
+          Council Ops USDC -&gt; PYTH
+        </Badge>
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3 sm:gap-5">

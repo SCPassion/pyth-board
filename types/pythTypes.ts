@@ -117,5 +117,4 @@ export type PythBuybackSummary = {
   latestProcessedSignature: string | null;
   lastUpdatedMs: number | null;
   trackingStartedMs: number | null;
-  backfillComplete: boolean;
 };
