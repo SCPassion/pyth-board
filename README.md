@@ -89,3 +89,5 @@ npm run rebuild      # npm rebuild
 
 - This app is read-only and does not request wallet signing.
 - No private keys are stored by the app.
+
+ttß
