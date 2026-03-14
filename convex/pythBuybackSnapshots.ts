@@ -14,6 +14,8 @@ const PYTH_MINT = "HZ1JovNiVvGrGNiiYvEozEVgZ58xaU3RKwX8eACQBCt3";
 const BUYBACK_STATE_KEY = "council_ops_usdc_pyth";
 const JUPITER_RECURRING_API =
   "https://lite-api.jup.ag/recurring/v1/getRecurringOrders";
+const JUPITER_TRIGGER_API =
+  "https://lite-api.jup.ag/trigger/v1/getTriggerOrders";
 
 const RPC_ENDPOINTS = [
   "https://solana-mainnet.g.alchemy.com/v2/VAWGO1qOMcxkm0B9H0xUPzpNMzBnIvo8",
@@ -42,6 +44,20 @@ type JupiterRecurringOrder = {
 type JupiterRecurringResponse = {
   time?: JupiterRecurringOrder[];
   hasMoreData?: boolean;
+};
+
+type JupiterTriggerOrder = {
+  orderKey: string;
+  inputMint: string;
+  outputMint: string;
+  oriMakingAmount: string;
+  oriTakingAmount: string;
+};
+
+type JupiterTriggerResponse = {
+  orders?: JupiterTriggerOrder[];
+  hasMoreData?: boolean;
+  cursor?: string;
 };
 
 function computeWeightedAverage(totalUsdcSpent: number, totalPythBought: number) {
@@ -281,6 +297,60 @@ async function fetchDcaBuybackTotals(): Promise<{
   };
 }
 
+async function fetchLimitOrderTotals(): Promise<{
+  totalUsdcSpentLimitOrders: number;
+  totalPythBoughtLimitOrders: number;
+}> {
+  const orderTotals = new Map<string, { usdcSpent: number; pythBought: number }>();
+  let cursor: string | undefined;
+
+  while (true) {
+    const url = new URL(JUPITER_TRIGGER_API);
+    url.searchParams.set("wallet", PYTHIAN_COUNCIL_OPS_MULTISIG_ADDRESS);
+    url.searchParams.set("orderStatus", "completed");
+    if (cursor) {
+      url.searchParams.set("cursor", cursor);
+    }
+
+    const response = await fetch(url.toString(), {
+      headers: { "User-Agent": "PythBoard/1.0" },
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        `Jupiter trigger API failed: ${response.status} ${response.statusText}`
+      );
+    }
+
+    const data = (await response.json()) as JupiterTriggerResponse;
+    const orders = data.orders ?? [];
+
+    for (const order of orders) {
+      if (order.inputMint !== USDC_MINT || order.outputMint !== PYTH_MINT) {
+        continue;
+      }
+      // oriMakingAmount = USDC (6 decimals), oriTakingAmount = PYTH (6 decimals)
+      const usdcSpent = Math.max(0, Number(order.oriMakingAmount) / 1e6);
+      const pythBought = Math.max(0, Number(order.oriTakingAmount) / 1e6);
+      orderTotals.set(order.orderKey, { usdcSpent, pythBought });
+    }
+
+    if (!data.hasMoreData || orders.length === 0) {
+      break;
+    }
+    cursor = data.cursor;
+  }
+
+  let totalUsdcSpentLimitOrders = 0;
+  let totalPythBoughtLimitOrders = 0;
+  for (const totals of orderTotals.values()) {
+    totalUsdcSpentLimitOrders += totals.usdcSpent;
+    totalPythBoughtLimitOrders += totals.pythBought;
+  }
+
+  return { totalUsdcSpentLimitOrders, totalPythBoughtLimitOrders };
+}
+
 export const upsertBuybackState = internalMutation({
   args: {
     key: v.string(),
@@ -293,6 +363,8 @@ export const upsertBuybackState = internalMutation({
     totalPythBoughtDca: v.optional(v.number()),
     backfillCursor: v.optional(v.string()),
     backfillComplete: v.optional(v.boolean()),
+    totalUsdcSpentLimitOrders: v.optional(v.number()),
+    totalPythBoughtLimitOrders: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db
@@ -311,6 +383,8 @@ export const upsertBuybackState = internalMutation({
         totalPythBoughtDca: args.totalPythBoughtDca,
         backfillCursor: args.backfillCursor,
         backfillComplete: args.backfillComplete,
+        totalUsdcSpentLimitOrders: args.totalUsdcSpentLimitOrders,
+        totalPythBoughtLimitOrders: args.totalPythBoughtLimitOrders,
       });
       return existing._id;
     }
@@ -380,10 +454,20 @@ export const runPythBuybackSnapshotJob = internalAction({
             console.warn("Failed to initialize DCA buyback totals:", error);
           }
 
+          let totalUsdcSpentLimitOrders = state?.totalUsdcSpentLimitOrders ?? 0;
+          let totalPythBoughtLimitOrders = state?.totalPythBoughtLimitOrders ?? 0;
+          try {
+            const limitTotals = await fetchLimitOrderTotals();
+            totalUsdcSpentLimitOrders = limitTotals.totalUsdcSpentLimitOrders;
+            totalPythBoughtLimitOrders = limitTotals.totalPythBoughtLimitOrders;
+          } catch (error) {
+            console.warn("Failed to initialize limit order buyback totals:", error);
+          }
+
           const totalUsdcSpentDirect = state?.totalUsdcSpentDirect ?? 0;
           const totalPythBoughtDirect = state?.totalPythBoughtDirect ?? 0;
-          const totalUsdcSpent = totalUsdcSpentDirect + totalUsdcSpentDca;
-          const totalPythBought = totalPythBoughtDirect + totalPythBoughtDca;
+          const totalUsdcSpent = totalUsdcSpentDirect + totalUsdcSpentDca + totalUsdcSpentLimitOrders;
+          const totalPythBought = totalPythBoughtDirect + totalPythBoughtDca + totalPythBoughtLimitOrders;
           const avgBuyPriceUsd = computeWeightedAverage(
             totalUsdcSpent,
             totalPythBought
@@ -404,6 +488,8 @@ export const runPythBuybackSnapshotJob = internalAction({
               totalUsdcSpentDca,
               totalPythBoughtDca,
               backfillComplete: false,
+              totalUsdcSpentLimitOrders,
+              totalPythBoughtLimitOrders,
             }
           );
 
@@ -519,8 +605,19 @@ export const runPythBuybackSnapshotJob = internalAction({
           console.warn("Failed to refresh DCA buyback totals:", error);
         }
 
-        const totalUsdcSpent = totalUsdcSpentDirect + totalUsdcSpentDca;
-        const totalPythBought = totalPythBoughtDirect + totalPythBoughtDca;
+        let totalUsdcSpentLimitOrders = state?.totalUsdcSpentLimitOrders ?? 0;
+        let totalPythBoughtLimitOrders = state?.totalPythBoughtLimitOrders ?? 0;
+
+        try {
+          const limitTotals = await fetchLimitOrderTotals();
+          totalUsdcSpentLimitOrders = limitTotals.totalUsdcSpentLimitOrders;
+          totalPythBoughtLimitOrders = limitTotals.totalPythBoughtLimitOrders;
+        } catch (error) {
+          console.warn("Failed to refresh limit order buyback totals:", error);
+        }
+
+        const totalUsdcSpent = totalUsdcSpentDirect + totalUsdcSpentDca + totalUsdcSpentLimitOrders;
+        const totalPythBought = totalPythBoughtDirect + totalPythBoughtDca + totalPythBoughtLimitOrders;
         const avgBuyPriceUsd = computeWeightedAverage(
           totalUsdcSpent,
           totalPythBought
@@ -547,6 +644,8 @@ export const runPythBuybackSnapshotJob = internalAction({
             totalPythBoughtDca,
             backfillCursor: newBackfillCursor,
             backfillComplete: newBackfillComplete,
+            totalUsdcSpentLimitOrders,
+            totalPythBoughtLimitOrders,
           }
         );
 

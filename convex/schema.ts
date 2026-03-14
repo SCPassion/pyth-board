@@ -32,5 +32,7 @@ export default defineSchema({
     baselineStartedMs: v.optional(v.number()),
     backfillCursor: v.optional(v.string()),
     backfillComplete: v.optional(v.boolean()),
+    totalUsdcSpentLimitOrders: v.optional(v.number()),
+    totalPythBoughtLimitOrders: v.optional(v.number()),
   }).index("by_key", ["key"]),
 });
