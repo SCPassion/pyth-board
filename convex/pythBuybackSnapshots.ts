@@ -50,8 +50,9 @@ type JupiterTriggerOrder = {
   orderKey: string;
   inputMint: string;
   outputMint: string;
-  oriMakingAmount: string;
-  oriTakingAmount: string;
+  makingAmount: string;
+  takingAmount: string;
+  status?: string;
 };
 
 type JupiterTriggerResponse = {
@@ -307,7 +308,7 @@ async function fetchLimitOrderTotals(): Promise<{
   while (true) {
     const url = new URL(JUPITER_TRIGGER_API);
     url.searchParams.set("wallet", PYTHIAN_COUNCIL_OPS_MULTISIG_ADDRESS);
-    url.searchParams.set("orderStatus", "completed");
+    url.searchParams.set("orderStatus", "history");
     if (cursor) {
       url.searchParams.set("cursor", cursor);
     }
@@ -326,12 +327,17 @@ async function fetchLimitOrderTotals(): Promise<{
     const orders = data.orders ?? [];
 
     for (const order of orders) {
-      if (order.inputMint !== USDC_MINT || order.outputMint !== PYTH_MINT) {
+      if (
+        order.inputMint !== USDC_MINT ||
+        order.outputMint !== PYTH_MINT ||
+        order.status !== "Completed"
+      ) {
         continue;
       }
-      // oriMakingAmount = USDC (6 decimals), oriTakingAmount = PYTH (6 decimals)
-      const usdcSpent = Math.max(0, Number(order.oriMakingAmount) / 1e6);
-      const pythBought = Math.max(0, Number(order.oriTakingAmount) / 1e6);
+      // makingAmount = USDC actually spent (already human-readable decimal)
+      // takingAmount = PYTH actually received (already human-readable decimal)
+      const usdcSpent = Math.max(0, Number(order.makingAmount));
+      const pythBought = Math.max(0, Number(order.takingAmount));
       orderTotals.set(order.orderKey, { usdcSpent, pythBought });
     }
 
