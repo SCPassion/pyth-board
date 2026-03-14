@@ -403,6 +403,7 @@ export const runPythBuybackSnapshotJob = internalAction({
               totalPythBoughtDirect,
               totalUsdcSpentDca,
               totalPythBoughtDca,
+              backfillComplete: false,
             }
           );
 
