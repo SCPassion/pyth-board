@@ -322,6 +322,8 @@ export default function ReservePage() {
             dcaVaultUsdc={dcaStatus?.usdcBalanceVault ?? 0}
           />
 
+          <ReserveBuybackSummary />
+
           <div className="space-y-5">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <h2 className="text-xl sm:text-2xl font-bold text-white">
@@ -347,8 +349,6 @@ export default function ReservePage() {
               />
             </div>
           </div>
-
-          <ReserveBuybackSummary />
 
           <div className="space-y-5">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
