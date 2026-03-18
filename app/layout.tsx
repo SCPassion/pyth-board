@@ -4,7 +4,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { AppLayout } from "@/components/app-layout";
 import { ConvexClientProvider } from "@/components/convex-provider";
-import { PWAInstallPrompt } from "@/components/pwa-install-prompt";
+import { PwaInstallProvider } from "@/components/pwa-install-context";
 import { Analytics } from "@vercel/analytics/react";
 import { Toaster } from "react-hot-toast";
 
@@ -64,10 +64,11 @@ export default function RootLayout({
         <meta name="msapplication-tap-highlight" content="no" />
       </head>
       <body className={inter.className}>
-        <ConvexClientProvider>
-          <AppLayout>{children}</AppLayout>
-        </ConvexClientProvider>
-        <PWAInstallPrompt />
+        <PwaInstallProvider>
+          <ConvexClientProvider>
+            <AppLayout>{children}</AppLayout>
+          </ConvexClientProvider>
+        </PwaInstallProvider>
         <Toaster
           position="bottom-right"
           toastOptions={{

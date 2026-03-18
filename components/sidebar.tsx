@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  Github,
   LayoutDashboard,
   Wallet,
   Image as ImageIcon,
@@ -105,31 +104,15 @@ export function Sidebar({
               <ArrowUpRight className="h-4 w-4 shrink-0" />
             </button>
 
-            <div className="flex flex-row items-center justify-between gap-2">
+            <div className="flex flex-row items-center gap-2">
               <button
                 className="flex h-10 w-10 items-center justify-center rounded-full text-[#978fb1] transition-colors hover:bg-white/5 hover:text-white"
-                onClick={() =>
-                  window.open(
-                    "https://github.com/SCPassion/pyth-board",
-                    "_blank",
-                  )
-                }
+                onClick={() => window.open("https://x.com/scp_web3", "_blank")}
                 type="button"
-                title="GitHub"
-              >
-                <Github className="h-5 w-5" />
-                <span className="sr-only">GitHub</span>
-              </button>
-              <button
-                className="flex h-10 w-10 items-center justify-center rounded-full text-[#978fb1] transition-colors hover:bg-white/5 hover:text-white"
-                onClick={() =>
-                  window.open("https://x.com/KaiCryptohk", "_blank")
-                }
-                type="button"
-                title="Twitter"
+                title="X"
               >
                 <TwitterIcon className="h-5 w-5" />
-                <span className="sr-only">Twitter</span>
+                <span className="sr-only">X</span>
               </button>
             </div>
           </div>
