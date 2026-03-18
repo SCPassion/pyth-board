@@ -5,6 +5,7 @@ import {
   Wallet,
   Image as ImageIcon,
   Building2,
+  Newspaper,
   ArrowUpRight,
 } from "lucide-react";
 import { TwitterIcon } from "@/components/icons/twitter-icon";
@@ -28,6 +29,7 @@ export function Sidebar({
     { href: "/wallets", label: "Wallets", icon: Wallet },
     { href: "/pythenians", label: "Pythenians", icon: ImageIcon },
     { href: "/reserve", label: "Reserve", icon: Building2 },
+    { href: "/news", label: "News", icon: Newspaper },
   ];
 
   const isActive = (path: string) => {
