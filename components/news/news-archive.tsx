@@ -16,6 +16,12 @@ export function NewsArchive({
   selectedWeekKey,
   onSelect,
 }: NewsArchiveProps) {
+  const formatSummaryParagraphs = (summary: string) =>
+    summary
+      .split(/(?<=[.!?])\s+(?=[A-Z])/)
+      .map((paragraph) => paragraph.trim())
+      .filter(Boolean);
+
   return (
     <section className="space-y-4">
       <div className="flex items-center justify-between gap-3">
@@ -36,6 +42,7 @@ export function NewsArchive({
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {digests.map((digest) => {
           const selected = digest.weekKey === selectedWeekKey;
+          const summaryParagraphs = formatSummaryParagraphs(digest.summary);
 
           return (
             <button
@@ -63,14 +70,21 @@ export function NewsArchive({
                     </div>
                     {selected ? (
                       <Badge className="rounded-xl border-cyan-300/20 bg-cyan-300/10 px-2.5 py-1 text-[10px] text-cyan-100">
-                        Viewing
+                        Selected
                       </Badge>
                     ) : null}
                   </div>
 
-                  <p className="text-sm leading-6 text-[#c8c1dc]">
-                    {digest.summary}
-                  </p>
+                  <div className="space-y-3">
+                    {summaryParagraphs.map((paragraph, index) => (
+                      <p
+                        key={`${digest.weekKey}-archive-summary-${index}`}
+                        className="text-sm leading-7 text-[#c8c1dc]"
+                      >
+                        {paragraph}
+                      </p>
+                    ))}
+                  </div>
 
                   <div className="flex flex-wrap gap-2 text-xs text-[#9f97b8]">
                     <span>{digest.sourceCounts.forumTopics} topics</span>
