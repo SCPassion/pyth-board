@@ -19,8 +19,15 @@ export function NewsHero({ digest }: NewsHeroProps) {
 
       <div className="relative flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-3">
-          <div className="inline-flex items-center rounded-full border border-white/12 bg-white/8 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/75">
-            Weekly forum digest
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="inline-flex items-center rounded-full border border-white/12 bg-white/8 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/75">
+              Weekly forum digest
+            </div>
+            <Badge
+              className="rounded-full border border-cyan-300/35 bg-cyan-400/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-cyan-100 shadow-[0_8px_24px_rgba(73,224,255,0.16)]"
+            >
+              BETA
+            </Badge>
           </div>
           <div className="space-y-2">
             <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
@@ -51,7 +58,7 @@ export function NewsHero({ digest }: NewsHeroProps) {
           Generated {new Date(digest.generatedAtMs).toLocaleString()}
         </span>
         <span className="hidden h-1 w-1 rounded-full bg-white/35 sm:block" />
-        <span>Source: Pyth forum proposals</span>
+        <span>Sources: Pyth forum proposals and ideas bank</span>
       </div>
     </section>
   );

@@ -241,8 +241,7 @@ export default function ReservePage() {
                 Pyth Strategic Reserve
               </h1>
               <Badge
-                variant="outline"
-                className="rounded-xl border-white/10 bg-black/15 px-3 py-1 text-xs text-white/85"
+                className="rounded-full border border-cyan-300/35 bg-cyan-400/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-cyan-100 shadow-[0_8px_24px_rgba(73,224,255,0.16)]"
               >
                 BETA
               </Badge>
