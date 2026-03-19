@@ -17,4 +17,11 @@ crons.interval(
   {}
 );
 
+crons.weekly(
+  "generate weekly pyth digest",
+  { dayOfWeek: "thursday", hourUTC: 1, minuteUTC: 0 },
+  internal.news.generateWeeklyDigest,
+  {}
+);
+
 export default crons;

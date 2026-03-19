@@ -10,6 +10,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "rebuild": "npm rebuild"
   },
   "dependencies": {
@@ -45,7 +47,8 @@
     "eslint-config-next": "^16.1.1",
     "tailwindcss": "^4.1.8",
     "tw-animate-css": "^1.3.4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.0"
   },
   "overrides": {
     "@solana/web3.js": "^1.98.4",
