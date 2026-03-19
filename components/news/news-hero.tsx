@@ -34,8 +34,9 @@ export function NewsHero({ digest }: NewsHeroProps) {
               Weekly Pyth Digest
             </h1>
             <p className="max-w-2xl text-sm leading-6 text-white/80 sm:text-base">
-              A stored weekly summary of high-signal activity from the Pyth
-              governance forum, designed to help token holders catch up quickly.
+              An AI-powered weekly briefing that turns high-signal Pyth forum
+              activity into a concise digest for token holders, generated with
+              OpenAI models to make governance discussions easier to follow.
             </p>
           </div>
         </div>
@@ -57,6 +58,8 @@ export function NewsHero({ digest }: NewsHeroProps) {
         <span>
           Generated {new Date(digest.generatedAtMs).toLocaleString()}
         </span>
+        <span className="hidden h-1 w-1 rounded-full bg-white/35 sm:block" />
+        <span>Powered by OpenAI</span>
         <span className="hidden h-1 w-1 rounded-full bg-white/35 sm:block" />
         <span>Sources: Pyth forum proposals and ideas bank</span>
       </div>
