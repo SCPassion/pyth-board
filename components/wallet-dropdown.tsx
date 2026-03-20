@@ -8,10 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader, Plus, Trash2, X } from "lucide-react";
-import { PythStakingInfo } from "@/types/pythTypes";
 import { useWalletInfosStore } from "@/store/store";
 import { getOISStakingInfo } from "@/action/pythActions";
-import { StakingHelpPopup } from "@/components/staking-help-popup";
 import toast from "react-hot-toast";
 
 interface WalletDropdownProps {
@@ -62,12 +60,8 @@ export function WalletDropdown({
     const formData = new FormData(e.currentTarget);
     const name = formData.get("wallet-name") as string;
     const address = formData.get("wallet-address") as string;
-    const stakingAddress = formData.get("staking-address") as string;
 
-    if (
-      wallets.some((wallet) => wallet.address === address) ||
-      wallets.some((wallet) => wallet.stakingAddress === stakingAddress)
-    ) {
+    if (wallets.some((wallet) => wallet.address === address)) {
       onClose();
       toast.error("This wallet address is already added.", {
         duration: 4000,
@@ -79,20 +73,14 @@ export function WalletDropdown({
       });
       return;
     }
-    fetchPythStakingInfo(address, stakingAddress, name);
+    fetchPythStakingInfo(address, name);
   }
 
-  async function fetchPythStakingInfo(
-    walletAddress: string,
-    stakingAddress: string,
-    name: string
-  ) {
+  async function fetchPythStakingInfo(walletAddress: string, name: string) {
     setIsLoading(true);
     try {
-      const pythStakingInfo: PythStakingInfo = await getOISStakingInfo(
-        walletAddress,
-        stakingAddress
-      );
+      const { info: pythStakingInfo, stakingAddress } =
+        await getOISStakingInfo(walletAddress);
 
       if (!pythStakingInfo) {
         throw new Error("Failed to fetch Pyth staking info");
@@ -103,7 +91,7 @@ export function WalletDropdown({
         id: walletAddress,
         name: name,
         address: walletAddress,
-        stakingAddress: stakingAddress,
+        stakingAddress,
         stakingInfo: pythStakingInfo,
       });
 
@@ -115,7 +103,7 @@ export function WalletDropdown({
             id: walletAddress,
             name: name,
             address: walletAddress,
-            stakingAddress: stakingAddress,
+            stakingAddress,
             stakingInfo: pythStakingInfo,
           },
         ])
@@ -285,25 +273,6 @@ export function WalletDropdown({
                   name="wallet-address"
                   type="text"
                   placeholder="Enter Solana wallet address"
-                  className="rounded-2xl border-white/8 bg-[#241d34] text-white font-mono text-xs sm:text-sm"
-                  required
-                />
-              </div>
-              <div className="space-y-2 sm:space-y-4">
-                <div className="flex items-center gap-2 mb-1 sm:mb-2">
-                  <Label
-                    htmlFor="staking-address"
-                    className="text-[#d8d3ea] text-sm"
-                  >
-                    Staking Account Address
-                  </Label>
-                  <StakingHelpPopup />
-                </div>
-                <Input
-                  id="staking-address"
-                  name="staking-address"
-                  type="text"
-                  placeholder="Enter your pyth staking address"
                   className="rounded-2xl border-white/8 bg-[#241d34] text-white font-mono text-xs sm:text-sm"
                   required
                 />
