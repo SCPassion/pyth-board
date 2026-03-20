@@ -108,7 +108,7 @@ function setupHappyPath() {
 
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
-import { getOISStakingInfo } from "@/action/pythActions";
+import { getOISStakingInfo, refreshOISStakingInfo } from "@/action/pythActions";
 
 describe("getOISStakingInfo", () => {
   beforeEach(() => {
@@ -278,6 +278,92 @@ describe("getOISStakingInfo", () => {
     const result = await getOISStakingInfo(WALLET_ADDRESS);
 
     // 1_000_000 raw * 1e-6 = 1 PYTH
+    expect(result.info.claimableRewards).toBeCloseTo(1);
+  });
+});
+
+describe("refreshOISStakingInfo", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockClients.length = 0;
+  });
+
+  // ── Input validation ────────────────────────────────────────────────────────
+
+  it("throws if wallet address is empty", async () => {
+    await expect(refreshOISStakingInfo("", STAKING_ADDRESS)).rejects.toThrow(
+      "Wallet address is required"
+    );
+  });
+
+  it("throws if staking address is empty", async () => {
+    await expect(refreshOISStakingInfo(WALLET_ADDRESS, "")).rejects.toThrow(
+      "Staking address is required"
+    );
+  });
+
+  it("throws if wallet address format is invalid", async () => {
+    await expect(
+      refreshOISStakingInfo("not-a-valid-address", STAKING_ADDRESS)
+    ).rejects.toThrow("Invalid wallet address format");
+  });
+
+  it("throws if staking address format is invalid", async () => {
+    await expect(
+      refreshOISStakingInfo(WALLET_ADDRESS, "not-a-valid-address")
+    ).rejects.toThrow("Invalid staking address format");
+  });
+
+  // ── No discovery ────────────────────────────────────────────────────────────
+
+  it("does not call getMainStakeAccount — uses the known staking address directly", async () => {
+    setupHappyPath();
+
+    await refreshOISStakingInfo(WALLET_ADDRESS, STAKING_ADDRESS);
+
+    expect(mockClient.getMainStakeAccount).not.toHaveBeenCalled();
+  });
+
+  // ── Return shape ────────────────────────────────────────────────────────────
+
+  it("returns the provided staking address unchanged", async () => {
+    setupHappyPath();
+
+    const result = await refreshOISStakingInfo(WALLET_ADDRESS, STAKING_ADDRESS);
+
+    expect(result.stakingAddress).toBe(STAKING_ADDRESS);
+  });
+
+  it("returns staking info with expected shape", async () => {
+    setupHappyPath();
+
+    const result = await refreshOISStakingInfo(WALLET_ADDRESS, STAKING_ADDRESS);
+
+    expect(result.info).toMatchObject({
+      totalStakedPyth: expect.any(Number),
+      claimableRewards: expect.any(Number),
+      StakeForEachPublisher: expect.any(Array),
+      generalStats: expect.objectContaining({
+        totalGovernance: expect.any(Number),
+        totalStaked: expect.any(Number),
+        rewardsDistributed: expect.any(Number),
+      }),
+    });
+  });
+
+  it("returns correct totalStakedPyth from positions", async () => {
+    setupHappyPath();
+
+    const result = await refreshOISStakingInfo(WALLET_ADDRESS, STAKING_ADDRESS);
+
+    expect(result.info.totalStakedPyth).toBeCloseTo(500);
+  });
+
+  it("returns correct claimableRewards", async () => {
+    setupHappyPath();
+
+    const result = await refreshOISStakingInfo(WALLET_ADDRESS, STAKING_ADDRESS);
+
     expect(result.info.claimableRewards).toBeCloseTo(1);
   });
 });

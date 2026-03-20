@@ -456,6 +456,111 @@ async function getPublisherPoolData(client: PythStakingClient) {
 }
 
 /**
+ * Refreshes staking information for a wallet using a known staking address.
+ * Skips account discovery — use this on reload when stakingAddress is already stored.
+ * @param {string} walletAddress - The public key of the wallet.
+ * @param {string} stakingAddress - The known staking account address.
+ * @returns {Promise<{ info: PythStakingInfo; stakingAddress: string }>}
+ */
+export async function refreshOISStakingInfo(
+  walletAddress: string,
+  stakingAddress: string
+): Promise<{ info: PythStakingInfo; stakingAddress: string }> {
+  if (!walletAddress) throw new Error("Wallet address is required");
+  if (!stakingAddress) throw new Error("Staking address is required");
+  if (!isValidSolanaAddress(walletAddress))
+    throw new Error("Invalid wallet address format");
+  if (!isValidSolanaAddress(stakingAddress))
+    throw new Error("Invalid staking address format");
+
+  const walletPublicKey = new PublicKey(walletAddress);
+  const stakeAccount = new PublicKey(stakingAddress);
+
+  // Race all RPC endpoints; the first to respond wins
+  const clients = RPC_ENDPOINTS.map((_, index) =>
+    createPythStakingClientWithFallback(walletPublicKey, index)
+  );
+
+  const responsiveClient = await Promise.any(
+    clients.map(async (c) => {
+      // Lightweight probe: getTargetAccount is a global read, not wallet-specific
+      await c.getTargetAccount();
+      return c;
+    })
+  ).catch(() => clients[0]); // fall back to primary if all fail
+
+  const [rewards, positions, targetAccount, poolData, rewardCustodyAccount] =
+    await Promise.all([
+      getClaimableRewards(responsiveClient, stakeAccount).catch(() => ({
+        totalRewards: 0n,
+      })),
+      responsiveClient.getStakeAccountPositions(stakeAccount),
+      responsiveClient.getTargetAccount(),
+      responsiveClient.getPoolDataAccount(),
+      responsiveClient.getRewardCustodyAccount(),
+    ]);
+
+  const generalStats: PythGeneralStats = {
+    totalGovernance:
+      Number(targetAccount.locked + targetAccount.deltaLocked) * 1e-6,
+    totalStaked:
+      Number(
+        sumDelegations(poolData.delState) +
+          sumDelegations(poolData.selfDelState)
+      ) * 1e-6,
+    rewardsDistributed:
+      Number(
+        poolData.claimableRewards +
+          INITIAL_REWARD_POOL_SIZE -
+          rewardCustodyAccount.amount
+      ) * 1e-6,
+  };
+
+  const publisherPoolData = extractPublisherData(poolData).map(
+    ({ totalDelegation, totalDelegationDelta, pubkey, apyHistory }) => ({
+      totalDelegation,
+      totalDelegationDelta,
+      pubkey: pubkey.toBase58(),
+      apy: apyHistory[apyHistory.length - 1]?.apy ?? 0,
+    })
+  );
+
+  const claimableRewards = Number(rewards?.totalRewards || 0n) * 1e-6;
+
+  const StakeForEachPublisher: MyPublisherInfo[] = positions.data.positions
+    .map((p) => {
+      const publisher = p.targetWithParameters.integrityPool?.publisher;
+      if (!publisher) return null;
+      const key = String(publisher);
+      const publisherData = publisherPoolData.find((d) => d.pubkey === key);
+      return {
+        publisherKey: key,
+        stakedAmount: Number(p.amount) * 1e-6,
+        apy: publisherData?.apy ?? 0,
+        rewards: 0,
+      };
+    })
+    .filter((p): p is MyPublisherInfo => p !== null);
+
+  const totalStakedPyth = StakeForEachPublisher.reduce(
+    (acc, p) => acc + p.stakedAmount,
+    0
+  );
+
+  StakeForEachPublisher.forEach((p) => {
+    p.rewards =
+      totalStakedPyth > 0 && claimableRewards > 0
+        ? (p.stakedAmount / totalStakedPyth) * claimableRewards
+        : 0;
+  });
+
+  return {
+    info: { StakeForEachPublisher, totalStakedPyth, claimableRewards, generalStats },
+    stakingAddress,
+  };
+}
+
+/**
  * Fetches the latest Pyth price for a specific asset.
  * @returns {Promise<number>} - A promise that resolves to the latest Pyth price in base units.
  * @throws {Error} - Throws an error if the fetch operation fails or if the response is not ok.

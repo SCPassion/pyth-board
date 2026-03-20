@@ -10,8 +10,9 @@ import {
 import { Sidebar } from "@/components/sidebar";
 import { TopHeader } from "@/components/top-header";
 import { useWalletInfosStore } from "@/store/store";
-import { getOISStakingInfo } from "@/action/pythActions";
+import { refreshOISStakingInfo } from "@/action/pythActions";
 import { usePythPrice } from "@/hooks/use-pyth-price";
+import { refreshWalletsSequentially } from "@/lib/wallet-refresh";
 
 // Create loading context
 const LoadingContext = createContext<{
@@ -38,10 +39,35 @@ export function AppLayout({ children }: AppLayoutProps) {
   // Load wallets from localStorage - iOS/Mobile compatible version
   useEffect(() => {
     let isMounted = true;
-
-    // Set loading to false immediately on mount (don't block UI)
-    // We'll load wallets in the background
     setIsLoading(false);
+
+    async function refreshWalletsInBackground(
+      storedWallets: typeof wallets
+    ): Promise<void> {
+      const refreshed = await refreshWalletsSequentially(
+        storedWallets,
+        async (wallet) => {
+          const next = await refreshOISStakingInfo(
+            wallet.address,
+            wallet.stakingAddress
+          );
+          return next;
+        },
+        (nextWallets) => {
+          if (isMounted) {
+            setWallets(nextWallets);
+          }
+        }
+      );
+
+      if (isMounted) {
+        try {
+          localStorage.setItem("wallets", JSON.stringify(refreshed));
+        } catch {
+          // localStorage might be unavailable
+        }
+      }
+    }
 
     function loadWallets() {
       // Check if we're in a browser environment
@@ -78,6 +104,12 @@ export function AppLayout({ children }: AppLayoutProps) {
           setWallets(wallets);
         }
 
+        if (wallets.length > 0) {
+          setTimeout(() => {
+            void refreshWalletsInBackground(wallets);
+          }, 0);
+        }
+
         // Try to initialize localStorage if empty (but don't fail if it's disabled)
         if (!storedWallets) {
           try {
@@ -95,13 +127,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       }
     }
 
-    // Load wallets asynchronously (don't block UI)
-    // Use requestIdleCallback if available, otherwise setTimeout
-    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
-      (window as any).requestIdleCallback(loadWallets, { timeout: 100 });
-    } else {
-      setTimeout(loadWallets, 0);
-    }
+    loadWallets();
 
     return () => {
       isMounted = false;
