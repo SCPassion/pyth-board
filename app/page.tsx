@@ -4,10 +4,9 @@ import { PortfolioSummary } from "@/components/portfolio-summary";
 import { MetricCards } from "@/components/metric-cards";
 import { GeneralSummary } from "@/components/general-summary";
 import { DashboardSkeleton } from "@/components/dashboard-skeleton";
-import { useAppLoading } from "@/components/app-layout";
+import { useAppLoading } from "@/components/app-loading-context";
 import { useWalletInfosStore } from "@/store/store";
 import { usePythPrice } from "@/hooks/use-pyth-price";
-import { Wallet } from "lucide-react";
 
 export default function Dashboard() {
   const { wallets } = useWalletInfosStore();

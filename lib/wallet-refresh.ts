@@ -9,8 +9,13 @@ export async function refreshWalletsSequentially(
   wallets: WalletInfo[],
   refreshWallet: (wallet: WalletInfo) => Promise<RefreshWalletResult>,
   onUpdate: (wallets: WalletInfo[]) => void
-): Promise<WalletInfo[]> {
+): Promise<{
+  wallets: WalletInfo[];
+  hadErrors: boolean;
+  errorMessage: string | null;
+}> {
   const refreshed = [...wallets];
+  let hadErrors = false;
 
   for (let index = 0; index < refreshed.length; index++) {
     const wallet = refreshed[index];
@@ -23,11 +28,18 @@ export async function refreshWalletsSequentially(
         stakingInfo: next.info,
       };
     } catch {
+      hadErrors = true;
       refreshed[index] = wallet;
     }
 
     onUpdate([...refreshed]);
   }
 
-  return refreshed;
+  return {
+    wallets: refreshed,
+    hadErrors,
+    errorMessage: hadErrors
+      ? "Some wallet balances could not be refreshed. Try again later."
+      : null,
+  };
 }

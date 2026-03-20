@@ -4,8 +4,6 @@ import {
   useEffect,
   useState,
   useCallback,
-  createContext,
-  useContext,
 } from "react";
 import { Sidebar } from "@/components/sidebar";
 import { TopHeader } from "@/components/top-header";
@@ -13,13 +11,7 @@ import { useWalletInfosStore } from "@/store/store";
 import { refreshOISStakingInfo } from "@/action/pythActions";
 import { usePythPrice } from "@/hooks/use-pyth-price";
 import { refreshWalletsSequentially } from "@/lib/wallet-refresh";
-
-// Create loading context
-const LoadingContext = createContext<{
-  isLoading: boolean;
-}>({ isLoading: false });
-
-export const useAppLoading = () => useContext(LoadingContext);
+import { AppLoadingContext } from "@/components/app-loading-context";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -28,6 +20,13 @@ interface AppLayoutProps {
 export function AppLayout({ children }: AppLayoutProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshingWallets, setIsRefreshingWallets] = useState(false);
+  const [lastWalletRefreshAt, setLastWalletRefreshAt] = useState<number | null>(
+    null
+  );
+  const [walletRefreshError, setWalletRefreshError] = useState<string | null>(
+    null
+  );
 
   const { wallets, setWallets } = useWalletInfosStore();
   const pythPrice = usePythPrice();
@@ -44,27 +43,44 @@ export function AppLayout({ children }: AppLayoutProps) {
     async function refreshWalletsInBackground(
       storedWallets: typeof wallets
     ): Promise<void> {
-      const refreshed = await refreshWalletsSequentially(
-        storedWallets,
-        async (wallet) => {
-          const next = await refreshOISStakingInfo(
-            wallet.address,
-            wallet.stakingAddress
-          );
-          return next;
-        },
-        (nextWallets) => {
-          if (isMounted) {
-            setWallets(nextWallets);
+      if (isMounted) {
+        setIsRefreshingWallets(true);
+        setWalletRefreshError(null);
+      }
+
+      try {
+        const result = await refreshWalletsSequentially(
+          storedWallets,
+          async (wallet) => {
+            const next = await refreshOISStakingInfo(
+              wallet.address,
+              wallet.stakingAddress
+            );
+            return next;
+          },
+          (nextWallets) => {
+            if (isMounted) {
+              setWallets(nextWallets);
+            }
+          }
+        );
+
+        if (isMounted) {
+          try {
+            localStorage.setItem("wallets", JSON.stringify(result.wallets));
+          } catch {
+            // localStorage might be unavailable
+          }
+
+          if (result.hadErrors) {
+            setWalletRefreshError(result.errorMessage);
+          } else {
+            setLastWalletRefreshAt(Date.now());
           }
         }
-      );
-
-      if (isMounted) {
-        try {
-          localStorage.setItem("wallets", JSON.stringify(refreshed));
-        } catch {
-          // localStorage might be unavailable
+      } finally {
+        if (isMounted) {
+          setIsRefreshingWallets(false);
         }
       }
     }
@@ -154,7 +170,14 @@ export function AppLayout({ children }: AppLayoutProps) {
   // Pyth price is now handled by usePythPrice hook
 
   return (
-    <LoadingContext.Provider value={{ isLoading }}>
+    <AppLoadingContext.Provider
+      value={{
+        isLoading,
+        isRefreshingWallets,
+        lastWalletRefreshAt,
+        walletRefreshError,
+      }}
+    >
       <div className="flex h-screen overflow-x-hidden bg-[#261e35]">
         <Sidebar
           isMobileMenuOpen={isMobileMenuOpen}
@@ -177,6 +200,6 @@ export function AppLayout({ children }: AppLayoutProps) {
           </main>
         </div>
       </div>
-    </LoadingContext.Provider>
+    </AppLoadingContext.Provider>
   );
 }

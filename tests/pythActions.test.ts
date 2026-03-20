@@ -324,6 +324,55 @@ describe("refreshOISStakingInfo", () => {
     expect(mockClient.getMainStakeAccount).not.toHaveBeenCalled();
   });
 
+  it("uses the primary refresh client when it is healthy without probing fallback RPCs", async () => {
+    const stakingPubkey = new PublicKey(STAKING_ADDRESS);
+    const primaryClient = {
+      getMainStakeAccount: vi.fn(),
+      getClaimableRewards: vi.fn().mockResolvedValue({ totalRewards: 1_000_000n }),
+      getStakeAccountPositions: vi.fn().mockResolvedValue({
+        address: stakingPubkey,
+        data: {
+          owner: new PublicKey(WALLET_ADDRESS),
+          positions: [],
+        },
+      }),
+      getTargetAccount: vi.fn().mockResolvedValue({
+        locked: 10_000_000_000n,
+        deltaLocked: 0n,
+      }),
+      getPoolDataAccount: vi.fn().mockResolvedValue(makePoolData()),
+      getRewardCustodyAccount: vi.fn().mockResolvedValue({
+        amount: 55_000_000n,
+      }),
+      wallet: { publicKey: null as unknown as PublicKey },
+      connection: {},
+    };
+
+    const fallbackClient = {
+      getMainStakeAccount: vi.fn(),
+      getClaimableRewards: vi.fn(),
+      getStakeAccountPositions: vi.fn(),
+      getTargetAccount: vi.fn(),
+      getPoolDataAccount: vi.fn(),
+      getRewardCustodyAccount: vi.fn(),
+      wallet: { publicKey: null as unknown as PublicKey },
+      connection: {},
+    };
+
+    mockExtractPublisherData.mockReturnValue([]);
+    mockClients.push(primaryClient, fallbackClient);
+
+    const result = await refreshOISStakingInfo(
+      WALLET_ADDRESS,
+      STAKING_ADDRESS
+    );
+
+    expect(result.stakingAddress).toBe(STAKING_ADDRESS);
+    expect(primaryClient.getTargetAccount).toHaveBeenCalledTimes(1);
+    expect(fallbackClient.getTargetAccount).not.toHaveBeenCalled();
+    expect(fallbackClient.getStakeAccountPositions).not.toHaveBeenCalled();
+  });
+
   // ── Return shape ────────────────────────────────────────────────────────────
 
   it("returns the provided staking address unchanged", async () => {

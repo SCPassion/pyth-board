@@ -475,29 +475,35 @@ export async function refreshOISStakingInfo(
 
   const walletPublicKey = new PublicKey(walletAddress);
   const stakeAccount = new PublicKey(stakingAddress);
+  let lastError = "Unknown error";
 
-  // Race all RPC endpoints; the first to respond wins
-  const clients = RPC_ENDPOINTS.map((_, index) =>
-    createPythStakingClientWithFallback(walletPublicKey, index)
-  );
+  for (let index = 0; index < RPC_ENDPOINTS.length; index++) {
+    const client = createPythStakingClientWithFallback(walletPublicKey, index);
 
-  const responsiveClient = await Promise.any(
-    clients.map(async (c) => {
-      // Lightweight probe: getTargetAccount is a global read, not wallet-specific
-      await c.getTargetAccount();
-      return c;
-    })
-  ).catch(() => clients[0]); // fall back to primary if all fail
+    try {
+      return await fetchStakingInfoForAccount(client, stakeAccount, stakingAddress);
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : "Unknown error";
+    }
+  }
 
+  throw new Error(`Failed to refresh staking information: ${lastError}`);
+}
+
+async function fetchStakingInfoForAccount(
+  client: PythStakingClient,
+  stakeAccount: PublicKey,
+  stakingAddress: string
+): Promise<{ info: PythStakingInfo; stakingAddress: string }> {
   const [rewards, positions, targetAccount, poolData, rewardCustodyAccount] =
     await Promise.all([
-      getClaimableRewards(responsiveClient, stakeAccount).catch(() => ({
+      getClaimableRewards(client, stakeAccount).catch(() => ({
         totalRewards: 0n,
       })),
-      responsiveClient.getStakeAccountPositions(stakeAccount),
-      responsiveClient.getTargetAccount(),
-      responsiveClient.getPoolDataAccount(),
-      responsiveClient.getRewardCustodyAccount(),
+      client.getStakeAccountPositions(stakeAccount),
+      client.getTargetAccount(),
+      client.getPoolDataAccount(),
+      client.getRewardCustodyAccount(),
     ]);
 
   const generalStats: PythGeneralStats = {

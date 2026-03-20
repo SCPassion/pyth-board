@@ -9,6 +9,7 @@ import Link from "next/link";
 import { WalletDropdown } from "@/components/wallet-dropdown";
 import { PriceTicker } from "@/components/price-ticker";
 import { usePwaInstall } from "@/components/pwa-install-context";
+import { useAppLoading } from "@/components/app-loading-context";
 import packageJson from "@/package.json";
 
 interface TopHeaderProps {
@@ -22,6 +23,8 @@ export function TopHeader({
 }: TopHeaderProps) {
   const [showWalletDropdown, setShowWalletDropdown] = useState(false);
   const { canInstall, installApp } = usePwaInstall();
+  const { isRefreshingWallets, lastWalletRefreshAt, walletRefreshError } =
+    useAppLoading();
   const pathname = usePathname();
   const walletMenuRef = useRef<HTMLDivElement>(null);
 
@@ -35,6 +38,30 @@ export function TopHeader({
           : pathname.startsWith("/reserve")
             ? "Reserve"
             : "Pyth Dashboard";
+
+  const walletRefreshStatus =
+    walletRefreshError
+      ? {
+          label: walletRefreshError,
+          className:
+            "border-amber-400/20 bg-amber-300/10 text-amber-100",
+        }
+      : isRefreshingWallets
+        ? {
+            label: "Refreshing wallet balances and rewards...",
+            className:
+              "border-cyan-400/20 bg-cyan-300/10 text-cyan-50",
+          }
+        : lastWalletRefreshAt
+          ? {
+              label: `Wallets updated ${new Intl.DateTimeFormat(undefined, {
+                hour: "2-digit",
+                minute: "2-digit",
+              }).format(lastWalletRefreshAt)}`,
+              className:
+                "border-emerald-400/20 bg-emerald-300/10 text-emerald-50",
+            }
+          : null;
 
   return (
     <header className="flex min-h-20 items-center justify-between gap-3 border-b border-white/6 bg-[#241b35] px-3 py-3 sm:px-6">
@@ -59,6 +86,14 @@ export function TopHeader({
           <span className="hidden rounded-xl border border-white/8 bg-[#2f2942] px-2.5 py-1 text-[11px] font-semibold tracking-[0.12em] text-[#b8b0d0] sm:inline-flex">
             {packageJson.version}
           </span>
+          {walletRefreshStatus ? (
+            <div
+              className={`hidden max-w-[28rem] truncate rounded-full border px-3 py-1 text-[11px] font-medium xl:inline-flex ${walletRefreshStatus.className}`}
+              title={walletRefreshStatus.label}
+            >
+              {walletRefreshStatus.label}
+            </div>
+          ) : null}
           <div className="hidden min-w-0 items-center gap-1.5 sm:flex lg:gap-2">
             {canInstall ? (
               <Button

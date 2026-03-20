@@ -53,11 +53,13 @@ describe("refreshWalletsSequentially", () => {
     expect(updates[0][0].stakingInfo?.totalStakedPyth).toBe(110);
     expect(updates[0][1].stakingInfo?.totalStakedPyth).toBe(20);
     expect(updates[1][1].stakingInfo?.totalStakedPyth).toBe(120);
-    expect(result[0].stakingInfo?.totalStakedPyth).toBe(110);
-    expect(result[1].stakingInfo?.totalStakedPyth).toBe(120);
+    expect(result.wallets[0].stakingInfo?.totalStakedPyth).toBe(110);
+    expect(result.wallets[1].stakingInfo?.totalStakedPyth).toBe(120);
+    expect(result.hadErrors).toBe(false);
+    expect(result.errorMessage).toBeNull();
   });
 
-  it("keeps the cached wallet data when a refresh fails", async () => {
+  it("keeps the cached wallet data and reports an error when a refresh fails", async () => {
     const wallets = [baseWallet("1", 10), baseWallet("2", 20)];
     const updates: WalletInfo[][] = [];
 
@@ -83,9 +85,13 @@ describe("refreshWalletsSequentially", () => {
       }
     );
 
-    expect(result[0].stakingInfo?.totalStakedPyth).toBe(10);
-    expect(result[1].stakingInfo?.totalStakedPyth).toBe(999);
+    expect(result.wallets[0].stakingInfo?.totalStakedPyth).toBe(10);
+    expect(result.wallets[1].stakingInfo?.totalStakedPyth).toBe(999);
     expect(updates.at(-1)?.[0].stakingInfo?.totalStakedPyth).toBe(10);
     expect(updates.at(-1)?.[1].stakingInfo?.totalStakedPyth).toBe(999);
+    expect(result.hadErrors).toBe(true);
+    expect(result.errorMessage).toBe(
+      "Some wallet balances could not be refreshed. Try again later."
+    );
   });
 });
