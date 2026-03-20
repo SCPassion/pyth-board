@@ -120,19 +120,20 @@ export function WalletDropdown({
       });
     } catch (error) {
       console.error("Error fetching Pyth staking info:", error);
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to add wallet. Please try again later.";
 
       // Error toast with different styling
-      toast.error(
-        "Failed to add wallet. Please check the addresses and try again.",
-        {
-          duration: 5000,
-          style: {
-            background: "#7f1d1d",
-            color: "#f1f5f9",
-            border: "1px solid #991b1b",
-          },
-        }
-      );
+      toast.error(errorMessage, {
+        duration: 5000,
+        style: {
+          background: "#7f1d1d",
+          color: "#f1f5f9",
+          border: "1px solid #991b1b",
+        },
+      });
     } finally {
       setIsLoading(false);
       setShowAddForm(false);

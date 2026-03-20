@@ -82,12 +82,10 @@ export async function getOISStakingInfo(
     throw new Error(`Failed to create Pyth staking client: ${errorMessage}`);
   }
 
-  const { client: responsiveClient, stakeAccount } = await discoverStakeAccount(
-    client,
-    walletPublicKey
-  );
-
   try {
+    const { client: responsiveClient, stakeAccount } =
+      await discoverStakeAccount(client, walletPublicKey);
+
     // Fetch everything in one parallel batch.
     // poolData is fetched once and reused for both generalStats and publisherPoolData.
     // getClaimableRewards runs in parallel with the rest; failures fall back to 0.
@@ -183,7 +181,16 @@ export async function getOISStakingInfo(
       error instanceof Error ? error.message : "Unknown error";
 
     // Provide more specific error messages
-    if (errorMessage.includes("Account does not exist")) {
+    if (errorMessage.startsWith("No staking account found")) {
+      throw new Error("No staking account found for this wallet");
+    } else if (
+      errorMessage.includes("discover staking account") &&
+      errorMessage.includes("timed out")
+    ) {
+      throw new Error(
+        "RPC timeout: Unable to discover staking account. Please try again later."
+      );
+    } else if (errorMessage.includes("Account does not exist")) {
       throw new Error("Staking account does not exist or has no positions");
     } else if (
       errorMessage.includes("Slot") &&

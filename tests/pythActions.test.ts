@@ -236,6 +236,34 @@ describe("getOISStakingInfo", () => {
     expect(fastClient.getMainStakeAccount).toHaveBeenCalledTimes(1);
   });
 
+  it("returns a clean user-facing error when stake account discovery times out", async () => {
+    const timeoutClient = {
+      getMainStakeAccount: vi
+        .fn()
+        .mockRejectedValue(
+          new Error("Stake account discovery timed out across all RPC endpoints")
+        ),
+      getClaimableRewards: vi.fn(),
+      getStakeAccountPositions: vi.fn(),
+      getTargetAccount: vi.fn(),
+      getPoolDataAccount: vi.fn(),
+      getRewardCustodyAccount: vi.fn(),
+      wallet: { publicKey: null as unknown as PublicKey },
+      connection: {},
+    };
+
+    mockClients.push(
+      timeoutClient,
+      timeoutClient,
+      timeoutClient,
+      timeoutClient
+    );
+
+    await expect(getOISStakingInfo(WALLET_ADDRESS)).rejects.toThrow(
+      "RPC timeout: Unable to discover staking account. Please try again later."
+    );
+  });
+
   // ── Return shape ────────────────────────────────────────────────────────────
 
   it("returns the auto-discovered staking address as a base58 string", async () => {
