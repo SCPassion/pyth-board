@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, Download, Github, Menu, X } from "lucide-react";
 import { usePathname } from "next/navigation";
@@ -22,11 +22,14 @@ export function TopHeader({
   onMobileMenuToggle,
 }: TopHeaderProps) {
   const [showWalletDropdown, setShowWalletDropdown] = useState(false);
+  const [showRefreshComplete, setShowRefreshComplete] = useState(false);
+  const [isRefreshCompleteFading, setIsRefreshCompleteFading] = useState(false);
   const { canInstall, installApp } = usePwaInstall();
   const { isRefreshingWallets, lastWalletRefreshAt, walletRefreshError } =
     useAppLoading();
   const pathname = usePathname();
   const walletMenuRef = useRef<HTMLDivElement>(null);
+  const wasRefreshingRef = useRef(false);
 
   const pageTitle =
     pathname === "/"
@@ -39,6 +42,45 @@ export function TopHeader({
             ? "Reserve"
             : "Pyth Dashboard";
 
+  useEffect(() => {
+    let fadeTimer: ReturnType<typeof setTimeout> | undefined;
+    let hideTimer: ReturnType<typeof setTimeout> | undefined;
+
+    if (isRefreshingWallets) {
+      wasRefreshingRef.current = true;
+      setShowRefreshComplete(false);
+      setIsRefreshCompleteFading(false);
+      return;
+    }
+
+    if (walletRefreshError) {
+      setShowRefreshComplete(false);
+      setIsRefreshCompleteFading(false);
+      wasRefreshingRef.current = false;
+      return;
+    }
+
+    if (wasRefreshingRef.current && lastWalletRefreshAt) {
+      setShowRefreshComplete(true);
+      setIsRefreshCompleteFading(false);
+      wasRefreshingRef.current = false;
+
+      fadeTimer = setTimeout(() => {
+        setIsRefreshCompleteFading(true);
+      }, 1200);
+
+      hideTimer = setTimeout(() => {
+        setShowRefreshComplete(false);
+        setIsRefreshCompleteFading(false);
+      }, 1800);
+    }
+
+    return () => {
+      if (fadeTimer) clearTimeout(fadeTimer);
+      if (hideTimer) clearTimeout(hideTimer);
+    };
+  }, [isRefreshingWallets, lastWalletRefreshAt, walletRefreshError]);
+
   const walletRefreshStatus =
     walletRefreshError
       ? {
@@ -50,16 +92,17 @@ export function TopHeader({
         ? {
             label: "Refreshing wallet balances and rewards...",
             className:
-              "border-cyan-400/20 bg-cyan-300/10 text-cyan-50",
+              "border-cyan-400/30 bg-cyan-300/12 text-cyan-50 shadow-[0_0_24px_rgba(34,211,238,0.25)] animate-pulse",
           }
-        : lastWalletRefreshAt
+        : showRefreshComplete
           ? {
-              label: `Wallets updated ${new Intl.DateTimeFormat(undefined, {
-                hour: "2-digit",
-                minute: "2-digit",
-              }).format(lastWalletRefreshAt)}`,
+              label: "Wallet balances refreshed",
               className:
-                "border-emerald-400/20 bg-emerald-300/10 text-emerald-50",
+                `border-emerald-400/20 bg-emerald-300/10 text-emerald-50 transition-all duration-500 ${
+                  isRefreshCompleteFading
+                    ? "translate-y-[-4px] opacity-0"
+                    : "translate-y-0 opacity-100"
+                }`,
             }
           : null;
 
@@ -86,14 +129,6 @@ export function TopHeader({
           <span className="hidden rounded-xl border border-white/8 bg-[#2f2942] px-2.5 py-1 text-[11px] font-semibold tracking-[0.12em] text-[#b8b0d0] sm:inline-flex">
             {packageJson.version}
           </span>
-          {walletRefreshStatus ? (
-            <div
-              className={`hidden max-w-[28rem] truncate rounded-full border px-3 py-1 text-[11px] font-medium xl:inline-flex ${walletRefreshStatus.className}`}
-              title={walletRefreshStatus.label}
-            >
-              {walletRefreshStatus.label}
-            </div>
-          ) : null}
           <div className="hidden min-w-0 items-center gap-1.5 sm:flex lg:gap-2">
             {canInstall ? (
               <Button
@@ -148,6 +183,14 @@ export function TopHeader({
                 <span className="hidden 2xl:inline">Built by SCPTech</span>
               </Link>
             </Button>
+            {walletRefreshStatus ? (
+              <div
+                className={`hidden max-w-[24rem] truncate rounded-full border px-3 py-1 text-[11px] font-medium 2xl:inline-flex ${walletRefreshStatus.className}`}
+                title={walletRefreshStatus.label}
+              >
+                {walletRefreshStatus.label}
+              </div>
+            ) : null}
           </div>
         </div>
       </div>
