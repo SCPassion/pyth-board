@@ -4,21 +4,14 @@ import {
   useEffect,
   useState,
   useCallback,
-  createContext,
-  useContext,
 } from "react";
 import { Sidebar } from "@/components/sidebar";
 import { TopHeader } from "@/components/top-header";
 import { useWalletInfosStore } from "@/store/store";
-import { getOISStakingInfo } from "@/action/pythActions";
+import { refreshOISStakingInfo } from "@/action/pythActions";
 import { usePythPrice } from "@/hooks/use-pyth-price";
-
-// Create loading context
-const LoadingContext = createContext<{
-  isLoading: boolean;
-}>({ isLoading: false });
-
-export const useAppLoading = () => useContext(LoadingContext);
+import { refreshWalletsSequentially } from "@/lib/wallet-refresh";
+import { AppLoadingContext } from "@/components/app-loading-context";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -27,6 +20,13 @@ interface AppLayoutProps {
 export function AppLayout({ children }: AppLayoutProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshingWallets, setIsRefreshingWallets] = useState(false);
+  const [lastWalletRefreshAt, setLastWalletRefreshAt] = useState<number | null>(
+    null
+  );
+  const [walletRefreshError, setWalletRefreshError] = useState<string | null>(
+    null
+  );
 
   const { wallets, setWallets } = useWalletInfosStore();
   const pythPrice = usePythPrice();
@@ -38,10 +38,52 @@ export function AppLayout({ children }: AppLayoutProps) {
   // Load wallets from localStorage - iOS/Mobile compatible version
   useEffect(() => {
     let isMounted = true;
-
-    // Set loading to false immediately on mount (don't block UI)
-    // We'll load wallets in the background
     setIsLoading(false);
+
+    async function refreshWalletsInBackground(
+      storedWallets: typeof wallets
+    ): Promise<void> {
+      if (isMounted) {
+        setIsRefreshingWallets(true);
+        setWalletRefreshError(null);
+      }
+
+      try {
+        const result = await refreshWalletsSequentially(
+          storedWallets,
+          async (wallet) => {
+            const next = await refreshOISStakingInfo(
+              wallet.address,
+              wallet.stakingAddress
+            );
+            return next;
+          },
+          (nextWallets) => {
+            if (isMounted) {
+              setWallets(nextWallets);
+            }
+          }
+        );
+
+        if (isMounted) {
+          try {
+            localStorage.setItem("wallets", JSON.stringify(result.wallets));
+          } catch {
+            // localStorage might be unavailable
+          }
+
+          if (result.hadErrors) {
+            setWalletRefreshError(result.errorMessage);
+          } else {
+            setLastWalletRefreshAt(Date.now());
+          }
+        }
+      } finally {
+        if (isMounted) {
+          setIsRefreshingWallets(false);
+        }
+      }
+    }
 
     function loadWallets() {
       // Check if we're in a browser environment
@@ -78,6 +120,12 @@ export function AppLayout({ children }: AppLayoutProps) {
           setWallets(wallets);
         }
 
+        if (wallets.length > 0) {
+          setTimeout(() => {
+            void refreshWalletsInBackground(wallets);
+          }, 0);
+        }
+
         // Try to initialize localStorage if empty (but don't fail if it's disabled)
         if (!storedWallets) {
           try {
@@ -95,13 +143,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       }
     }
 
-    // Load wallets asynchronously (don't block UI)
-    // Use requestIdleCallback if available, otherwise setTimeout
-    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
-      (window as any).requestIdleCallback(loadWallets, { timeout: 100 });
-    } else {
-      setTimeout(loadWallets, 0);
-    }
+    loadWallets();
 
     return () => {
       isMounted = false;
@@ -128,7 +170,14 @@ export function AppLayout({ children }: AppLayoutProps) {
   // Pyth price is now handled by usePythPrice hook
 
   return (
-    <LoadingContext.Provider value={{ isLoading }}>
+    <AppLoadingContext.Provider
+      value={{
+        isLoading,
+        isRefreshingWallets,
+        lastWalletRefreshAt,
+        walletRefreshError,
+      }}
+    >
       <div className="flex h-screen overflow-x-hidden bg-[#261e35]">
         <Sidebar
           isMobileMenuOpen={isMobileMenuOpen}
@@ -151,6 +200,6 @@ export function AppLayout({ children }: AppLayoutProps) {
           </main>
         </div>
       </div>
-    </LoadingContext.Provider>
+    </AppLoadingContext.Provider>
   );
 }

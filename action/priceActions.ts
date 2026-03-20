@@ -49,43 +49,38 @@ async function getPriceFromHermes(priceId: string): Promise<number> {
 }
 
 /**
- * Fetches 24h price change from CoinGecko API
- * This is a fallback method to get historical price data
+ * Fetches the price of an asset from Hermes at a specific Unix timestamp.
+ * Returns 0 if unavailable.
  */
-async function get24hChangeFromCoinGecko(
-  coinId: string
-): Promise<{ change24h: number; change24hValue: number }> {
+async function getPriceFromHermesAt(
+  priceId: string,
+  unixTimestamp: number
+): Promise<number> {
   try {
     const response = await fetch(
-      `https://api.coingecko.com/api/v3/simple/price?ids=${coinId}&vs_currencies=usd&include_24hr_change=true`,
-      {
-        headers: {
-          Accept: "application/json",
-        },
-        next: { revalidate: 60 }, // Cache for 60 seconds
-      }
+      `https://hermes.pyth.network/v2/updates/price/${unixTimestamp}?ids%5B%5D=${priceId}`,
+      { headers: { Accept: "application/json", "User-Agent": "PythBoard/1.0" } }
     );
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-
+    if (!response.ok) return 0;
     const data = await response.json();
-    const coinData = data[coinId];
-
-    if (coinData && coinData.usd && coinData.usd_24h_change !== undefined) {
-      const change24h = coinData.usd_24h_change;
-      const price = coinData.usd;
-      const change24hValue = (price * change24h) / 100;
-
-      return { change24h, change24hValue };
-    }
-
-    return { change24h: 0, change24hValue: 0 };
-  } catch (error) {
-    console.error(`Error fetching 24h change for ${coinId}:`, error);
-    return { change24h: 0, change24hValue: 0 };
+    if (!data.parsed?.[0]?.price) return 0;
+    return Number(data.parsed[0].price.price) * 1e-8;
+  } catch {
+    return 0;
   }
+}
+
+/**
+ * Computes 24h change from current and past prices.
+ */
+function compute24hChange(
+  currentPrice: number,
+  pastPrice: number
+): { change24h: number; change24hValue: number } {
+  if (!pastPrice) return { change24h: 0, change24hValue: 0 };
+  const change24h = ((currentPrice - pastPrice) / pastPrice) * 100;
+  const change24hValue = currentPrice - pastPrice;
+  return { change24h, change24hValue };
 }
 
 /**
@@ -98,13 +93,17 @@ export async function getRealtimePrices(): Promise<{
   const SOL_PRICE_ID = "ef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d";
   const PYTH_PRICE_ID = "0bbf28e9a841a1cc788f6a361b17ca072d0ea3098a1e5df1c3922d06719579ff";
 
-  // Fetch current prices from Hermes API
-  const [solPrice, pythPrice, solChange, pythChange] = await Promise.all([
+  const timestamp24hAgo = Math.floor(Date.now() / 1000) - 86400;
+
+  const [solPrice, pythPrice, sol24hAgo, pyth24hAgo] = await Promise.all([
     getPriceFromHermes(SOL_PRICE_ID),
     getPriceFromHermes(PYTH_PRICE_ID),
-    get24hChangeFromCoinGecko("solana"),
-    get24hChangeFromCoinGecko("pyth-network"),
+    getPriceFromHermesAt(SOL_PRICE_ID, timestamp24hAgo),
+    getPriceFromHermesAt(PYTH_PRICE_ID, timestamp24hAgo),
   ]);
+
+  const solChange = compute24hChange(solPrice, sol24hAgo);
+  const pythChange = compute24hChange(pythPrice, pyth24hAgo);
 
   return {
     sol: {
