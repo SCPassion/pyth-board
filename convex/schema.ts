@@ -84,4 +84,29 @@ export default defineSchema({
   })
     .index("by_weekKey", ["weekKey"])
     .index("by_generatedAtMs", ["generatedAtMs"]),
+  sell_events: defineTable({
+    signature: v.string(),
+    fromAddress: v.string(),
+    pythAmount: v.number(),
+    toToken: v.string(),
+    toTokenSymbol: v.optional(v.string()),
+    toAmount: v.number(),
+    tier: v.string(),
+    timestamp: v.number(),
+  })
+    .index("by_timestamp", ["timestamp"])
+    .index("by_signature", ["signature"])
+    .index("by_address", ["fromAddress"])
+    .index("by_tier_and_timestamp", ["tier", "timestamp"]),
+  sells_daily: defineTable({
+    date: v.string(),
+    totalPythSold: v.number(),
+    eventCount: v.number(),
+    byTier: v.object({
+      significant: v.number(),
+      large: v.number(),
+      whale: v.number(),
+    }),
+  })
+    .index("by_date", ["date"]),
 });
