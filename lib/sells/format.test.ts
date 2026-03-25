@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { formatPythAmount, formatTimeAgo, truncateAddress } from "@/lib/sells/format";
+import { formatPythAmount, formatTimeAgo, truncateAddress } from "./format";
 
 describe("formatPythAmount", () => {
   it("formats amounts under 10K with comma separators", () => {
