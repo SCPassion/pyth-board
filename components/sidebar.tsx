@@ -5,6 +5,7 @@ import {
   Wallet,
   Image as ImageIcon,
   Building2,
+  TrendingDown,
   Newspaper,
   ArrowUpRight,
 } from "lucide-react";
@@ -29,6 +30,7 @@ export function Sidebar({
     { href: "/wallets", label: "Wallets", icon: Wallet },
     { href: "/pythenians", label: "Pythenians", icon: ImageIcon },
     { href: "/reserve", label: "Reserve", icon: Building2 },
+    { href: "/sells", label: "Sells", icon: TrendingDown },
     { href: "/news", label: "News", icon: Newspaper },
   ];
 
