@@ -154,7 +154,7 @@ export function SellsAnalytics() {
                       style={{ backgroundColor: d.color }}
                     />
                     <span className="capitalize text-[#a8a1bf]">
-                      {d.name} ({d.pct})
+                      {d.name} ({d.value} events · {d.pct})
                     </span>
                   </div>
                 ))}
