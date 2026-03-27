@@ -15,17 +15,17 @@ export default function SellsPage() {
     <div className="space-y-5 w-full min-w-0 overflow-x-hidden px-1 sm:px-2 lg:px-3">
 
       {/* Hero Header */}
-      <section className="relative overflow-hidden rounded-[30px] border border-white/10 bg-[linear-gradient(135deg,rgba(47,34,82,0.96)_0%,rgba(93,47,141,0.88)_54%,rgba(181,88,152,0.72)_100%)] px-6 py-7 shadow-[0_28px_70px_rgba(9,5,20,0.28)] sm:px-8">
-        <div className="pointer-events-none absolute -right-8 top-2 h-36 w-36 rounded-full bg-white/10 blur-3xl" />
-        <div className="pointer-events-none absolute bottom-[-28px] left-[38%] h-24 w-24 rounded-full bg-red-400/10 blur-2xl" />
+      <section className="relative overflow-hidden rounded-[32px] border border-white/15 bg-[linear-gradient(135deg,rgba(40,28,70,0.96)_0%,rgba(70,35,110,0.88)_50%,rgba(140,50,110,0.8)_100%)] px-6 py-8 shadow-[0_20px_60px_rgba(9,5,20,0.4)] sm:px-10">
+        <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-purple-500/20 blur-[80px]" />
+        <div className="pointer-events-none absolute -bottom-32 left-[20%] h-64 w-64 rounded-full bg-pink-500/20 blur-[80px]" />
 
-        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between min-w-0">
+        <div className="relative flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between min-w-0">
           <div className="space-y-2">
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-white sm:text-3xl">
+              <h1 className="text-3xl font-extrabold tracking-tight text-white drop-shadow-md sm:text-4xl">
                 PYTH Sell Activity
               </h1>
-              <Badge className="rounded-full border border-cyan-300/35 bg-cyan-400/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-cyan-100 shadow-[0_8px_24px_rgba(73,224,255,0.16)]">
+              <Badge className="rounded-full border border-cyan-300/35 bg-cyan-400/15 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-cyan-100 shadow-[0_0_20px_rgba(73,224,255,0.4)] backdrop-blur-md">
                 BETA
               </Badge>
             </div>
