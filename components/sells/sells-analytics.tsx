@@ -203,7 +203,7 @@ export function SellsAnalytics() {
                       style={{ backgroundColor: d.color }}
                     />
                     <span className="capitalize text-[#a8a1bf]">
-                      {d.name} ({d.pct})
+                      {d.name} ({formatPythAmount(d.value)} PYTH · {d.pct})
                     </span>
                   </div>
                 ))}
