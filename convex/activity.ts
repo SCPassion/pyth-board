@@ -45,10 +45,13 @@ export const handleHeliusWebhook = httpAction(async (ctx, request) => {
   }
 
   for (const tx of transactions) {
-    const sellData = extractSellData(tx.tokenTransfers ?? [], PYTH_MINT);
+    const transfers = tx.tokenTransfers ?? [];
+    const feePayer = tx.feePayer;
+
+    const sellData = extractSellData(transfers, PYTH_MINT, feePayer);
     if (sellData) {
       // Sell detected — store if above minimum, skip buy detection entirely.
-      // A transaction with any PYTH-outbound transfer is always a sell,
+      // A transaction where feePayer sends PYTH out is always a sell,
       // even if the amount is below the minimum.
       if (sellData.pythAmount >= MINIMUM_PYTH_AMOUNT) {
         await ctx.runMutation(internal.activity.storeSellEvent, {
@@ -65,7 +68,7 @@ export const handleHeliusWebhook = httpAction(async (ctx, request) => {
       continue;
     }
 
-    const buyData = extractBuyData(tx.tokenTransfers ?? [], PYTH_MINT);
+    const buyData = extractBuyData(transfers, PYTH_MINT, feePayer);
     if (buyData && buyData.pythAmount >= MINIMUM_PYTH_AMOUNT) {
       await ctx.runMutation(internal.activity.storeBuyEvent, {
         signature: tx.signature,
