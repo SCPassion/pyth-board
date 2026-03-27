@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { usePaginatedQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { formatPythAmount, truncateAddress, formatTimeAgo } from "@/lib/sells/format";
@@ -7,8 +8,10 @@ import { getTokenSymbol } from "@/lib/sells/tokenSymbols";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Loader2 } from "lucide-react";
+import { ExternalLink, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+const PAGE_SIZE = 20;
 
 const TIER_STYLES = {
   whale: {
@@ -28,11 +31,30 @@ export function SellActivityFeed({
 }: {
   tierFilter?: "all" | "dolphin" | "whale";
 }) {
+  const [page, setPage] = useState(0);
   const { results, status, loadMore } = usePaginatedQuery(
     api.sells.getSellEvents,
     { tier: tierFilter === "all" ? undefined : tierFilter },
-    { initialNumItems: 10 }
+    { initialNumItems: PAGE_SIZE }
   );
+
+  // Reset to first page when filter changes
+  useEffect(() => { setPage(0); }, [tierFilter]);
+
+  // Pre-fetch next page's data when approaching end of loaded results
+  const neededForNextPage = (page + 2) * PAGE_SIZE;
+  useEffect(() => {
+    if (status === "CanLoadMore" && results.length < neededForNextPage) {
+      loadMore(PAGE_SIZE);
+    }
+  }, [page, status, results.length, neededForNextPage, loadMore]);
+
+  const pageItems = results.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  const hasNextPage = results.length > (page + 1) * PAGE_SIZE || status === "CanLoadMore";
+  const hasPrevPage = page > 0;
+  const totalLoaded = results.length;
+  const start = page * PAGE_SIZE + 1;
+  const end = Math.min((page + 1) * PAGE_SIZE, totalLoaded);
 
   if (status === "LoadingFirstPage") {
     return (
@@ -65,7 +87,7 @@ export function SellActivityFeed({
     <Card className="rounded-[28px] border-white/10 bg-[linear-gradient(148deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.02)_100%)] py-0 shadow-[0_20px_55px_rgba(8,5,18,0.2)]">
       <CardHeader className="px-7 pt-7 pb-3 sm:px-8">
         <p className="text-xs text-[#a8a1bf]">
-          {results.length} sell event{results.length !== 1 ? "s" : ""} — newest first
+          Showing {start}–{end} of {status === "Exhausted" ? totalLoaded : `${totalLoaded}+`} sell events — newest first
         </p>
       </CardHeader>
       <CardContent className="space-y-2 px-7 pb-7 sm:px-8 sm:pb-8">
@@ -90,7 +112,7 @@ export function SellActivityFeed({
           <div className="w-4 shrink-0" />
         </div>
 
-        {results.map((event) => {
+        {pageItems.map((event) => {
           const tier =
             TIER_STYLES[event.tier as keyof typeof TIER_STYLES] ??
             TIER_STYLES.dolphin;
@@ -102,7 +124,7 @@ export function SellActivityFeed({
               target="_blank"
               rel="noopener noreferrer"
               className={cn(
-                "flex items-center gap-4 rounded-2xl border-l-4 border border-white/6 bg-[#2f2942] p-3 transition-all duration-200 hover:border-white/12 hover:bg-[#352d47] hover:scale-[1.005]",
+                "group flex items-center gap-4 rounded-2xl border-l-[3px] border border-white/5 bg-white/[0.02] p-3 transition-all duration-300 hover:-translate-y-[2px] hover:border-white/15 hover:bg-white/[0.04] hover:shadow-[0_8px_30px_rgba(0,0,0,0.12)]",
                 tier.border
               )}
             >
@@ -143,29 +165,40 @@ export function SellActivityFeed({
                 <div className="w-24 text-right">
                   <span className="text-xs text-[#a8a1bf]">{formatTimeAgo(event.timestamp)}</span>
                 </div>
-                <div className="w-4 shrink-0">
-                  <ExternalLink className="h-4 w-4 text-[#8f88a9] transition-colors hover:text-white" />
+                <div className="w-4 shrink-0 transform transition-transform duration-300 group-hover:-translate-y-[2px] group-hover:translate-x-[2px]">
+                  <ExternalLink className="h-4 w-4 text-[#8f88a9] transition-colors group-hover:text-white" />
                 </div>
               </div>
             </a>
           );
         })}
 
-        {status === "CanLoadMore" && (
-          <div className="flex justify-center pt-4">
-            <Button
-              variant="ghost"
-              className="rounded-2xl px-6 text-[#b4aec8] hover:bg-white/5 hover:text-white"
-              onClick={() => loadMore(10)}
-            >
-              Load more
-            </Button>
-          </div>
-        )}
+        {/* Pagination controls */}
+        <div className="flex items-center justify-between pt-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={!hasPrevPage}
+            onClick={() => setPage((p) => p - 1)}
+            className="rounded-xl px-3 text-[#b4aec8] hover:bg-white/5 hover:text-white disabled:opacity-30"
+          >
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            Previous
+          </Button>
 
-        {status === "Exhausted" && results.length > 0 && (
-          <p className="pt-4 text-center text-xs text-[#a8a1bf]">All sell events loaded</p>
-        )}
+          <span className="text-xs text-[#a8a1bf]">Page {page + 1}</span>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={!hasNextPage}
+            onClick={() => setPage((p) => p + 1)}
+            className="rounded-xl px-3 text-[#b4aec8] hover:bg-white/5 hover:text-white disabled:opacity-30"
+          >
+            Next
+            <ChevronRight className="h-4 w-4 ml-1" />
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );
