@@ -3,19 +3,34 @@
 import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { SellsSummaryBar } from "@/components/sells/sells-summary-bar";
-import { WhaleCards } from "@/components/sells/whale-cards";
-import { SellActivityFeed } from "@/components/sells/sell-activity-feed";
 import { SellsAnalytics } from "@/components/sells/sells-analytics";
-import { SellsTierFilter } from "@/components/sells/sells-tier-filter";
+import { BuysAnalytics } from "@/components/sells/buys-analytics";
+import { WhaleCards } from "@/components/sells/whale-cards";
+import { WhaleBuyCards } from "@/components/sells/whale-buy-cards";
+import { SellActivityFeed } from "@/components/sells/sell-activity-feed";
+import { BuyActivityFeed } from "@/components/sells/buy-activity-feed";
+import { SellsSummaryBar } from "@/components/sells/sells-summary-bar";
+import { BuysSummaryBar } from "@/components/sells/buys-summary-bar";
+import { TierFilter } from "@/components/sells/tier-filter";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
-export default function SellsPage() {
+type Mode = "sell" | "buy";
+
+export default function ActivityPage() {
+  const [mode, setMode] = useState<Mode>("sell");
   const [tierFilter, setTierFilter] = useState<"all" | "dolphin" | "whale">("all");
-  const trackingStart = useQuery(api.sells.getTrackingStartDate, {});
+
+  const trackingStart = useQuery(api.activity.getTrackingStartDate, {});
   const trackingSince = trackingStart
-    ? new Date(trackingStart).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+    ? new Date(trackingStart).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
     : null;
+
+  const isSell = mode === "sell";
 
   return (
     <div className="space-y-5 w-full min-w-0 overflow-x-hidden px-1 sm:px-2 lg:px-3">
@@ -29,14 +44,14 @@ export default function SellsPage() {
           <div className="space-y-2">
             <div className="flex items-center gap-3">
               <h1 className="text-3xl font-extrabold tracking-tight text-white drop-shadow-md sm:text-4xl">
-                PYTH Sell Activity
+                {isSell ? "PYTH Sell Activity" : "PYTH Buy Activity"}
               </h1>
               <Badge className="rounded-full border border-cyan-300/35 bg-cyan-400/15 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-cyan-100 shadow-[0_0_20px_rgba(73,224,255,0.4)] backdrop-blur-md">
                 BETA
               </Badge>
             </div>
             <p className="max-w-xl text-sm text-white/80 sm:text-base">
-              Tracking all on-chain PYTH sell events in real-time
+              Tracking all on-chain PYTH {isSell ? "sell" : "buy"} events in real-time
             </p>
             <div className="flex flex-wrap gap-2 pt-1">
               <span className="flex items-center gap-1.5 rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs text-white/70">
@@ -68,24 +83,57 @@ export default function SellsPage() {
                 </Badge>
               )}
             </div>
-            <SellsSummaryBar />
+            {isSell ? <SellsSummaryBar /> : <BuysSummaryBar />}
           </div>
         </div>
       </section>
 
-      {/* Sell Pressure Analytics */}
-      <SellsAnalytics />
+      {/* Buy / Sell Toggle */}
+      <div className="flex items-center justify-center gap-2 rounded-[24px] border border-white/8 bg-[#312940] p-2">
+        <Button
+          size="sm"
+          variant={isSell ? "default" : "ghost"}
+          className={
+            isSell
+              ? "h-10 rounded-2xl bg-[#6f4bd8] px-6 text-white hover:bg-[#7b57e3]"
+              : "h-10 rounded-2xl px-6 text-[#b4aec8] hover:bg-white/5 hover:text-white"
+          }
+          onClick={() => { setMode("sell"); setTierFilter("all"); }}
+        >
+          Sell
+        </Button>
+        <Button
+          size="sm"
+          variant={!isSell ? "default" : "ghost"}
+          className={
+            !isSell
+              ? "h-10 rounded-2xl bg-[#6f4bd8] px-6 text-white hover:bg-[#7b57e3]"
+              : "h-10 rounded-2xl px-6 text-[#b4aec8] hover:bg-white/5 hover:text-white"
+          }
+          onClick={() => { setMode("buy"); setTierFilter("all"); }}
+        >
+          Buy
+        </Button>
+      </div>
 
-      {/* Whale Cards — hidden when no whale events exist */}
-      <WhaleCards />
+      {/* Analytics */}
+      {isSell ? <SellsAnalytics /> : <BuysAnalytics />}
 
-      {/* Notable Sells */}
+      {/* Whale Cards */}
+      {isSell ? <WhaleCards /> : <WhaleBuyCards />}
+
+      {/* Notable Events */}
       <div className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-xl font-bold text-white sm:text-2xl">Notable Sells</h2>
-          <SellsTierFilter value={tierFilter} onChange={setTierFilter} />
+          <h2 className="text-xl font-bold text-white sm:text-2xl">
+            {isSell ? "Notable Sells" : "Notable Buys"}
+          </h2>
+          <TierFilter value={tierFilter} onChange={setTierFilter} />
         </div>
-        <SellActivityFeed tierFilter={tierFilter} />
+        {isSell
+          ? <SellActivityFeed tierFilter={tierFilter} />
+          : <BuyActivityFeed tierFilter={tierFilter} />
+        }
       </div>
 
     </div>
