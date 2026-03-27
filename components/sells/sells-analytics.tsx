@@ -129,20 +129,29 @@ export function SellsAnalytics() {
                     </p>
                   </div>
                 </div>
-                <div className="flex h-6 w-full overflow-hidden rounded-full bg-black/40 p-1 ring-1 ring-white/10 shadow-inner">
-                  {volumeDataWithPct.map((d) => (
-                    <div
-                      key={d.name}
-                      style={{ width: d.pct, backgroundColor: d.color }}
-                      className="group relative h-full cursor-pointer transition-all duration-500 hover:brightness-125 hover:shadow-[0_0_15px_rgba(255,255,255,0.3)] first:rounded-l-full last:rounded-r-full"
-                    >
-                      <div className="absolute inset-x-0 -top-9 hidden justify-center group-hover:flex z-10">
-                        <div className="whitespace-nowrap rounded-md bg-black/80 px-2.5 py-1 text-[11px] font-medium text-white shadow-xl ring-1 ring-white/20 backdrop-blur-md">
-                          {d.pctDisplay}
+                <div className="flex h-6 w-full rounded-full bg-black/40 p-1 ring-1 ring-white/10 shadow-inner">
+                  {volumeDataWithPct.map((d, i, arr) => {
+                    const isFirst = i === 0;
+                    const isLast = i === arr.length - 1;
+                    let positionClass = "left-1/2 -translate-x-1/2";
+                    if (arr.length === 1) positionClass = "left-1/2 -translate-x-1/2";
+                    else if (isFirst) positionClass = "left-0";
+                    else if (isLast) positionClass = "right-0";
+
+                    return (
+                      <div
+                        key={d.name}
+                        style={{ width: d.pct, backgroundColor: d.color }}
+                        className="group relative h-full cursor-pointer transition-all duration-500 hover:brightness-125 hover:shadow-[0_0_15px_rgba(255,255,255,0.3)] first:rounded-l-full last:rounded-r-full"
+                      >
+                        <div className={`absolute top-full mt-2.5 z-50 hidden group-hover:flex ${positionClass}`}>
+                          <div className="whitespace-nowrap rounded-md bg-black/90 px-3 py-1.5 text-xs font-semibold text-white shadow-xl ring-1 ring-white/20 backdrop-blur-md">
+                            <span className="capitalize">{d.name}</span>: {formatPythAmount(d.value)} PYTH ({d.pctDisplay})
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 
@@ -157,20 +166,29 @@ export function SellsAnalytics() {
                     </p>
                   </div>
                 </div>
-                <div className="flex h-6 w-full overflow-hidden rounded-full bg-black/40 p-1 ring-1 ring-white/10 shadow-inner">
-                  {eventDataWithPct.map((d) => (
-                    <div
-                      key={d.name}
-                      style={{ width: d.pct, backgroundColor: d.color }}
-                      className="group relative h-full cursor-pointer transition-all duration-500 hover:brightness-125 hover:shadow-[0_0_15px_rgba(255,255,255,0.3)] first:rounded-l-full last:rounded-r-full"
-                    >
-                      <div className="absolute inset-x-0 -top-9 hidden justify-center group-hover:flex z-10">
-                        <div className="whitespace-nowrap rounded-md bg-black/80 px-2.5 py-1 text-[11px] font-medium text-white shadow-xl ring-1 ring-white/20 backdrop-blur-md">
-                          {d.pctDisplay}
+                <div className="flex h-6 w-full rounded-full bg-black/40 p-1 ring-1 ring-white/10 shadow-inner">
+                  {eventDataWithPct.map((d, i, arr) => {
+                    const isFirst = i === 0;
+                    const isLast = i === arr.length - 1;
+                    let positionClass = "left-1/2 -translate-x-1/2";
+                    if (arr.length === 1) positionClass = "left-1/2 -translate-x-1/2";
+                    else if (isFirst) positionClass = "left-0";
+                    else if (isLast) positionClass = "right-0";
+
+                    return (
+                      <div
+                        key={d.name}
+                        style={{ width: d.pct, backgroundColor: d.color }}
+                        className="group relative h-full cursor-pointer transition-all duration-500 hover:brightness-125 hover:shadow-[0_0_15px_rgba(255,255,255,0.3)] first:rounded-l-full last:rounded-r-full"
+                      >
+                        <div className={`absolute top-full mt-2.5 z-50 hidden group-hover:flex ${positionClass}`}>
+                          <div className="whitespace-nowrap rounded-md bg-black/90 px-3 py-1.5 text-xs font-semibold text-white shadow-xl ring-1 ring-white/20 backdrop-blur-md">
+                            <span className="capitalize">{d.name}</span>: {d.value} Trades ({d.pctDisplay})
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             </div>
