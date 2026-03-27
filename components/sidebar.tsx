@@ -30,8 +30,8 @@ export function Sidebar({
     { href: "/wallets", label: "Wallets", icon: Wallet },
     { href: "/pythenians", label: "Pythenians", icon: ImageIcon },
     { href: "/reserve", label: "Reserve", icon: Building2 },
-    { href: "/sells", label: "Sells", icon: TrendingDown },
     { href: "/news", label: "News", icon: Newspaper },
+    { href: "/sells", label: "Sells", icon: TrendingDown },
   ];
 
   const isActive = (path: string) => {
