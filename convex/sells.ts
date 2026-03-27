@@ -187,6 +187,14 @@ export const getSellsSummary = query({
 
     const sum = (days: typeof allDays) => ({
       totalPythSold: days.reduce((s, d) => s + d.totalPythSold, 0),
+      totalPythSoldAllTiers: days.reduce(
+        (s, d) =>
+          s +
+          (d.pythVolumeByTier.shrimp ?? 0) +
+          d.pythVolumeByTier.dolphin +
+          d.pythVolumeByTier.whale,
+        0
+      ),
       eventCount: days.reduce((s, d) => s + d.eventCount, 0),
     });
 

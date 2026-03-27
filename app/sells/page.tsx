@@ -31,7 +31,7 @@ export default function SellsPage() {
               </div>
             </div>
             <p className="max-w-xl text-sm text-white/80 sm:text-base">
-              Tracking on-chain PYTH sell events above 10,000 PYTH
+              Tracking all on-chain PYTH sell events in real-time
             </p>
           </div>
 

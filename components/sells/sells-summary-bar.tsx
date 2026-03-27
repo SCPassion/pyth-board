@@ -29,15 +29,15 @@ export function SellsSummaryBar() {
     <div className="flex flex-wrap items-center gap-2">
       <StatPill
         label="24h"
-        value={`${formatPythAmount(summary?.last24h.totalPythSold ?? 0)} PYTH`}
+        value={`${formatPythAmount(summary?.last24h.totalPythSoldAllTiers ?? 0)} PYTH`}
       />
       <StatPill
         label="7d"
-        value={`${formatPythAmount(summary?.last7d.totalPythSold ?? 0)} PYTH`}
+        value={`${formatPythAmount(summary?.last7d.totalPythSoldAllTiers ?? 0)} PYTH`}
       />
       <StatPill
         label="30d"
-        value={`${formatPythAmount(summary?.last30d.totalPythSold ?? 0)} PYTH`}
+        value={`${formatPythAmount(summary?.last30d.totalPythSoldAllTiers ?? 0)} PYTH`}
       />
     </div>
   );
