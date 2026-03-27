@@ -124,14 +124,14 @@ export function SellsAnalytics() {
             {/* Left: Event Count */}
             <div className="flex flex-col items-center gap-2">
               <p className="text-xs font-medium text-[#8f88a9]">Sell Events</p>
-              <ResponsiveContainer width="100%" height={200}>
+              <ResponsiveContainer width="100%" height={240}>
                 <PieChart>
                   <Pie
                     data={eventDataWithPct}
                     cx="50%"
                     cy="50%"
-                    innerRadius={55}
-                    outerRadius={85}
+                    innerRadius={70}
+                    outerRadius={105}
                     paddingAngle={3}
                     dataKey="value"
                   >
@@ -161,33 +161,40 @@ export function SellsAnalytics() {
               </div>
             </div>
 
-            {/* Right: PYTH Volume */}
+            {/* Right: PYTH Volume — dolphin+whale only (shrimp excluded from tracking) */}
             <div className="flex flex-col items-center gap-2">
               <p className="text-xs font-medium text-[#8f88a9]">PYTH Volume</p>
-              <ResponsiveContainer width="100%" height={200}>
-                <PieChart>
-                  <Pie
-                    data={volumeDataWithPct}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={55}
-                    outerRadius={85}
-                    paddingAngle={3}
-                    dataKey="value"
-                  >
-                    {volumeDataWithPct.map((entry) => (
-                      <Cell key={entry.name} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    content={
-                      <CustomTooltip
-                        formatter={(v) => `${formatPythAmount(v)} PYTH`}
-                      />
-                    }
-                  />
-                </PieChart>
-              </ResponsiveContainer>
+              {volumeDataWithPct.length === 0 ? (
+                <div className="flex h-[240px] flex-col items-center justify-center gap-2 text-center">
+                  <p className="text-sm text-[#a8a1bf]">No dolphin or whale sells yet</p>
+                  <p className="text-xs text-[#6b6484]">Tracked once a sell exceeds 10K PYTH</p>
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={240}>
+                  <PieChart>
+                    <Pie
+                      data={volumeDataWithPct}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={70}
+                      outerRadius={105}
+                      paddingAngle={3}
+                      dataKey="value"
+                    >
+                      {volumeDataWithPct.map((entry) => (
+                        <Cell key={entry.name} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      content={
+                        <CustomTooltip
+                          formatter={(v) => `${formatPythAmount(v)} PYTH`}
+                        />
+                      }
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
               <div className="flex flex-wrap justify-center gap-3 text-xs">
                 {volumeDataWithPct.map((d) => (
                   <div key={d.name} className="flex items-center gap-1.5">
