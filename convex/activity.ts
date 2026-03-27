@@ -7,7 +7,9 @@ import {
   assignTier,
   toUtcDateKey,
   extractSellData,
+  extractBuyData,
   type TokenTransfer,
+  type BuyData,
 } from "./sellsUtils";
 
 const MINIMUM_PYTH_AMOUNT = 1; // store all sells; shrimp (< 10K) filtered from display feed
@@ -23,7 +25,7 @@ type HeliusTransaction = {
 
 // ─── HTTP Action ─────────────────────────────────────────────────────────────
 
-export const handleHeliusSellWebhook = httpAction(async (ctx, request) => {
+export const handleHeliusWebhook = httpAction(async (ctx, request) => {
   // Helius sends the webhook secret as a raw string in the authorization header
   // (not "Bearer <token>" format). Set HELIUS_API_KEY via: npx convex env set HELIUS_API_KEY <value>
   const authHeader = request.headers.get("authorization");
@@ -44,20 +46,38 @@ export const handleHeliusSellWebhook = httpAction(async (ctx, request) => {
 
   for (const tx of transactions) {
     const sellData = extractSellData(tx.tokenTransfers ?? [], PYTH_MINT);
-    if (!sellData || sellData.pythAmount < MINIMUM_PYTH_AMOUNT) continue;
+    if (sellData) {
+      // Sell detected — store if above minimum, skip buy detection entirely.
+      // A transaction with any PYTH-outbound transfer is always a sell,
+      // even if the amount is below the minimum.
+      if (sellData.pythAmount >= MINIMUM_PYTH_AMOUNT) {
+        await ctx.runMutation(internal.activity.storeSellEvent, {
+          signature: tx.signature,
+          fromAddress: sellData.fromAddress,
+          pythAmount: sellData.pythAmount,
+          toToken: sellData.toToken,
+          toTokenSymbol: sellData.toTokenSymbol,
+          toAmount: sellData.toAmount,
+          tier: assignTier(sellData.pythAmount),
+          timestamp: tx.timestamp * 1000,
+        });
+      }
+      continue;
+    }
 
-    const tier = assignTier(sellData.pythAmount);
-
-    await ctx.runMutation(internal.sells.storeSellEvent, {
-      signature: tx.signature,
-      fromAddress: sellData.fromAddress,
-      pythAmount: sellData.pythAmount,
-      toToken: sellData.toToken,
-      toTokenSymbol: sellData.toTokenSymbol,
-      toAmount: sellData.toAmount,
-      tier,
-      timestamp: tx.timestamp * 1000, // Helius provides unix seconds; schema stores ms
-    });
+    const buyData = extractBuyData(tx.tokenTransfers ?? [], PYTH_MINT);
+    if (buyData && buyData.pythAmount >= MINIMUM_PYTH_AMOUNT) {
+      await ctx.runMutation(internal.activity.storeBuyEvent, {
+        signature: tx.signature,
+        fromAddress: buyData.toAddress, // BuyData.toAddress → buy_events.fromAddress
+        pythAmount: buyData.pythAmount,
+        fromToken: buyData.fromToken,
+        fromTokenSymbol: buyData.fromTokenSymbol,
+        fromAmount: buyData.fromAmount,
+        tier: assignTier(buyData.pythAmount),
+        timestamp: tx.timestamp * 1000,
+      });
+    }
   }
 
   return new Response("OK", { status: 200 });
@@ -143,6 +163,83 @@ export const storeSellEvent = internalMutation({
   },
 });
 
+export const storeBuyEvent = internalMutation({
+  args: {
+    signature: v.string(),
+    fromAddress: v.string(),  // buyer's wallet (BuyData.toAddress mapped here)
+    pythAmount: v.number(),
+    fromToken: v.string(),
+    fromTokenSymbol: v.optional(v.string()),
+    fromAmount: v.number(),
+    tier: v.string(),
+    timestamp: v.number(),
+  },
+  handler: async (ctx, args) => {
+    // Deduplication — Helius guarantees at-least-once delivery; skip duplicates
+    const existing = await ctx.db
+      .query("buy_events")
+      .withIndex("by_signature", (q) => q.eq("signature", args.signature))
+      .first();
+    if (existing) return;
+
+    await ctx.db.insert("buy_events", {
+      signature: args.signature,
+      fromAddress: args.fromAddress,
+      pythAmount: args.pythAmount,
+      fromToken: args.fromToken,
+      fromTokenSymbol: args.fromTokenSymbol,
+      fromAmount: args.fromAmount,
+      tier: args.tier,
+      timestamp: args.timestamp,
+    });
+
+    // Upsert buys_daily — all tiers tracked including shrimp volume.
+    // Shrimp excluded from totalPythBought and eventCount but tracked in byTier and pythVolumeByTier.
+    const dateKey = toUtcDateKey(args.timestamp);
+    const dailyRecord = await ctx.db
+      .query("buys_daily")
+      .withIndex("by_date", (q) => q.eq("date", dateKey))
+      .first();
+
+    const tierKey = args.tier as "shrimp" | "dolphin" | "whale";
+
+    if (dailyRecord) {
+      await ctx.db.patch(dailyRecord._id, {
+        totalPythBought: tierKey !== "shrimp"
+          ? dailyRecord.totalPythBought + args.pythAmount
+          : dailyRecord.totalPythBought,
+        eventCount: tierKey !== "shrimp"
+          ? dailyRecord.eventCount + 1
+          : dailyRecord.eventCount,
+        byTier: {
+          ...dailyRecord.byTier,
+          [tierKey]: dailyRecord.byTier[tierKey] + 1,
+        },
+        pythVolumeByTier: {
+          ...dailyRecord.pythVolumeByTier,
+          [tierKey]: dailyRecord.pythVolumeByTier[tierKey] + args.pythAmount,
+        },
+      });
+    } else {
+      await ctx.db.insert("buys_daily", {
+        date: dateKey,
+        totalPythBought: tierKey !== "shrimp" ? args.pythAmount : 0,
+        eventCount: tierKey !== "shrimp" ? 1 : 0,
+        byTier: {
+          shrimp: tierKey === "shrimp" ? 1 : 0,
+          dolphin: tierKey === "dolphin" ? 1 : 0,
+          whale: tierKey === "whale" ? 1 : 0,
+        },
+        pythVolumeByTier: {
+          shrimp: tierKey === "shrimp" ? args.pythAmount : 0,
+          dolphin: tierKey === "dolphin" ? args.pythAmount : 0,
+          whale: tierKey === "whale" ? args.pythAmount : 0,
+        },
+      });
+    }
+  },
+});
+
 // ─── Queries ─────────────────────────────────────────────────────────────────
 
 // Paginated feed — frontend uses usePaginatedQuery, not useQuery
@@ -159,6 +256,27 @@ export const getSellEvents = query({
     }
     return await ctx.db
       .query("sell_events")
+      .withIndex("by_timestamp")
+      .order("desc")
+      .filter((q) => q.neq(q.field("tier"), "shrimp"))
+      .paginate(args.paginationOpts);
+  },
+});
+
+export const getBuyEvents = query({
+  args: { paginationOpts: paginationOptsValidator, tier: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const tier = args.tier;
+    if (tier) {
+      return await ctx.db
+        .query("buy_events")
+        .withIndex("by_tier_and_timestamp", (q) => q.eq("tier", tier))
+        .order("desc")
+        .paginate(args.paginationOpts);
+    }
+    // "all" — exclude shrimp, same as getSellEvents
+    return await ctx.db
+      .query("buy_events")
       .withIndex("by_timestamp")
       .order("desc")
       .filter((q) => q.neq(q.field("tier"), "shrimp"))
@@ -206,6 +324,40 @@ export const getSellsSummary = query({
   },
 });
 
+export const getBuysSummary = query({
+  args: {},
+  handler: async (ctx) => {
+    const now = Date.now();
+    const todayKey = toUtcDateKey(now);
+    const sevenDaysAgoKey = toUtcDateKey(now - 6 * 24 * 60 * 60 * 1000);
+    const thirtyDaysAgoKey = toUtcDateKey(now - 29 * 24 * 60 * 60 * 1000);
+
+    const allDays = await ctx.db
+      .query("buys_daily")
+      .withIndex("by_date", (q) => q.gte("date", thirtyDaysAgoKey))
+      .collect();
+
+    const sum = (days: typeof allDays) => ({
+      totalPythBought: days.reduce((s, d) => s + d.totalPythBought, 0),
+      totalPythBoughtAllTiers: days.reduce(
+        (s, d) =>
+          s +
+          d.pythVolumeByTier.shrimp +
+          d.pythVolumeByTier.dolphin +
+          d.pythVolumeByTier.whale,
+        0
+      ),
+      eventCount: days.reduce((s, d) => s + d.eventCount, 0),
+    });
+
+    return {
+      last24h: sum(allDays.filter((d) => d.date === todayKey)),
+      last7d: sum(allDays.filter((d) => d.date >= sevenDaysAgoKey)),
+      last30d: sum(allDays),
+    };
+  },
+});
+
 // Whale events from the last 30 days — uses compound index for efficient range query
 export const getWhaleSellEvents = query({
   args: {},
@@ -213,6 +365,20 @@ export const getWhaleSellEvents = query({
     const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
     return await ctx.db
       .query("sell_events")
+      .withIndex("by_tier_and_timestamp", (q) =>
+        q.eq("tier", "whale").gte("timestamp", thirtyDaysAgo)
+      )
+      .order("desc")
+      .take(20);
+  },
+});
+
+export const getWhaleBuyEvents = query({
+  args: {},
+  handler: async (ctx) => {
+    const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    return await ctx.db
+      .query("buy_events")
       .withIndex("by_tier_and_timestamp", (q) =>
         q.eq("tier", "whale").gte("timestamp", thirtyDaysAgo)
       )
@@ -253,16 +419,49 @@ export const getSellsAnalytics = query({
   },
 });
 
-// Returns the timestamp (ms) of the earliest recorded sell event — used to
+export const getBuysAnalytics = query({
+  args: { window: v.union(v.literal("7d"), v.literal("30d"), v.literal("all")) },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    const windowStart =
+      args.window === "7d"
+        ? toUtcDateKey(now - 6 * 24 * 60 * 60 * 1000)
+        : args.window === "30d"
+        ? toUtcDateKey(now - 29 * 24 * 60 * 60 * 1000)
+        : "0000-00-00";
+
+    const days = await ctx.db
+      .query("buys_daily")
+      .withIndex("by_date", (q) => q.gte("date", windowStart))
+      .collect();
+
+    return {
+      eventCount: {
+        shrimp: days.reduce((s, d) => s + d.byTier.shrimp, 0),
+        dolphin: days.reduce((s, d) => s + d.byTier.dolphin, 0),
+        whale: days.reduce((s, d) => s + d.byTier.whale, 0),
+      },
+      pythVolume: {
+        // No ?? 0 needed — pythVolumeByTier.shrimp is v.number() (non-optional) in buys_daily
+        shrimp: days.reduce((s, d) => s + d.pythVolumeByTier.shrimp, 0),
+        dolphin: days.reduce((s, d) => s + d.pythVolumeByTier.dolphin, 0),
+        whale: days.reduce((s, d) => s + d.pythVolumeByTier.whale, 0),
+      },
+    };
+  },
+});
+
+// Returns the timestamp (ms) of the earliest recorded sell or buy event — used to
 // display "Tracking since …" in the UI.
 export const getTrackingStartDate = query({
   args: {},
   handler: async (ctx) => {
-    const first = await ctx.db
-      .query("sell_events")
-      .withIndex("by_timestamp")
-      .order("asc")
-      .first();
-    return first ? first.timestamp : null;
+    const [firstSell, firstBuy] = await Promise.all([
+      ctx.db.query("sell_events").withIndex("by_timestamp").order("asc").first(),
+      ctx.db.query("buy_events").withIndex("by_timestamp").order("asc").first(),
+    ]);
+    const timestamps = [firstSell?.timestamp, firstBuy?.timestamp]
+      .filter((t): t is number => t !== undefined);
+    return timestamps.length > 0 ? Math.min(...timestamps) : null;
   },
 });
