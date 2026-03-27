@@ -59,9 +59,9 @@ export function SellsAnalytics() {
       ].filter((d) => d.value > 0)
     : [];
 
-  // shrimp excluded from volume — sells_daily only tracks pythVolumeByTier for dolphin+whale
   const volumeData = data
     ? [
+        { name: "shrimp", value: data.pythVolume.shrimp, color: COLORS.shrimp },
         { name: "dolphin", value: data.pythVolume.dolphin, color: COLORS.dolphin },
         { name: "whale", value: data.pythVolume.whale, color: COLORS.whale },
       ].filter((d) => d.value > 0)
@@ -161,13 +161,13 @@ export function SellsAnalytics() {
               </div>
             </div>
 
-            {/* Right: PYTH Volume — dolphin+whale only (shrimp excluded from tracking) */}
+            {/* Right: PYTH Volume — all tiers (shrimp, dolphin, whale) */}
             <div className="flex flex-col items-center gap-2">
               <p className="text-xs font-medium text-[#8f88a9]">PYTH Volume</p>
               {volumeDataWithPct.length === 0 ? (
                 <div className="flex h-[240px] flex-col items-center justify-center gap-2 text-center">
-                  <p className="text-sm text-[#a8a1bf]">No dolphin or whale sells yet</p>
-                  <p className="text-xs text-[#6b6484]">Tracked once a sell exceeds 10K PYTH</p>
+                  <p className="text-sm text-[#a8a1bf]">No sell volume yet</p>
+                  <p className="text-xs text-[#6b6484]">Volume will appear once sells are tracked</p>
                 </div>
               ) : (
                 <ResponsiveContainer width="100%" height={240}>

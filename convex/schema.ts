@@ -108,6 +108,7 @@ export default defineSchema({
       whale: v.number(),
     }),
     pythVolumeByTier: v.object({
+      shrimp: v.optional(v.number()),
       dolphin: v.number(),
       whale: v.number(),
     }),

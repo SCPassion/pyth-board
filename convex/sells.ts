@@ -96,8 +96,8 @@ export const storeSellEvent = internalMutation({
       timestamp: args.timestamp,
     });
 
-    // Upsert sells_daily — all tiers are tracked.
-    // Shrimp (< 10K) increments byTier.shrimp only; excluded from totalPythSold, eventCount, pythVolumeByTier.
+    // Upsert sells_daily — all tiers tracked including shrimp volume.
+    // Shrimp excluded from totalPythSold and eventCount (used by summary bar) but tracked in pythVolumeByTier.
     const dateKey = toUtcDateKey(args.timestamp);
     const dailyRecord = await ctx.db
       .query("sells_daily")
@@ -118,12 +118,10 @@ export const storeSellEvent = internalMutation({
           ...dailyRecord.byTier,
           [tierKey]: dailyRecord.byTier[tierKey] + 1,
         },
-        pythVolumeByTier: tierKey !== "shrimp"
-          ? {
-              ...dailyRecord.pythVolumeByTier,
-              [tierKey]: dailyRecord.pythVolumeByTier[tierKey as "dolphin" | "whale"] + args.pythAmount,
-            }
-          : dailyRecord.pythVolumeByTier,
+        pythVolumeByTier: {
+          ...dailyRecord.pythVolumeByTier,
+          [tierKey]: (dailyRecord.pythVolumeByTier[tierKey] ?? 0) + args.pythAmount,
+        },
       });
     } else {
       await ctx.db.insert("sells_daily", {
@@ -136,6 +134,7 @@ export const storeSellEvent = internalMutation({
           whale: tierKey === "whale" ? 1 : 0,
         },
         pythVolumeByTier: {
+          shrimp: tierKey === "shrimp" ? args.pythAmount : 0,
           dolphin: tierKey === "dolphin" ? args.pythAmount : 0,
           whale: tierKey === "whale" ? args.pythAmount : 0,
         },
@@ -238,6 +237,7 @@ export const getSellsAnalytics = query({
         whale: days.reduce((s, d) => s + d.byTier.whale, 0),
       },
       pythVolume: {
+        shrimp: days.reduce((s, d) => s + (d.pythVolumeByTier.shrimp ?? 0), 0),
         dolphin: days.reduce((s, d) => s + d.pythVolumeByTier.dolphin, 0),
         whale: days.reduce((s, d) => s + d.pythVolumeByTier.whale, 0),
       },
