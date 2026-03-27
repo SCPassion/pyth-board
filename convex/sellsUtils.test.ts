@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { assignTier, toUtcDateKey, extractSellData } from "./sellsUtils";
+import { assignTier, toUtcDateKey, extractSellData, extractBuyData } from "./sellsUtils";
 
 const PYTH_MINT = "HZ1JovNiVvGrGNiiYvEozEVgZ58xaU3RKwX8eACQBCt3";
 
@@ -102,5 +102,99 @@ describe("extractSellData", () => {
     expect(result).not.toBeNull();
     expect(result!.toToken).toBe("unknown");
     expect(result!.toAmount).toBe(0);
+  });
+});
+
+describe("extractBuyData", () => {
+  const validTransfers = [
+    {
+      fromUserAccount: "JupiterProgram",
+      toUserAccount: "BuyerWallet111",
+      mint: PYTH_MINT,
+      tokenAmount: 50_000,
+    },
+    {
+      fromUserAccount: "BuyerWallet111",
+      toUserAccount: "JupiterProgram",
+      mint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", // USDC
+      tokenAmount: 1500,
+    },
+  ];
+
+  it("extracts buyer address, pythAmount, fromToken, fromAmount from valid transfers", () => {
+    const result = extractBuyData(validTransfers, PYTH_MINT);
+    expect(result).not.toBeNull();
+    expect(result!.toAddress).toBe("BuyerWallet111");
+    expect(result!.pythAmount).toBe(50_000);
+    expect(result!.fromToken).toBe("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
+    expect(result!.fromAmount).toBe(1500);
+  });
+
+  it("returns null when there is no PYTH inbound transfer", () => {
+    const transfers = [
+      {
+        fromUserAccount: "BuyerWallet111",
+        toUserAccount: "JupiterProgram",
+        mint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+        tokenAmount: 1000,
+      },
+    ];
+    expect(extractBuyData(transfers, PYTH_MINT)).toBeNull();
+  });
+
+  it("maps symbol to fromTokenSymbol when present on outbound transfer", () => {
+    const transfers = [
+      {
+        fromUserAccount: "JupiterProgram",
+        toUserAccount: "BuyerWallet111",
+        mint: PYTH_MINT,
+        tokenAmount: 50_000,
+      },
+      {
+        fromUserAccount: "BuyerWallet111",
+        toUserAccount: "JupiterProgram",
+        mint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+        tokenAmount: 1500,
+        symbol: "USDC",
+      },
+    ];
+    const result = extractBuyData(transfers, PYTH_MINT);
+    expect(result!.fromTokenSymbol).toBe("USDC");
+  });
+
+  it("falls back to unknown fromToken and 0 fromAmount when no outbound leg found", () => {
+    const transfers = [
+      {
+        fromUserAccount: "JupiterProgram",
+        toUserAccount: "BuyerWallet111",
+        mint: PYTH_MINT,
+        tokenAmount: 50_000,
+      },
+    ];
+    const result = extractBuyData(transfers, PYTH_MINT);
+    expect(result).not.toBeNull();
+    expect(result!.fromToken).toBe("unknown");
+    expect(result!.fromAmount).toBe(0);
+  });
+
+  it("falls back when outbound leg belongs to a different account", () => {
+    const transfers = [
+      {
+        fromUserAccount: "JupiterProgram",
+        toUserAccount: "BuyerWallet111",
+        mint: PYTH_MINT,
+        tokenAmount: 50_000,
+      },
+      {
+        fromUserAccount: "OtherWallet",  // different account, not BuyerWallet111
+        toUserAccount: "JupiterProgram",
+        mint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+        tokenAmount: 1500,
+      },
+    ];
+    const result = extractBuyData(transfers, PYTH_MINT);
+    expect(result).not.toBeNull();
+    expect(result!.fromToken).toBe("unknown");
+    expect(result!.fromAmount).toBe(0);
   });
 });
