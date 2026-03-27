@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { httpAction, internalMutation, query } from "./_generated/server";
+import { httpAction, internalMutation, mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { paginationOptsValidator } from "convex/server";
 import {
@@ -10,7 +10,7 @@ import {
   type TokenTransfer,
 } from "./sellsUtils";
 
-const MINIMUM_PYTH_AMOUNT = 1; // store all sells; feed query filters out "minor" (< 10K) for display
+const MINIMUM_PYTH_AMOUNT = 1; // store all sells; shrimp (< 10K) filtered from display feed
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -96,36 +96,48 @@ export const storeSellEvent = internalMutation({
       timestamp: args.timestamp,
     });
 
-    // Upsert sells_daily — only track significant/large/whale in daily aggregates.
-    // Minor sells (< 10K) are stored in sell_events but excluded from summaries.
-    if (args.tier === "minor") return;
-
+    // Upsert sells_daily — all tiers are tracked.
+    // Shrimp (< 10K) increments byTier.shrimp only; excluded from totalPythSold, eventCount, pythVolumeByTier.
     const dateKey = toUtcDateKey(args.timestamp);
     const dailyRecord = await ctx.db
       .query("sells_daily")
       .withIndex("by_date", (q) => q.eq("date", dateKey))
       .first();
 
-    const tierKey = args.tier as "significant" | "large" | "whale";
+    const tierKey = args.tier as "shrimp" | "dolphin" | "whale";
 
     if (dailyRecord) {
       await ctx.db.patch(dailyRecord._id, {
-        totalPythSold: dailyRecord.totalPythSold + args.pythAmount,
-        eventCount: dailyRecord.eventCount + 1,
+        totalPythSold: tierKey !== "shrimp"
+          ? dailyRecord.totalPythSold + args.pythAmount
+          : dailyRecord.totalPythSold,
+        eventCount: tierKey !== "shrimp"
+          ? dailyRecord.eventCount + 1
+          : dailyRecord.eventCount,
         byTier: {
           ...dailyRecord.byTier,
           [tierKey]: dailyRecord.byTier[tierKey] + 1,
         },
+        pythVolumeByTier: tierKey !== "shrimp"
+          ? {
+              ...dailyRecord.pythVolumeByTier,
+              [tierKey]: dailyRecord.pythVolumeByTier[tierKey as "dolphin" | "whale"] + args.pythAmount,
+            }
+          : dailyRecord.pythVolumeByTier,
       });
     } else {
       await ctx.db.insert("sells_daily", {
         date: dateKey,
-        totalPythSold: args.pythAmount,
-        eventCount: 1,
+        totalPythSold: tierKey !== "shrimp" ? args.pythAmount : 0,
+        eventCount: tierKey !== "shrimp" ? 1 : 0,
         byTier: {
-          significant: tierKey === "significant" ? 1 : 0,
-          large: tierKey === "large" ? 1 : 0,
+          shrimp: tierKey === "shrimp" ? 1 : 0,
+          dolphin: tierKey === "dolphin" ? 1 : 0,
           whale: tierKey === "whale" ? 1 : 0,
+        },
+        pythVolumeByTier: {
+          dolphin: tierKey === "dolphin" ? args.pythAmount : 0,
+          whale: tierKey === "whale" ? args.pythAmount : 0,
         },
       });
     }
@@ -136,13 +148,21 @@ export const storeSellEvent = internalMutation({
 
 // Paginated feed — frontend uses usePaginatedQuery, not useQuery
 export const getSellEvents = query({
-  args: { paginationOpts: paginationOptsValidator },
+  args: { paginationOpts: paginationOptsValidator, tier: v.optional(v.string()) },
   handler: async (ctx, args) => {
+    const tier = args.tier;
+    if (tier) {
+      return await ctx.db
+        .query("sell_events")
+        .withIndex("by_tier_and_timestamp", (q) => q.eq("tier", tier))
+        .order("desc")
+        .paginate(args.paginationOpts);
+    }
     return await ctx.db
       .query("sell_events")
       .withIndex("by_timestamp")
       .order("desc")
-      .filter((q) => q.neq(q.field("tier"), "minor"))
+      .filter((q) => q.neq(q.field("tier"), "shrimp"))
       .paginate(args.paginationOpts);
   },
 });
@@ -190,6 +210,63 @@ export const getWhaleSellEvents = query({
         q.eq("tier", "whale").gte("timestamp", thirtyDaysAgo)
       )
       .order("desc")
+      .take(20);
+  },
+});
+
+// One-time migration: rewrite sells_daily docs from {significant,large} → {shrimp,dolphin,whale} shape.
+// Run once via: npx convex run sells:migrateSellsDaily
+// Safe to call multiple times (idempotent — skips docs that already have the new shape).
+export const migrateSellsDaily = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const all = await ctx.db.query("sells_daily").collect();
+    let migrated = 0;
+    for (const doc of all) {
+      const bt = doc.byTier as Record<string, number>;
+      // Already migrated if it has the new shape
+      if ("shrimp" in bt && "dolphin" in bt) continue;
+      await ctx.db.patch(doc._id, {
+        byTier: {
+          shrimp: 0,
+          dolphin: bt["significant"] ?? bt["dolphin"] ?? 0,
+          whale: bt["whale"] ?? 0,
+        },
+        pythVolumeByTier: doc.pythVolumeByTier ?? { dolphin: 0, whale: 0 },
+      });
+      migrated++;
+    }
+    return { migrated, total: all.length };
+  },
+});
+
+// Sell pressure analytics — reads sells_daily only (pre-aggregated, avoids sell_events scan)
+export const getSellsAnalytics = query({
+  args: { window: v.union(v.literal("7d"), v.literal("30d"), v.literal("all")) },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    const windowStart =
+      args.window === "7d"
+        ? toUtcDateKey(now - 6 * 24 * 60 * 60 * 1000)
+        : args.window === "30d"
+        ? toUtcDateKey(now - 29 * 24 * 60 * 60 * 1000)
+        : "0000-00-00"; // all-time: lexicographic minimum — matches all stored dates
+
+    const days = await ctx.db
+      .query("sells_daily")
+      .withIndex("by_date", (q) => q.gte("date", windowStart))
       .collect();
+
+    return {
+      eventCount: {
+        shrimp: days.reduce((s, d) => s + d.byTier.shrimp, 0),
+        dolphin: days.reduce((s, d) => s + d.byTier.dolphin, 0),
+        whale: days.reduce((s, d) => s + d.byTier.whale, 0),
+      },
+      pythVolume: {
+        dolphin: days.reduce((s, d) => s + d.pythVolumeByTier.dolphin, 0),
+        whale: days.reduce((s, d) => s + d.pythVolumeByTier.whale, 0),
+      },
+    };
   },
 });
