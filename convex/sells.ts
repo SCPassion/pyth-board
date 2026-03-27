@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { httpAction, internalMutation, mutation, query } from "./_generated/server";
+import { httpAction, internalMutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { paginationOptsValidator } from "convex/server";
 import {
