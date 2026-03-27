@@ -23,11 +23,6 @@ export function NewsHero({ digest }: NewsHeroProps) {
             <div className="inline-flex items-center rounded-full border border-white/12 bg-white/8 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/75">
               Weekly forum digest
             </div>
-            <Badge
-              className="rounded-full border border-cyan-300/35 bg-cyan-400/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-cyan-100 shadow-[0_8px_24px_rgba(73,224,255,0.16)]"
-            >
-              BETA
-            </Badge>
           </div>
           <div className="space-y-2">
             <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
