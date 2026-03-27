@@ -5,7 +5,7 @@ import {
   Wallet,
   Image as ImageIcon,
   Building2,
-  TrendingDown,
+  Activity,
   Newspaper,
   ArrowUpRight,
 } from "lucide-react";
@@ -31,7 +31,7 @@ export function Sidebar({
     { href: "/pythenians", label: "Pythenians", icon: ImageIcon },
     { href: "/reserve", label: "Reserve", icon: Building2 },
     { href: "/news", label: "News", icon: Newspaper },
-    { href: "/sells", label: "Sells", icon: TrendingDown },
+    { href: "/activity", label: "Activity", icon: Activity },
   ];
 
   const isActive = (path: string) => {
