@@ -1,12 +1,12 @@
 import { httpRouter } from "convex/server";
-import { handleHeliusSellWebhook } from "./sells";
+import { handleHeliusWebhook } from "./activity";
 
 const http = httpRouter();
 
 http.route({
-  path: "/webhooks/sells",
+  path: "/webhooks/pyth-swaps",
   method: "POST",
-  handler: handleHeliusSellWebhook,
+  handler: handleHeliusWebhook,
 });
 
 export default http;
