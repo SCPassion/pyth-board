@@ -103,8 +103,12 @@ export default defineSchema({
     totalPythSold: v.number(),
     eventCount: v.number(),
     byTier: v.object({
-      significant: v.number(),
-      large: v.number(),
+      shrimp: v.number(),
+      dolphin: v.number(),
+      whale: v.number(),
+    }),
+    pythVolumeByTier: v.object({
+      dolphin: v.number(),
       whale: v.number(),
     }),
   })
