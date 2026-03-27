@@ -214,32 +214,6 @@ export const getWhaleSellEvents = query({
   },
 });
 
-// One-time migration: rewrite sells_daily docs from {significant,large} → {shrimp,dolphin,whale} shape.
-// Run once via: npx convex run sells:migrateSellsDaily
-// Safe to call multiple times (idempotent — skips docs that already have the new shape).
-export const migrateSellsDaily = mutation({
-  args: {},
-  handler: async (ctx) => {
-    const all = await ctx.db.query("sells_daily").collect();
-    let migrated = 0;
-    for (const doc of all) {
-      const bt = doc.byTier as Record<string, number>;
-      // Already migrated if it has the new shape
-      if ("shrimp" in bt && "dolphin" in bt) continue;
-      await ctx.db.patch(doc._id, {
-        byTier: {
-          shrimp: 0,
-          dolphin: bt["significant"] ?? bt["dolphin"] ?? 0,
-          whale: bt["whale"] ?? 0,
-        },
-        pythVolumeByTier: doc.pythVolumeByTier ?? { dolphin: 0, whale: 0 },
-      });
-      migrated++;
-    }
-    return { migrated, total: all.length };
-  },
-});
-
 // Sell pressure analytics — reads sells_daily only (pre-aggregated, avoids sell_events scan)
 export const getSellsAnalytics = query({
   args: { window: v.union(v.literal("7d"), v.literal("30d"), v.literal("all")) },
