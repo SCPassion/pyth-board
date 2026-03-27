@@ -16,22 +16,21 @@ const TIER_STYLES = {
     badge: "border-red-400/30 bg-red-400/15 text-red-300",
     label: "Whale",
   },
-  large: {
+  dolphin: {
     border: "border-l-amber-500",
     badge: "border-amber-400/30 bg-amber-400/15 text-amber-300",
-    label: "Large",
-  },
-  significant: {
-    border: "border-l-white/20",
-    badge: "border-white/15 bg-white/8 text-[#b4aec8]",
-    label: "Significant",
+    label: "Dolphin",
   },
 } as const;
 
-export function SellActivityFeed() {
+export function SellActivityFeed({
+  tierFilter = "all",
+}: {
+  tierFilter?: "all" | "dolphin" | "whale";
+}) {
   const { results, status, loadMore } = usePaginatedQuery(
     api.sells.getSellEvents,
-    {},
+    { tier: tierFilter === "all" ? undefined : tierFilter },
     { initialNumItems: 10 }
   );
 
@@ -94,7 +93,7 @@ export function SellActivityFeed() {
         {results.map((event) => {
           const tier =
             TIER_STYLES[event.tier as keyof typeof TIER_STYLES] ??
-            TIER_STYLES.significant;
+            TIER_STYLES.dolphin;
 
           return (
             <a
@@ -120,7 +119,7 @@ export function SellActivityFeed() {
                   <span className="text-sm font-bold text-white">{formatPythAmount(event.pythAmount)} PYTH</span>
                 </div>
                 <div className="flex items-center justify-between text-xs text-white/50">
-                  <span>→ {getTokenSymbol(event.toToken)}</span>
+                  <span>→ {event.toTokenSymbol ?? getTokenSymbol(event.toToken)}</span>
                   <ExternalLink className="h-3 w-3" />
                 </div>
               </div>
@@ -139,7 +138,7 @@ export function SellActivityFeed() {
                   <span className="text-sm font-bold text-white">{formatPythAmount(event.pythAmount)}</span>
                 </div>
                 <div className="w-20 text-right">
-                  <span className="text-xs text-[#a8a1bf]">{getTokenSymbol(event.toToken)}</span>
+                  <span className="text-xs text-[#a8a1bf]">{event.toTokenSymbol ?? getTokenSymbol(event.toToken)}</span>
                 </div>
                 <div className="w-24 text-right">
                   <span className="text-xs text-[#a8a1bf]">{formatTimeAgo(event.timestamp)}</span>
