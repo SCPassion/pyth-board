@@ -7,7 +7,7 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatPythAmount } from "@/lib/sells/format";
 
-type Window = "7d" | "30d" | "all";
+type TimeWindow = "7d" | "30d" | "all";
 
 const COLORS = {
   shrimp: "#6366f1",
@@ -15,7 +15,7 @@ const COLORS = {
   whale: "#ef4444",
 };
 
-const WINDOW_OPTIONS: { value: Window; label: string }[] = [
+const WINDOW_OPTIONS: { value: TimeWindow; label: string }[] = [
   { value: "30d", label: "30d" },
   { value: "7d", label: "7d" },
   { value: "all", label: "All-time" },
@@ -43,8 +43,8 @@ function CustomTooltip({
 }
 
 export function SellsAnalytics() {
-  const [window, setWindow] = useState<Window>("30d");
-  const data = useQuery(api.sells.getSellsAnalytics, { window });
+  const [timeWindow, setTimeWindow] = useState<TimeWindow>("30d");
+  const data = useQuery(api.sells.getSellsAnalytics, { window: timeWindow });
 
   const isLoading = data === undefined;
   const hasData =
@@ -89,9 +89,9 @@ export function SellsAnalytics() {
             {WINDOW_OPTIONS.map((opt) => (
               <button
                 key={opt.value}
-                onClick={() => setWindow(opt.value)}
+                onClick={() => setTimeWindow(opt.value)}
                 className={`rounded-xl px-3 py-1 text-xs font-medium transition-colors ${
-                  window === opt.value
+                  timeWindow === opt.value
                     ? "bg-white/15 text-white"
                     : "text-[#a8a1bf] hover:bg-white/8 hover:text-white"
                 }`}
