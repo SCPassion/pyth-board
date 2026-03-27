@@ -22,6 +22,7 @@ export function SellsTierFilter({ value, onChange }: SellsTierFilterProps) {
         <button
           key={f.value}
           onClick={() => onChange(f.value)}
+          aria-pressed={value === f.value}
           className={cn(
             "rounded-xl px-4 py-1.5 text-sm font-medium transition-colors",
             value === f.value

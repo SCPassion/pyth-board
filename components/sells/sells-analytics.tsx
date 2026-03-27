@@ -59,6 +59,7 @@ export function SellsAnalytics() {
       ].filter((d) => d.value > 0)
     : [];
 
+  // shrimp excluded from volume — sells_daily only tracks pythVolumeByTier for dolphin+whale
   const volumeData = data
     ? [
         { name: "dolphin", value: data.pythVolume.dolphin, color: COLORS.dolphin },
@@ -90,6 +91,7 @@ export function SellsAnalytics() {
               <button
                 key={opt.value}
                 onClick={() => setTimeWindow(opt.value)}
+                aria-pressed={timeWindow === opt.value}
                 className={`rounded-xl px-3 py-1 text-xs font-medium transition-colors ${
                   timeWindow === opt.value
                     ? "bg-white/15 text-white"
