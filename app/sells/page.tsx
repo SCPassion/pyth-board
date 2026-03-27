@@ -1,11 +1,16 @@
 "use client";
 
+import { useState } from "react";
 import { SellsSummaryBar } from "@/components/sells/sells-summary-bar";
 import { WhaleCards } from "@/components/sells/whale-cards";
 import { SellActivityFeed } from "@/components/sells/sell-activity-feed";
+import { SellsAnalytics } from "@/components/sells/sells-analytics";
+import { SellsTierFilter } from "@/components/sells/sells-tier-filter";
 import { Badge } from "@/components/ui/badge";
 
 export default function SellsPage() {
+  const [tierFilter, setTierFilter] = useState<"all" | "dolphin" | "whale">("all");
+
   return (
     <div className="space-y-5 w-full min-w-0 overflow-x-hidden px-1 sm:px-2 lg:px-3">
 
@@ -42,13 +47,19 @@ export default function SellsPage() {
         </div>
       </section>
 
+      {/* Sell Pressure Analytics */}
+      <SellsAnalytics />
+
       {/* Whale Cards — hidden when no whale events exist */}
       <WhaleCards />
 
-      {/* Activity Feed */}
+      {/* Notable Sells */}
       <div className="space-y-4">
-        <h2 className="text-xl font-bold text-white sm:text-2xl">Activity Feed</h2>
-        <SellActivityFeed />
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-xl font-bold text-white sm:text-2xl">Notable Sells</h2>
+          <SellsTierFilter value={tierFilter} onChange={setTierFilter} />
+        </div>
+        <SellActivityFeed tierFilter={tierFilter} />
       </div>
 
     </div>
