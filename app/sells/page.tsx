@@ -33,6 +33,17 @@ export default function SellsPage() {
             <p className="max-w-xl text-sm text-white/80 sm:text-base">
               Tracking all on-chain PYTH sell events in real-time
             </p>
+            <div className="flex flex-wrap gap-2 pt-1">
+              <span className="flex items-center gap-1.5 rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs text-white/70">
+                🦐 <span className="font-medium text-white/90">Shrimp</span> &lt; 10K PYTH
+              </span>
+              <span className="flex items-center gap-1.5 rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs text-white/70">
+                🐬 <span className="font-medium text-white/90">Dolphin</span> 10K – 50K PYTH
+              </span>
+              <span className="flex items-center gap-1.5 rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs text-white/70">
+                🐋 <span className="font-medium text-white/90">Whale</span> &gt; 50K PYTH
+              </span>
+            </div>
           </div>
 
           <div className="flex flex-col gap-3 sm:items-end">

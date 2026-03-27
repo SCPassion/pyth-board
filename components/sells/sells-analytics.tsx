@@ -103,6 +103,18 @@ export function SellsAnalytics() {
             ))}
           </div>
         </div>
+        <div className="flex flex-wrap gap-3 pt-1">
+          {[
+            { emoji: "🦐", label: "Shrimp", range: "< 10K PYTH", color: COLORS.shrimp },
+            { emoji: "🐬", label: "Dolphin", range: "10K – 50K PYTH", color: COLORS.dolphin },
+            { emoji: "🐋", label: "Whale", range: "> 50K PYTH", color: COLORS.whale },
+          ].map(({ emoji, label, range, color }) => (
+            <div key={label} className="flex items-center gap-1.5 text-xs text-[#a8a1bf]">
+              <div className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
+              <span>{emoji} <span className="font-medium text-white/80">{label}</span> {range}</span>
+            </div>
+          ))}
+        </div>
       </CardHeader>
 
       <CardContent className="px-7 pb-7 sm:px-8 sm:pb-8">
