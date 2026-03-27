@@ -4,23 +4,18 @@ import { assignTier, toUtcDateKey, extractSellData } from "./sellsUtils";
 const PYTH_MINT = "HZ1JovNiVvGrGNiiYvEozEVgZ58xaU3RKwX8eACQBCt3";
 
 describe("assignTier", () => {
-  it("returns minor for amounts under 10K PYTH", () => {
-    expect(assignTier(1)).toBe("minor");
-    expect(assignTier(9_999)).toBe("minor");
+  it("returns shrimp for amounts under 10K", () => {
+    expect(assignTier(1)).toBe("shrimp");
+    expect(assignTier(9_999)).toBe("shrimp");
   });
 
-  it("returns significant for 10K–99.9K PYTH", () => {
-    expect(assignTier(10_000)).toBe("significant");
-    expect(assignTier(99_999)).toBe("significant");
+  it("returns dolphin for 10K–50K (inclusive)", () => {
+    expect(assignTier(10_000)).toBe("dolphin");
+    expect(assignTier(50_000)).toBe("dolphin");
   });
 
-  it("returns large for 100K–999.9K PYTH", () => {
-    expect(assignTier(100_000)).toBe("large");
-    expect(assignTier(999_999)).toBe("large");
-  });
-
-  it("returns whale for 1M+ PYTH", () => {
-    expect(assignTier(1_000_000)).toBe("whale");
+  it("returns whale for over 50K", () => {
+    expect(assignTier(50_001)).toBe("whale");
     expect(assignTier(5_000_000)).toBe("whale");
   });
 });

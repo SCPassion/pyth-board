@@ -1,6 +1,6 @@
 export const PYTH_MINT = "HZ1JovNiVvGrGNiiYvEozEVgZ58xaU3RKwX8eACQBCt3";
 
-export type Tier = "minor" | "significant" | "large" | "whale";
+export type Tier = "shrimp" | "dolphin" | "whale";
 
 export type TokenTransfer = {
   fromUserAccount: string;
@@ -19,10 +19,9 @@ export type SellData = {
 };
 
 export function assignTier(pythAmount: number): Tier {
-  if (pythAmount >= 1_000_000) return "whale";
-  if (pythAmount >= 100_000) return "large";
-  if (pythAmount >= 10_000) return "significant";
-  return "minor";
+  if (pythAmount > 50_000) return "whale";
+  if (pythAmount >= 10_000) return "dolphin";
+  return "shrimp";
 }
 
 export function toUtcDateKey(timestampMs: number): string {
