@@ -9,10 +9,11 @@ import {
   extractSellData,
   extractBuyData,
   type TokenTransfer,
-  type BuyData,
+  type SwapEvent,
+  type AccountData,
 } from "./sellsUtils";
 
-const MINIMUM_PYTH_AMOUNT = 1; // store all sells; shrimp (< 10K) filtered from display feed
+const MINIMUM_PYTH_AMOUNT = 0; // store all detected buys and sells; feed queries still filter shrimp for display
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -21,6 +22,10 @@ type HeliusTransaction = {
   timestamp: number; // unix seconds — multiply by 1000 for ms
   feePayer: string;
   tokenTransfers: TokenTransfer[];
+  accountData?: AccountData[];
+  events?: {
+    swap?: SwapEvent;
+  };
 };
 
 // ─── HTTP Action ─────────────────────────────────────────────────────────────
@@ -47,12 +52,27 @@ export const handleHeliusWebhook = httpAction(async (ctx, request) => {
   for (const tx of transactions) {
     const transfers = tx.tokenTransfers ?? [];
     const feePayer = tx.feePayer;
+    const swapEvent = tx.events?.swap;
+    const accountData = tx.accountData ?? [];
 
-    const sellData = extractSellData(transfers, PYTH_MINT, feePayer);
+    // Debug: log all PYTH transfers so we can diagnose router-specific patterns
+    const pythXfers = transfers.filter((t) => t.mint === PYTH_MINT);
+    console.log(
+      `[dbg] sig=${tx.signature.slice(0, 8)} feePayer=${feePayer.slice(0, 8)} pythXfers=${JSON.stringify(
+        pythXfers.map((t) => ({
+          from: t.fromUserAccount ? t.fromUserAccount.slice(0, 8) : "(empty)",
+          to: t.toUserAccount ? t.toUserAccount.slice(0, 8) : "(empty)",
+          amt: t.tokenAmount,
+        }))
+      )}`
+    );
+
+    const sellData = extractSellData(transfers, PYTH_MINT, feePayer, swapEvent);
     if (sellData) {
       // Sell detected — store if above minimum, skip buy detection entirely.
       // A transaction where feePayer sends PYTH out is always a sell,
       // even if the amount is below the minimum.
+      console.log(`[dbg] → classified SELL amt=${sellData.pythAmount}`);
       if (sellData.pythAmount >= MINIMUM_PYTH_AMOUNT) {
         await ctx.runMutation(internal.activity.storeSellEvent, {
           signature: tx.signature,
@@ -68,7 +88,8 @@ export const handleHeliusWebhook = httpAction(async (ctx, request) => {
       continue;
     }
 
-    const buyData = extractBuyData(transfers, PYTH_MINT, feePayer);
+    const buyData = extractBuyData(transfers, PYTH_MINT, feePayer, swapEvent, accountData);
+    console.log(`[dbg] → classified BUY buyData=${buyData ? `amt=${buyData.pythAmount} toAddr=${buyData.toAddress.slice(0, 8)}` : "null"}`);
     if (buyData && buyData.pythAmount >= MINIMUM_PYTH_AMOUNT) {
       await ctx.runMutation(internal.activity.storeBuyEvent, {
         signature: tx.signature,

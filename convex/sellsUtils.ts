@@ -10,6 +10,35 @@ export type TokenTransfer = {
   symbol?: string; // present in some Helius enriched responses, absent for unknown tokens
 };
 
+export type SwapTokenBalance = {
+  userAccount: string;
+  mint: string;
+  rawTokenAmount?: {
+    tokenAmount: string;
+    decimals: number;
+  };
+};
+
+export type SwapEvent = {
+  tokenInputs?: SwapTokenBalance[];
+  tokenOutputs?: SwapTokenBalance[];
+};
+
+export type AccountTokenBalanceChange = {
+  userAccount: string;
+  mint: string;
+  rawTokenAmount?: {
+    tokenAmount: string;
+    decimals: number;
+  };
+};
+
+export type AccountData = {
+  account: string;
+  nativeBalanceChange: number;
+  tokenBalanceChanges?: AccountTokenBalanceChange[];
+};
+
 export type SellData = {
   fromAddress: string;
   pythAmount: number;
@@ -28,6 +57,27 @@ export function toUtcDateKey(timestampMs: number): string {
   return new Date(timestampMs).toISOString().split("T")[0];
 }
 
+function toUiTokenAmount(raw?: { tokenAmount: string; decimals: number }): number {
+  if (!raw) return 0;
+  return Number(raw.tokenAmount) / 10 ** raw.decimals;
+}
+
+function collectNetTokenChanges(accountData: AccountData[]): Map<string, Map<string, number>> {
+  const byUser = new Map<string, Map<string, number>>();
+
+  for (const account of accountData) {
+    for (const change of account.tokenBalanceChanges ?? []) {
+      if (!change.userAccount || !change.rawTokenAmount) continue;
+      const amount = toUiTokenAmount(change.rawTokenAmount);
+      const userBalances = byUser.get(change.userAccount) ?? new Map<string, number>();
+      userBalances.set(change.mint, (userBalances.get(change.mint) ?? 0) + amount);
+      byUser.set(change.userAccount, userBalances);
+    }
+  }
+
+  return byUser;
+}
+
 /**
  * Extracts sell data from a Helius enhanced webhook tokenTransfers array.
  *
@@ -42,8 +92,32 @@ export function toUtcDateKey(timestampMs: number): string {
 export function extractSellData(
   tokenTransfers: TokenTransfer[],
   pythMint: string,
-  feePayer: string
+  feePayer: string,
+  swapEvent?: SwapEvent
 ): SellData | null {
+  const swapSeller = swapEvent?.tokenInputs?.find(
+    (t) => t.mint === pythMint && t.userAccount
+  );
+  if (swapSeller) {
+    const tokenOut = swapEvent?.tokenOutputs?.find(
+      (t) => t.userAccount === swapSeller.userAccount && t.mint !== pythMint
+    );
+    const tokenOutSymbol = tokenTransfers.find(
+      (t) =>
+        t.toUserAccount === swapSeller.userAccount &&
+        t.mint === tokenOut?.mint &&
+        typeof t.symbol === "string"
+    )?.symbol;
+
+    return {
+      fromAddress: swapSeller.userAccount,
+      pythAmount: toUiTokenAmount(swapSeller.rawTokenAmount),
+      toToken: tokenOut?.mint ?? "unknown",
+      toTokenSymbol: tokenOutSymbol,
+      toAmount: toUiTokenAmount(tokenOut?.rawTokenAmount),
+    };
+  }
+
   // Find PYTH outbound FROM the fee payer (the user who signed the transaction)
   const pythOut = tokenTransfers.find(
     (t) => t.mint === pythMint && t.fromUserAccount === feePayer
@@ -99,8 +173,33 @@ export type BuyData = {
 export function extractBuyData(
   tokenTransfers: TokenTransfer[],
   pythMint: string,
-  feePayer: string
+  feePayer: string,
+  swapEvent?: SwapEvent,
+  accountData: AccountData[] = []
 ): BuyData | null {
+  const swapBuyer = swapEvent?.tokenOutputs?.find(
+    (t) => t.mint === pythMint && t.userAccount
+  );
+  if (swapBuyer) {
+    const tokenIn = swapEvent?.tokenInputs?.find(
+      (t) => t.userAccount === swapBuyer.userAccount && t.mint !== pythMint
+    );
+    const tokenInSymbol = tokenTransfers.find(
+      (t) =>
+        t.fromUserAccount === swapBuyer.userAccount &&
+        t.mint === tokenIn?.mint &&
+        typeof t.symbol === "string"
+    )?.symbol;
+
+    return {
+      toAddress: swapBuyer.userAccount,
+      pythAmount: toUiTokenAmount(swapBuyer.rawTokenAmount),
+      fromToken: tokenIn?.mint ?? "unknown",
+      fromTokenSymbol: tokenInSymbol,
+      fromAmount: toUiTokenAmount(tokenIn?.rawTokenAmount),
+    };
+  }
+
   // Primary: PYTH arriving directly at feePayer's wallet
   let pythIn = tokenTransfers.find(
     (t) => t.mint === pythMint && t.toUserAccount === feePayer
@@ -122,7 +221,9 @@ export function extractBuyData(
       );
   }
 
-  if (!pythIn) return null;
+  if (!pythIn) {
+    return extractBuyDataFromAccountData(tokenTransfers, pythMint, accountData);
+  }
 
   // Find the outbound non-PYTH SPL token leg from feePayer (e.g. USDC, wSOL).
   // Will be "unknown" / 0 for native SOL spends.
@@ -137,4 +238,37 @@ export function extractBuyData(
     fromTokenSymbol: tokenOut?.symbol,
     fromAmount: tokenOut?.tokenAmount ?? 0,
   };
+}
+
+export function extractBuyDataFromAccountData(
+  tokenTransfers: TokenTransfer[],
+  pythMint: string,
+  accountData: AccountData[]
+): BuyData | null {
+  const netChanges = collectNetTokenChanges(accountData);
+
+  for (const [userAccount, mintChanges] of netChanges.entries()) {
+    const pythDelta = mintChanges.get(pythMint) ?? 0;
+    if (pythDelta <= 0) continue;
+
+    const spentToken = [...mintChanges.entries()].find(
+      ([mint, amount]) => mint !== pythMint && amount < 0
+    );
+
+    const spentMint = spentToken?.[0] ?? "unknown";
+    const spentAmount = spentToken ? Math.abs(spentToken[1]) : 0;
+    const spentSymbol = tokenTransfers.find(
+      (t) => t.fromUserAccount === userAccount && t.mint === spentMint && typeof t.symbol === "string"
+    )?.symbol;
+
+    return {
+      toAddress: userAccount,
+      pythAmount: pythDelta,
+      fromToken: spentMint,
+      fromTokenSymbol: spentSymbol,
+      fromAmount: spentAmount,
+    };
+  }
+
+  return null;
 }

@@ -34,6 +34,7 @@ describe("toUtcDateKey", () => {
 
 describe("extractSellData", () => {
   const SELLER = "SellerWallet111";
+  const RELAYER = "RelayerWallet111";
 
   const validTransfers = [
     {
@@ -126,10 +127,51 @@ describe("extractSellData", () => {
     expect(result!.toToken).toBe("unknown");
     expect(result!.toAmount).toBe(0);
   });
+
+  it("detects sell when feePayer is a relayer and the seller is only present in token transfers", () => {
+    const transfers = [
+      {
+        fromUserAccount: SELLER,
+        toUserAccount: "PoolVaultAddress",
+        mint: PYTH_MINT,
+        tokenAmount: 22_500,
+      },
+      {
+        fromUserAccount: "PoolVaultAddress",
+        toUserAccount: SELLER,
+        mint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+        tokenAmount: 675,
+        symbol: "USDC",
+      },
+    ];
+
+    const result = extractSellData(transfers, PYTH_MINT, RELAYER, {
+      tokenInputs: [
+        {
+          userAccount: SELLER,
+          mint: PYTH_MINT,
+          rawTokenAmount: { tokenAmount: "22500000000", decimals: 6 },
+        },
+      ],
+      tokenOutputs: [
+        {
+          userAccount: SELLER,
+          mint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          rawTokenAmount: { tokenAmount: "675000000", decimals: 6 },
+        },
+      ],
+    });
+    expect(result).not.toBeNull();
+    expect(result!.fromAddress).toBe(SELLER);
+    expect(result!.pythAmount).toBe(22_500);
+    expect(result!.toTokenSymbol).toBe("USDC");
+    expect(result!.toAmount).toBe(675);
+  });
 });
 
 describe("extractBuyData", () => {
   const BUYER = "BuyerWallet111";
+  const RELAYER = "RelayerWallet111";
 
   const validTransfers = [
     {
@@ -264,5 +306,78 @@ describe("extractBuyData", () => {
     expect(result!.pythAmount).toBe(15_000);
     expect(result!.fromToken).toBe("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
     expect(result!.fromAmount).toBe(500);
+  });
+
+  it("detects buy when feePayer is a relayer and the buyer is only present in token transfers", () => {
+    const transfers = [
+      {
+        fromUserAccount: "PoolVaultAddress",
+        toUserAccount: BUYER,
+        mint: PYTH_MINT,
+        tokenAmount: 31_250,
+      },
+      {
+        fromUserAccount: BUYER,
+        toUserAccount: "PoolVaultAddress",
+        mint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+        tokenAmount: 937.5,
+        symbol: "USDC",
+      },
+    ];
+
+    const result = extractBuyData(transfers, PYTH_MINT, RELAYER, {
+      tokenInputs: [
+        {
+          userAccount: BUYER,
+          mint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          rawTokenAmount: { tokenAmount: "937500000", decimals: 6 },
+        },
+      ],
+      tokenOutputs: [
+        {
+          userAccount: BUYER,
+          mint: PYTH_MINT,
+          rawTokenAmount: { tokenAmount: "31250000000", decimals: 6 },
+        },
+      ],
+    });
+    expect(result).not.toBeNull();
+    expect(result!.toAddress).toBe(BUYER);
+    expect(result!.pythAmount).toBe(31_250);
+    expect(result!.fromTokenSymbol).toBe("USDC");
+    expect(result!.fromAmount).toBe(937.5);
+  });
+
+  it("detects buy from account balance deltas when tokenTransfers miss the final PYTH leg", () => {
+    const result = extractBuyData([], PYTH_MINT, BUYER, undefined, [
+      {
+        account: "BuyerPythAta",
+        nativeBalanceChange: 0,
+        tokenBalanceChanges: [
+          {
+            userAccount: BUYER,
+            mint: PYTH_MINT,
+            rawTokenAmount: { tokenAmount: "981868", decimals: 6 },
+          },
+        ],
+      },
+      {
+        account: "BuyerUsdcAta",
+        nativeBalanceChange: 0,
+        tokenBalanceChanges: [
+          {
+            userAccount: BUYER,
+            mint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+            rawTokenAmount: { tokenAmount: "-36884", decimals: 6 },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).not.toBeNull();
+    expect(result!.toAddress).toBe(BUYER);
+    expect(result!.pythAmount).toBe(0.981868);
+    expect(result!.fromToken).toBe("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
+    expect(result!.fromAmount).toBe(0.036884);
   });
 });

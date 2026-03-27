@@ -8,12 +8,12 @@
  * @module
  */
 
+import type * as activity from "../activity.js";
 import type * as crons from "../crons.js";
 import type * as http from "../http.js";
 import type * as news from "../news.js";
 import type * as pythBuybackSnapshots from "../pythBuybackSnapshots.js";
 import type * as reserveSnapshots from "../reserveSnapshots.js";
-import type * as sells from "../sells.js";
 import type * as sellsUtils from "../sellsUtils.js";
 
 import type {
@@ -23,12 +23,12 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  activity: typeof activity;
   crons: typeof crons;
   http: typeof http;
   news: typeof news;
   pythBuybackSnapshots: typeof pythBuybackSnapshots;
   reserveSnapshots: typeof reserveSnapshots;
-  sells: typeof sells;
   sellsUtils: typeof sellsUtils;
 }>;
 
