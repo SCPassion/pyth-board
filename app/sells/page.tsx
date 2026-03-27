@@ -25,10 +25,9 @@ export default function SellsPage() {
               <h1 className="text-2xl font-bold text-white sm:text-3xl">
                 PYTH Sell Activity
               </h1>
-              <div className="flex items-center gap-1.5 rounded-full border border-green-400/30 bg-green-400/15 px-2.5 py-1">
-                <div className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
-                <span className="text-[11px] font-semibold text-green-300">Live</span>
-              </div>
+              <Badge className="rounded-full border border-cyan-300/35 bg-cyan-400/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-cyan-100 shadow-[0_8px_24px_rgba(73,224,255,0.16)]">
+                BETA
+              </Badge>
             </div>
             <p className="max-w-xl text-sm text-white/80 sm:text-base">
               Tracking all on-chain PYTH sell events in real-time

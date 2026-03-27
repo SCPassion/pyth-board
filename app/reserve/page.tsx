@@ -240,11 +240,6 @@ export default function ReservePage() {
               <h1 className="text-2xl font-bold text-white sm:text-3xl">
                 Pyth Strategic Reserve
               </h1>
-              <Badge
-                className="rounded-full border border-cyan-300/35 bg-cyan-400/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-cyan-100 shadow-[0_8px_24px_rgba(73,224,255,0.16)]"
-              >
-                BETA
-              </Badge>
             </div>
             <p className="max-w-3xl text-sm text-white/80 sm:text-base sm:leading-7">
               Monitor the operations and holdings of the Pyth DAO Strategic Reserve
