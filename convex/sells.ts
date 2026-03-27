@@ -252,3 +252,17 @@ export const getSellsAnalytics = query({
     };
   },
 });
+
+// Returns the timestamp (ms) of the earliest recorded sell event — used to
+// display "Tracking since …" in the UI.
+export const getTrackingStartDate = query({
+  args: {},
+  handler: async (ctx) => {
+    const first = await ctx.db
+      .query("sell_events")
+      .withIndex("by_timestamp")
+      .order("asc")
+      .first();
+    return first ? first.timestamp : null;
+  },
+});

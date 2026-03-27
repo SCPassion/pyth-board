@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import { SellsSummaryBar } from "@/components/sells/sells-summary-bar";
 import { WhaleCards } from "@/components/sells/whale-cards";
 import { SellActivityFeed } from "@/components/sells/sell-activity-feed";
@@ -10,6 +12,10 @@ import { Badge } from "@/components/ui/badge";
 
 export default function SellsPage() {
   const [tierFilter, setTierFilter] = useState<"all" | "dolphin" | "whale">("all");
+  const trackingStart = useQuery(api.sells.getTrackingStartDate, {});
+  const trackingSince = trackingStart
+    ? new Date(trackingStart).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+    : null;
 
   return (
     <div className="space-y-5 w-full min-w-0 overflow-x-hidden px-1 sm:px-2 lg:px-3">
@@ -46,12 +52,22 @@ export default function SellsPage() {
           </div>
 
           <div className="flex flex-col gap-3 sm:items-end">
-            <Badge
-              variant="outline"
-              className="w-fit rounded-xl border-white/10 bg-black/15 px-3 py-1 text-xs text-white/70"
-            >
-              Webhook-powered · No polling
-            </Badge>
+            <div className="flex flex-wrap gap-2 sm:justify-end">
+              <Badge
+                variant="outline"
+                className="w-fit rounded-xl border-white/10 bg-black/15 px-3 py-1 text-xs text-white/70"
+              >
+                Webhook-powered · No polling
+              </Badge>
+              {trackingSince && (
+                <Badge
+                  variant="outline"
+                  className="w-fit rounded-xl border-white/10 bg-black/15 px-3 py-1 text-xs text-white/70"
+                >
+                  Tracking since {trackingSince}
+                </Badge>
+              )}
+            </div>
             <SellsSummaryBar />
           </div>
         </div>
