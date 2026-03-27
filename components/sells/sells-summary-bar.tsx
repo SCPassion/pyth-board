@@ -5,7 +5,7 @@ import { api } from "@/convex/_generated/api";
 import { formatPythAmount } from "@/lib/sells/format";
 
 export function SellsSummaryBar() {
-  const summary = useQuery(api.sells.getSellsSummary, {});
+  const summary = useQuery(api.activity.getSellsSummary, {});
   const loading = summary === undefined;
 
   const StatPill = ({

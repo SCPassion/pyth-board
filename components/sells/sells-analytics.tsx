@@ -28,7 +28,7 @@ const WINDOW_OPTIONS: { value: TimeWindow; label: string }[] = [
 
 export function SellsAnalytics() {
   const [timeWindow, setTimeWindow] = useState<TimeWindow>("30d");
-  const data = useQuery(api.sells.getSellsAnalytics, { window: timeWindow });
+  const data = useQuery(api.activity.getSellsAnalytics, { window: timeWindow });
 
   const isLoading = data === undefined;
   const hasData =

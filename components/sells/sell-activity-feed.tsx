@@ -33,7 +33,7 @@ export function SellActivityFeed({
 }) {
   const [page, setPage] = useState(0);
   const { results, status, loadMore } = usePaginatedQuery(
-    api.sells.getSellEvents,
+    api.activity.getSellEvents,
     { tier: tierFilter === "all" ? undefined : tierFilter },
     { initialNumItems: PAGE_SIZE }
   );

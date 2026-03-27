@@ -6,7 +6,7 @@ import { formatPythAmount, truncateAddress, formatTimeAgo } from "@/lib/sells/fo
 import { ExternalLink } from "lucide-react";
 
 export function WhaleCards() {
-  const events = useQuery(api.sells.getWhaleSellEvents, {});
+  const events = useQuery(api.activity.getWhaleSellEvents, {});
 
   // Hide section entirely when loading or empty — no skeleton, no empty state
   if (!events || events.length === 0) return null;
