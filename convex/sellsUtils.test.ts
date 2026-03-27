@@ -222,4 +222,47 @@ describe("extractBuyData", () => {
     expect(result!.fromToken).toBe("unknown");
     expect(result!.fromAmount).toBe(0);
   });
+
+  it("detects buy when toUserAccount is empty (SOL→PYTH native swap pattern)", () => {
+    // Native SOL does not appear in tokenTransfers; PYTH inbound may have
+    // empty toUserAccount in some routing patterns.
+    const transfers = [
+      {
+        fromUserAccount: "",   // pool/vault — no user account
+        toUserAccount: "",     // empty — toUserAccount not resolved by Helius
+        mint: PYTH_MINT,
+        tokenAmount: 2.2397,
+      },
+    ];
+    const result = extractBuyData(transfers, PYTH_MINT, BUYER);
+    expect(result).not.toBeNull();
+    expect(result!.toAddress).toBe(BUYER);
+    expect(result!.pythAmount).toBe(2.2397);
+    expect(result!.fromToken).toBe("unknown");
+    expect(result!.fromAmount).toBe(0);
+  });
+
+  it("detects buy when toUserAccount is a non-feePayer wallet (intermediate account)", () => {
+    // toUserAccount is non-empty but is not feePayer — still a valid buy
+    const transfers = [
+      {
+        fromUserAccount: "",
+        toUserAccount: "IntermediateOrATAAddress",
+        mint: PYTH_MINT,
+        tokenAmount: 15_000,
+      },
+      {
+        fromUserAccount: BUYER,
+        toUserAccount: "Pool",
+        mint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+        tokenAmount: 500,
+      },
+    ];
+    const result = extractBuyData(transfers, PYTH_MINT, BUYER);
+    expect(result).not.toBeNull();
+    expect(result!.toAddress).toBe(BUYER);
+    expect(result!.pythAmount).toBe(15_000);
+    expect(result!.fromToken).toBe("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
+    expect(result!.fromAmount).toBe(500);
+  });
 });

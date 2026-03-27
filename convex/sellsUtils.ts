@@ -78,26 +78,54 @@ export type BuyData = {
 /**
  * Extracts buy data from a Helius enhanced webhook tokenTransfers array.
  *
- * Uses feePayer (the transaction signer) as the anchor for detection:
- * a buy is a transaction where PYTH moves IN to the feePayer's wallet.
- * This avoids false negatives where toUserAccount is empty for intermediate
- * accounts and avoids matching pool-to-pool PYTH transfers.
+ * Uses feePayer (the transaction signer) as the buyer identity — the person
+ * who initiated and signed the transaction is always the buyer.
  *
- * Returns null if feePayer has no PYTH inbound transfer (not a PYTH buy).
- * Falls back to fromToken "unknown" / fromAmount 0 if no outbound leg is found.
+ * Primary detection: PYTH arriving directly at feePayer's wallet
+ * (toUserAccount === feePayer).
+ *
+ * Fallback: toUserAccount may be empty or unresolved in some routing patterns
+ * (e.g. SOL→PYTH where the outbound leg is native SOL not an SPL token, or
+ * multi-hop aggregator routes). In that case, any PYTH inbound transfer that
+ * did NOT come FROM feePayer is the buy leg — we know feePayer didn't send it
+ * because extractSellData already ruled that out upstream. Prefer transfers
+ * where toUserAccount is non-empty (a real user wallet) over fully anonymous
+ * pool-to-pool hops.
+ *
+ * The buyer address is always feePayer regardless of which transfer is found.
+ * Falls back to fromToken "unknown" / fromAmount 0 for native SOL spends
+ * (SOL does not appear in tokenTransfers, only in nativeTransfers).
  */
 export function extractBuyData(
   tokenTransfers: TokenTransfer[],
   pythMint: string,
   feePayer: string
 ): BuyData | null {
-  // Find PYTH inbound TO the fee payer (the user who signed the transaction)
-  const pythIn = tokenTransfers.find(
+  // Primary: PYTH arriving directly at feePayer's wallet
+  let pythIn = tokenTransfers.find(
     (t) => t.mint === pythMint && t.toUserAccount === feePayer
   );
+
+  // Fallback: find any PYTH inbound not sent by feePayer.
+  // toUserAccount may be empty for some routing patterns (native SOL→PYTH,
+  // multi-hop aggregators). Prefer transfers going to a named user wallet.
+  if (!pythIn) {
+    pythIn =
+      tokenTransfers.find(
+        (t) =>
+          t.mint === pythMint &&
+          t.toUserAccount !== "" &&
+          t.fromUserAccount !== feePayer
+      ) ??
+      tokenTransfers.find(
+        (t) => t.mint === pythMint && t.fromUserAccount !== feePayer
+      );
+  }
+
   if (!pythIn) return null;
 
-  // Find the outbound non-PYTH leg from the fee payer
+  // Find the outbound non-PYTH SPL token leg from feePayer (e.g. USDC, wSOL).
+  // Will be "unknown" / 0 for native SOL spends.
   const tokenOut = tokenTransfers.find(
     (t) => t.fromUserAccount === feePayer && t.mint !== pythMint
   );
