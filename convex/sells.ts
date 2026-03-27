@@ -10,7 +10,7 @@ import {
   type TokenTransfer,
 } from "./sellsUtils";
 
-const MINIMUM_PYTH_AMOUNT = 10_000;
+const MINIMUM_PYTH_AMOUNT = 1; // store all sells; feed query filters out "minor" (< 10K) for display
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -96,9 +96,10 @@ export const storeSellEvent = internalMutation({
       timestamp: args.timestamp,
     });
 
-    // Upsert sells_daily — date key derived from the event's own timestamp, not current time.
-    // This keeps daily aggregates correct even if a webhook is delivered with a delay.
-    // Convex has no native upsert — use explicit read-modify-write.
+    // Upsert sells_daily — only track significant/large/whale in daily aggregates.
+    // Minor sells (< 10K) are stored in sell_events but excluded from summaries.
+    if (args.tier === "minor") return;
+
     const dateKey = toUtcDateKey(args.timestamp);
     const dailyRecord = await ctx.db
       .query("sells_daily")
@@ -141,6 +142,7 @@ export const getSellEvents = query({
       .query("sell_events")
       .withIndex("by_timestamp")
       .order("desc")
+      .filter((q) => q.neq(q.field("tier"), "minor"))
       .paginate(args.paginationOpts);
   },
 });

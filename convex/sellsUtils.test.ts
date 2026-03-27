@@ -4,6 +4,11 @@ import { assignTier, toUtcDateKey, extractSellData } from "./sellsUtils";
 const PYTH_MINT = "HZ1JovNiVvGrGNiiYvEozEVgZ58xaU3RKwX8eACQBCt3";
 
 describe("assignTier", () => {
+  it("returns minor for amounts under 10K PYTH", () => {
+    expect(assignTier(1)).toBe("minor");
+    expect(assignTier(9_999)).toBe("minor");
+  });
+
   it("returns significant for 10K–99.9K PYTH", () => {
     expect(assignTier(10_000)).toBe("significant");
     expect(assignTier(99_999)).toBe("significant");
