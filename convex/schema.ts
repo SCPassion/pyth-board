@@ -84,73 +84,23 @@ export default defineSchema({
   })
     .index("by_weekKey", ["weekKey"])
     .index("by_generatedAtMs", ["generatedAtMs"]),
-  sell_events: defineTable({
+  pyth_events: defineTable({
     signature: v.string(),
-    fromAddress: v.string(),
+    walletAddress: v.string(),
+    direction: v.union(v.literal("buy"), v.literal("sell")),
     pythAmount: v.number(),
-    toToken: v.string(),
-    toTokenSymbol: v.optional(v.string()),
-    toAmount: v.number(),
-    tier: v.string(),
     timestamp: v.number(),
   })
     .index("by_timestamp", ["timestamp"])
-    .index("by_signature", ["signature"])
-    .index("by_address", ["fromAddress"])
-    .index("by_tier_and_timestamp", ["tier", "timestamp"]),
-  sells_daily: defineTable({
-    date: v.string(),
-    totalPythSold: v.number(),
-    eventCount: v.number(),
-    byTier: v.object({
-      shrimp: v.number(),
-      dolphin: v.number(),
-      whale: v.number(),
-    }),
-    pythVolumeByTier: v.object({
-      shrimp: v.optional(v.number()),
-      dolphin: v.number(),
-      whale: v.number(),
-    }),
-  })
-    .index("by_date", ["date"]),
-  buy_events: defineTable({
-    // fromAddress = buyer's wallet address.
-    // Named fromAddress (not toAddress) to mirror sell_events.fromAddress.
-    // In both tables, fromAddress means "the user who initiated the swap."
-    // BuyData.toAddress is mapped to this field in storeBuyEvent.
-    fromAddress: v.string(),
+    .index("by_direction_and_timestamp", ["direction", "timestamp"])
+    .index("by_signature_wallet_direction", ["signature", "walletAddress", "direction"]),
+  pyth_swap_payloads: defineTable({
     signature: v.string(),
-    pythAmount: v.number(),
-    fromToken: v.string(),         // token spent to buy PYTH
-    fromTokenSymbol: v.optional(v.string()),
-    fromAmount: v.number(),
-    tier: v.string(),
+    source: v.optional(v.string()),
+    type: v.optional(v.string()),
     timestamp: v.number(),
+    rawJson: v.string(),
   })
-    .index("by_timestamp", ["timestamp"])
     .index("by_signature", ["signature"])
-    .index("by_address", ["fromAddress"])
-    .index("by_tier_and_timestamp", ["tier", "timestamp"]),
-  buys_daily: defineTable({
-    date: v.string(),
-    totalPythBought: v.number(),   // excludes shrimp — same rule as sells_daily.totalPythSold
-    eventCount: v.number(),        // excludes shrimp — same rule as sells_daily.eventCount
-    byTier: v.object({
-      // byTier DOES include shrimp — shrimp event counts are tracked here even though
-      // shrimp is excluded from totalPythBought/eventCount above.
-      shrimp: v.number(),
-      dolphin: v.number(),
-      whale: v.number(),
-    }),
-    // All three fields are v.number() (NOT optional). buys_daily is a brand-new table
-    // with no pre-existing rows, so v.optional is not needed for backward compat.
-    // Contrast: sells_daily.pythVolumeByTier.shrimp is v.optional because it was
-    // added retroactively after rows without the field already existed.
-    pythVolumeByTier: v.object({
-      shrimp: v.number(),
-      dolphin: v.number(),
-      whale: v.number(),
-    }),
-  }).index("by_date", ["date"]),
+    .index("by_timestamp", ["timestamp"]),
 });

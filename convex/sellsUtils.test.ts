@@ -1,5 +1,11 @@
-import { describe, it, expect } from "vitest";
-import { assignTier, toUtcDateKey, extractSellData, extractBuyData } from "./sellsUtils";
+import { describe, expect, it } from "vitest";
+import {
+  assignTier,
+  extractPythEvents,
+  toUtcDateKey,
+  type AccountData,
+  type TokenTransfer,
+} from "./sellsUtils";
 
 const PYTH_MINT = "HZ1JovNiVvGrGNiiYvEozEVgZ58xaU3RKwX8eACQBCt3";
 
@@ -16,368 +22,345 @@ describe("assignTier", () => {
 
   it("returns whale for over 50K", () => {
     expect(assignTier(50_001)).toBe("whale");
-    expect(assignTier(5_000_000)).toBe("whale");
   });
 });
 
 describe("toUtcDateKey", () => {
   it("formats a UTC timestamp as YYYY-MM-DD", () => {
-    // 2026-03-25T00:00:00.000Z = 1774396800000
     expect(toUtcDateKey(1774396800000)).toBe("2026-03-25");
   });
 
   it("uses the UTC date boundary, not local time", () => {
-    // 2026-03-24T23:59:59.999Z — must resolve to Mar 24, not Mar 25
     expect(toUtcDateKey(1774396799999)).toBe("2026-03-24");
   });
 });
 
-describe("extractSellData", () => {
-  const SELLER = "SellerWallet111";
-  const RELAYER = "RelayerWallet111";
-
-  const validTransfers = [
-    {
-      fromUserAccount: SELLER,
-      toUserAccount: "JupiterProgram",
-      mint: PYTH_MINT,
-      tokenAmount: 50_000,
-    },
-    {
-      fromUserAccount: "JupiterProgram",
-      toUserAccount: SELLER,
-      mint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", // USDC
-      tokenAmount: 1500,
-    },
-  ];
-
-  it("extracts seller address, pythAmount, toToken, toAmount from valid transfers", () => {
-    const result = extractSellData(validTransfers, PYTH_MINT, SELLER);
-    expect(result).not.toBeNull();
-    expect(result!.fromAddress).toBe(SELLER);
-    expect(result!.pythAmount).toBe(50_000);
-    expect(result!.toToken).toBe("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
-    expect(result!.toAmount).toBe(1500);
-  });
-
-  it("returns null when there is no PYTH outbound transfer", () => {
-    const transfers = [
+describe("extractPythEvents", () => {
+  it("returns no events when there is no PYTH delta", () => {
+    const accountData: AccountData[] = [
       {
-        fromUserAccount: "Someone",
-        toUserAccount: SELLER,
-        mint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-        tokenAmount: 1000,
-      },
-    ];
-    expect(extractSellData(transfers, PYTH_MINT, SELLER)).toBeNull();
-  });
-
-  it("returns null when a pool vault sends PYTH but feePayer is the buyer (not a sell)", () => {
-    // This is the key regression test: pool vault has non-empty fromUserAccount,
-    // but feePayer is the buyer — old code would have detected this as a sell.
-    const transfers = [
-      {
-        fromUserAccount: "PoolVaultAddress",
-        toUserAccount: "BuyerWallet999",
-        mint: PYTH_MINT,
-        tokenAmount: 50_000,
-      },
-      {
-        fromUserAccount: "BuyerWallet999",
-        toUserAccount: "PoolVaultAddress",
-        mint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-        tokenAmount: 1500,
-      },
-    ];
-    // feePayer is the buyer — PYTH is NOT leaving feePayer's wallet
-    expect(extractSellData(transfers, PYTH_MINT, "BuyerWallet999")).toBeNull();
-  });
-
-  it("maps symbol to toTokenSymbol when present on inbound transfer", () => {
-    const transfers = [
-      {
-        fromUserAccount: SELLER,
-        toUserAccount: "JupiterProgram",
-        mint: PYTH_MINT,
-        tokenAmount: 50_000,
-      },
-      {
-        fromUserAccount: "JupiterProgram",
-        toUserAccount: SELLER,
-        mint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-        tokenAmount: 1500,
-        symbol: "USDC",
-      },
-    ];
-    const result = extractSellData(transfers, PYTH_MINT, SELLER);
-    expect(result!.toTokenSymbol).toBe("USDC");
-  });
-
-  it("falls back to unknown toToken and 0 toAmount when no inbound transfer is found", () => {
-    const transfers = [
-      {
-        fromUserAccount: SELLER,
-        toUserAccount: "JupiterProgram",
-        mint: PYTH_MINT,
-        tokenAmount: 50_000,
-      },
-    ];
-    const result = extractSellData(transfers, PYTH_MINT, SELLER);
-    expect(result).not.toBeNull();
-    expect(result!.toToken).toBe("unknown");
-    expect(result!.toAmount).toBe(0);
-  });
-
-  it("detects sell when feePayer is a relayer and the seller is only present in token transfers", () => {
-    const transfers = [
-      {
-        fromUserAccount: SELLER,
-        toUserAccount: "PoolVaultAddress",
-        mint: PYTH_MINT,
-        tokenAmount: 22_500,
-      },
-      {
-        fromUserAccount: "PoolVaultAddress",
-        toUserAccount: SELLER,
-        mint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-        tokenAmount: 675,
-        symbol: "USDC",
+        account: "NeutralAta",
+        nativeBalanceChange: 0,
+        tokenBalanceChanges: [
+          {
+            userAccount: "NeutralWallet111",
+            mint: PYTH_MINT,
+            rawTokenAmount: { tokenAmount: "1000", decimals: 6 },
+          },
+          {
+            userAccount: "NeutralWallet111",
+            mint: PYTH_MINT,
+            rawTokenAmount: { tokenAmount: "-1000", decimals: 6 },
+          },
+        ],
       },
     ];
 
-    const result = extractSellData(transfers, PYTH_MINT, RELAYER, {
-      tokenInputs: [
-        {
-          userAccount: SELLER,
-          mint: PYTH_MINT,
-          rawTokenAmount: { tokenAmount: "22500000000", decimals: 6 },
-        },
-      ],
-      tokenOutputs: [
-        {
-          userAccount: SELLER,
-          mint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-          rawTokenAmount: { tokenAmount: "675000000", decimals: 6 },
-        },
-      ],
-    });
-    expect(result).not.toBeNull();
-    expect(result!.fromAddress).toBe(SELLER);
-    expect(result!.pythAmount).toBe(22_500);
-    expect(result!.toTokenSymbol).toBe("USDC");
-    expect(result!.toAmount).toBe(675);
-  });
-});
-
-describe("extractBuyData", () => {
-  const BUYER = "BuyerWallet111";
-  const RELAYER = "RelayerWallet111";
-
-  const validTransfers = [
-    {
-      fromUserAccount: "JupiterProgram",
-      toUserAccount: BUYER,
-      mint: PYTH_MINT,
-      tokenAmount: 50_000,
-    },
-    {
-      fromUserAccount: BUYER,
-      toUserAccount: "JupiterProgram",
-      mint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", // USDC
-      tokenAmount: 1500,
-    },
-  ];
-
-  it("extracts buyer address, pythAmount, fromToken, fromAmount from valid transfers", () => {
-    const result = extractBuyData(validTransfers, PYTH_MINT, BUYER);
-    expect(result).not.toBeNull();
-    expect(result!.toAddress).toBe(BUYER);
-    expect(result!.pythAmount).toBe(50_000);
-    expect(result!.fromToken).toBe("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
-    expect(result!.fromAmount).toBe(1500);
+    expect(extractPythEvents(accountData, [], PYTH_MINT)).toEqual([]);
   });
 
-  it("returns null when there is no PYTH inbound transfer", () => {
-    const transfers = [
-      {
-        fromUserAccount: BUYER,
-        toUserAccount: "JupiterProgram",
-        mint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-        tokenAmount: 1000,
-      },
-    ];
-    expect(extractBuyData(transfers, PYTH_MINT, BUYER)).toBeNull();
-  });
-
-  it("maps symbol to fromTokenSymbol when present on outbound transfer", () => {
-    const transfers = [
-      {
-        fromUserAccount: "JupiterProgram",
-        toUserAccount: BUYER,
-        mint: PYTH_MINT,
-        tokenAmount: 50_000,
-      },
-      {
-        fromUserAccount: BUYER,
-        toUserAccount: "JupiterProgram",
-        mint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-        tokenAmount: 1500,
-        symbol: "USDC",
-      },
-    ];
-    const result = extractBuyData(transfers, PYTH_MINT, BUYER);
-    expect(result!.fromTokenSymbol).toBe("USDC");
-  });
-
-  it("falls back to unknown fromToken and 0 fromAmount when no outbound leg found", () => {
-    const transfers = [
-      {
-        fromUserAccount: "JupiterProgram",
-        toUserAccount: BUYER,
-        mint: PYTH_MINT,
-        tokenAmount: 50_000,
-      },
-    ];
-    const result = extractBuyData(transfers, PYTH_MINT, BUYER);
-    expect(result).not.toBeNull();
-    expect(result!.fromToken).toBe("unknown");
-    expect(result!.fromAmount).toBe(0);
-  });
-
-  it("falls back when outbound leg belongs to a different account", () => {
-    const transfers = [
-      {
-        fromUserAccount: "JupiterProgram",
-        toUserAccount: BUYER,
-        mint: PYTH_MINT,
-        tokenAmount: 50_000,
-      },
-      {
-        fromUserAccount: "OtherWallet",  // different account, not BUYER
-        toUserAccount: "JupiterProgram",
-        mint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-        tokenAmount: 1500,
-      },
-    ];
-    const result = extractBuyData(transfers, PYTH_MINT, BUYER);
-    expect(result).not.toBeNull();
-    expect(result!.fromToken).toBe("unknown");
-    expect(result!.fromAmount).toBe(0);
-  });
-
-  it("detects buy when toUserAccount is empty (SOL→PYTH native swap pattern)", () => {
-    // Native SOL does not appear in tokenTransfers; PYTH inbound may have
-    // empty toUserAccount in some routing patterns.
-    const transfers = [
-      {
-        fromUserAccount: "",   // pool/vault — no user account
-        toUserAccount: "",     // empty — toUserAccount not resolved by Helius
-        mint: PYTH_MINT,
-        tokenAmount: 2.2397,
-      },
-    ];
-    const result = extractBuyData(transfers, PYTH_MINT, BUYER);
-    expect(result).not.toBeNull();
-    expect(result!.toAddress).toBe(BUYER);
-    expect(result!.pythAmount).toBe(2.2397);
-    expect(result!.fromToken).toBe("unknown");
-    expect(result!.fromAmount).toBe(0);
-  });
-
-  it("detects buy when toUserAccount is a non-feePayer wallet (intermediate account)", () => {
-    // toUserAccount is non-empty but is not feePayer — still a valid buy
-    const transfers = [
-      {
-        fromUserAccount: "",
-        toUserAccount: "IntermediateOrATAAddress",
-        mint: PYTH_MINT,
-        tokenAmount: 15_000,
-      },
-      {
-        fromUserAccount: BUYER,
-        toUserAccount: "Pool",
-        mint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-        tokenAmount: 500,
-      },
-    ];
-    const result = extractBuyData(transfers, PYTH_MINT, BUYER);
-    expect(result).not.toBeNull();
-    expect(result!.toAddress).toBe(BUYER);
-    expect(result!.pythAmount).toBe(15_000);
-    expect(result!.fromToken).toBe("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
-    expect(result!.fromAmount).toBe(500);
-  });
-
-  it("detects buy when feePayer is a relayer and the buyer is only present in token transfers", () => {
-    const transfers = [
-      {
-        fromUserAccount: "PoolVaultAddress",
-        toUserAccount: BUYER,
-        mint: PYTH_MINT,
-        tokenAmount: 31_250,
-      },
-      {
-        fromUserAccount: BUYER,
-        toUserAccount: "PoolVaultAddress",
-        mint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-        tokenAmount: 937.5,
-        symbol: "USDC",
-      },
-    ];
-
-    const result = extractBuyData(transfers, PYTH_MINT, RELAYER, {
-      tokenInputs: [
-        {
-          userAccount: BUYER,
-          mint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-          rawTokenAmount: { tokenAmount: "937500000", decimals: 6 },
-        },
-      ],
-      tokenOutputs: [
-        {
-          userAccount: BUYER,
-          mint: PYTH_MINT,
-          rawTokenAmount: { tokenAmount: "31250000000", decimals: 6 },
-        },
-      ],
-    });
-    expect(result).not.toBeNull();
-    expect(result!.toAddress).toBe(BUYER);
-    expect(result!.pythAmount).toBe(31_250);
-    expect(result!.fromTokenSymbol).toBe("USDC");
-    expect(result!.fromAmount).toBe(937.5);
-  });
-
-  it("detects buy from account balance deltas when tokenTransfers miss the final PYTH leg", () => {
-    const result = extractBuyData([], PYTH_MINT, BUYER, undefined, [
+  it("classifies the fee payer net increase as a buy", () => {
+    const accountData: AccountData[] = [
       {
         account: "BuyerPythAta",
         nativeBalanceChange: 0,
         tokenBalanceChanges: [
           {
-            userAccount: BUYER,
+            userAccount: "BuyerWallet111",
             mint: PYTH_MINT,
             rawTokenAmount: { tokenAmount: "981868", decimals: 6 },
           },
         ],
       },
+    ];
+
+    expect(extractPythEvents(accountData, [], PYTH_MINT, { feePayer: "BuyerWallet111" })).toEqual([
       {
-        account: "BuyerUsdcAta",
+        walletAddress: "BuyerWallet111",
+        direction: "buy",
+        pythAmount: 0.981868,
+        matchedVia: "net_delta",
+      },
+    ]);
+  });
+
+  it("classifies the fee payer net decrease as a sell", () => {
+    const accountData: AccountData[] = [
+      {
+        account: "SellerPythAta",
         nativeBalanceChange: 0,
         tokenBalanceChanges: [
           {
-            userAccount: BUYER,
-            mint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
-            rawTokenAmount: { tokenAmount: "-36884", decimals: 6 },
+            userAccount: "SellerWallet111",
+            mint: PYTH_MINT,
+            rawTokenAmount: { tokenAmount: "-22500000000", decimals: 6 },
           },
         ],
       },
-    ]);
+    ];
 
-    expect(result).not.toBeNull();
-    expect(result!.toAddress).toBe(BUYER);
-    expect(result!.pythAmount).toBe(0.981868);
-    expect(result!.fromToken).toBe("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v");
-    expect(result!.fromAmount).toBe(0.036884);
+    expect(extractPythEvents(accountData, [], PYTH_MINT, { feePayer: "SellerWallet111" })).toEqual([
+      {
+        walletAddress: "SellerWallet111",
+        direction: "sell",
+        pythAmount: 22_500,
+        matchedVia: "net_delta",
+      },
+    ]);
+  });
+
+  it("falls back to a single wallet delta when fee payer is not present", () => {
+    const accountData: AccountData[] = [
+      {
+        account: "SingleWallet",
+        nativeBalanceChange: 0,
+        tokenBalanceChanges: [
+          {
+            userAccount: "WhaleWallet111",
+            mint: PYTH_MINT,
+            rawTokenAmount: { tokenAmount: "10000000000", decimals: 6 },
+          },
+        ],
+      },
+    ];
+
+    expect(extractPythEvents(accountData, [], PYTH_MINT)).toEqual([
+      {
+        walletAddress: "WhaleWallet111",
+        direction: "buy",
+        pythAmount: 10_000,
+        matchedVia: "net_delta",
+      },
+    ]);
+  });
+
+  it("prefers the fee payer when multiple wallets changed PYTH", () => {
+    const accountData: AccountData[] = [
+      {
+        account: "Mixed",
+        nativeBalanceChange: 0,
+        tokenBalanceChanges: [
+          {
+            userAccount: "BuyerWallet111",
+            mint: PYTH_MINT,
+            rawTokenAmount: { tokenAmount: "23903490", decimals: 6 },
+          },
+          {
+            userAccount: "PoolWallet111",
+            mint: PYTH_MINT,
+            rawTokenAmount: { tokenAmount: "-23903490", decimals: 6 },
+          },
+        ],
+      },
+    ];
+
+    expect(extractPythEvents(accountData, [], PYTH_MINT, { feePayer: "BuyerWallet111" })).toEqual([
+      {
+        walletAddress: "BuyerWallet111",
+        direction: "buy",
+        pythAmount: 23.90349,
+        matchedVia: "net_delta",
+      },
+    ]);
+  });
+
+  it("falls back to the single positive delta when one buy and one sell are present", () => {
+    const accountData: AccountData[] = [
+      {
+        account: "Mixed",
+        nativeBalanceChange: 0,
+        tokenBalanceChanges: [
+          {
+            userAccount: "BuyerWallet111",
+            mint: PYTH_MINT,
+            rawTokenAmount: { tokenAmount: "986028", decimals: 6 },
+          },
+          {
+            userAccount: "SellerWallet111",
+            mint: PYTH_MINT,
+            rawTokenAmount: { tokenAmount: "-986028", decimals: 6 },
+          },
+        ],
+      },
+    ];
+
+    expect(extractPythEvents(accountData, [], PYTH_MINT)).toEqual([
+      {
+        walletAddress: "BuyerWallet111",
+        direction: "buy",
+        pythAmount: 0.986028,
+        matchedVia: "net_delta",
+      },
+    ]);
+  });
+
+  it("returns no events when multiple wallets changed PYTH and no simple resolution exists", () => {
+    const accountData: AccountData[] = [
+      {
+        account: "Mixed",
+        nativeBalanceChange: 0,
+        tokenBalanceChanges: [
+          {
+            userAccount: "BuyerWallet111",
+            mint: PYTH_MINT,
+            rawTokenAmount: { tokenAmount: "14268", decimals: 6 },
+          },
+          {
+            userAccount: "OtherBuyer111",
+            mint: PYTH_MINT,
+            rawTokenAmount: { tokenAmount: "14268", decimals: 6 },
+          },
+          {
+            userAccount: "PoolWallet111",
+            mint: PYTH_MINT,
+            rawTokenAmount: { tokenAmount: "-28536", decimals: 6 },
+          },
+        ],
+      },
+    ];
+
+    expect(extractPythEvents(accountData, [], PYTH_MINT)).toEqual([]);
+  });
+
+  it("classifies a DCA-like tiny net increase as a buy for the fee payer", () => {
+    const accountData: AccountData[] = [
+      {
+        account: "BuyerPythAta",
+        nativeBalanceChange: 0,
+        tokenBalanceChanges: [
+          {
+            userAccount: "BuyerWallet111",
+            mint: PYTH_MINT,
+            rawTokenAmount: { tokenAmount: "5", decimals: 6 },
+          },
+        ],
+      },
+    ];
+
+    expect(
+      extractPythEvents(accountData, [], PYTH_MINT, {
+        feePayer: "BuyerWallet111",
+      })
+    ).toEqual([
+      {
+        walletAddress: "BuyerWallet111",
+        direction: "buy",
+        pythAmount: 0.000005,
+        matchedVia: "net_delta",
+      },
+    ]);
+  });
+
+  it("classifies a buy from transfer legs on any swap router", () => {
+    const transfers: TokenTransfer[] = [
+      {
+        fromUserAccount: "BuyerWallet111",
+        toUserAccount: "PoolWallet111",
+        mint: "So11111111111111111111111111111111111111112",
+        tokenAmount: 0.03366307,
+      },
+      {
+        fromUserAccount: "PoolWallet111",
+        toUserAccount: "BuyerWallet111",
+        mint: PYTH_MINT,
+        tokenAmount: 74.81,
+      },
+    ];
+
+    expect(extractPythEvents([], transfers, PYTH_MINT, { feePayer: "BuyerWallet111" })).toEqual([
+      {
+        walletAddress: "BuyerWallet111",
+        direction: "buy",
+        pythAmount: 74.81,
+        matchedVia: "swap_transfers",
+      },
+    ]);
+  });
+
+  it("classifies a sell from transfer legs on any swap router", () => {
+    const transfers: TokenTransfer[] = [
+      {
+        fromUserAccount: "SellerWallet111",
+        toUserAccount: "PoolWallet111",
+        mint: PYTH_MINT,
+        tokenAmount: 674.91,
+      },
+      {
+        fromUserAccount: "PoolWallet111",
+        toUserAccount: "SellerWallet111",
+        mint: "So11111111111111111111111111111111111111112",
+        tokenAmount: 0.303621,
+      },
+    ];
+
+    expect(extractPythEvents([], transfers, PYTH_MINT, { feePayer: "SellerWallet111" })).toEqual([
+      {
+        walletAddress: "SellerWallet111",
+        direction: "sell",
+        pythAmount: 674.91,
+        matchedVia: "swap_transfers",
+      },
+    ]);
+  });
+
+  it("records a buy but ignores a later send in the same swap transaction", () => {
+    const transfers: TokenTransfer[] = [
+      {
+        fromUserAccount: "BuyerWallet111",
+        toUserAccount: "PoolWallet111",
+        mint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+        tokenAmount: 2.5,
+      },
+      {
+        fromUserAccount: "PoolWallet111",
+        toUserAccount: "BuyerWallet111",
+        mint: PYTH_MINT,
+        tokenAmount: 67.5,
+      },
+      {
+        fromUserAccount: "BuyerWallet111",
+        toUserAccount: "FriendWallet111",
+        mint: PYTH_MINT,
+        tokenAmount: 67.49,
+      },
+    ];
+
+    expect(extractPythEvents([], transfers, PYTH_MINT, { feePayer: "BuyerWallet111" })).toEqual([
+      {
+        walletAddress: "BuyerWallet111",
+        direction: "buy",
+        pythAmount: 67.5,
+        matchedVia: "swap_transfers",
+      },
+    ]);
+  });
+
+  it("falls back to net delta when transfer legs are missing", () => {
+    const accountData: AccountData[] = [
+      {
+        account: "BuyerPythAta",
+        nativeBalanceChange: 0,
+        tokenBalanceChanges: [
+          {
+            userAccount: "BuyerWallet111",
+            mint: PYTH_MINT,
+            rawTokenAmount: { tokenAmount: "5", decimals: 6 },
+          },
+        ],
+      },
+    ];
+
+    expect(
+      extractPythEvents(accountData, [], PYTH_MINT, {
+        feePayer: "BuyerWallet111",
+      })
+    ).toEqual([
+      {
+        walletAddress: "BuyerWallet111",
+        direction: "buy",
+        pythAmount: 0.000005,
+        matchedVia: "net_delta",
+      },
+    ]);
   });
 });

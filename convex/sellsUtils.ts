@@ -1,28 +1,7 @@
 export const PYTH_MINT = "HZ1JovNiVvGrGNiiYvEozEVgZ58xaU3RKwX8eACQBCt3";
 
 export type Tier = "shrimp" | "dolphin" | "whale";
-
-export type TokenTransfer = {
-  fromUserAccount: string;
-  toUserAccount: string;
-  mint: string;
-  tokenAmount: number;
-  symbol?: string; // present in some Helius enriched responses, absent for unknown tokens
-};
-
-export type SwapTokenBalance = {
-  userAccount: string;
-  mint: string;
-  rawTokenAmount?: {
-    tokenAmount: string;
-    decimals: number;
-  };
-};
-
-export type SwapEvent = {
-  tokenInputs?: SwapTokenBalance[];
-  tokenOutputs?: SwapTokenBalance[];
-};
+export type Direction = "buy" | "sell";
 
 export type AccountTokenBalanceChange = {
   userAccount: string;
@@ -39,12 +18,18 @@ export type AccountData = {
   tokenBalanceChanges?: AccountTokenBalanceChange[];
 };
 
-export type SellData = {
-  fromAddress: string;
+export type TokenTransfer = {
+  fromUserAccount?: string;
+  toUserAccount?: string;
+  mint: string;
+  tokenAmount: number;
+};
+
+export type PythEventCandidate = {
+  walletAddress: string;
+  direction: Direction;
   pythAmount: number;
-  toToken: string;
-  toTokenSymbol?: string;
-  toAmount: number;
+  matchedVia: "swap_transfers" | "net_delta";
 };
 
 export function assignTier(pythAmount: number): Tier {
@@ -62,213 +47,152 @@ function toUiTokenAmount(raw?: { tokenAmount: string; decimals: number }): numbe
   return Number(raw.tokenAmount) / 10 ** raw.decimals;
 }
 
-function collectNetTokenChanges(accountData: AccountData[]): Map<string, Map<string, number>> {
-  const byUser = new Map<string, Map<string, number>>();
+function collectNetPythChanges(accountData: AccountData[], pythMint: string) {
+  const byWallet = new Map<string, number>();
 
   for (const account of accountData) {
     for (const change of account.tokenBalanceChanges ?? []) {
-      if (!change.userAccount || !change.rawTokenAmount) continue;
-      const amount = toUiTokenAmount(change.rawTokenAmount);
-      const userBalances = byUser.get(change.userAccount) ?? new Map<string, number>();
-      userBalances.set(change.mint, (userBalances.get(change.mint) ?? 0) + amount);
-      byUser.set(change.userAccount, userBalances);
+      if (change.mint !== pythMint || !change.userAccount || !change.rawTokenAmount) continue;
+      const delta = toUiTokenAmount(change.rawTokenAmount);
+      byWallet.set(change.userAccount, (byWallet.get(change.userAccount) ?? 0) + delta);
     }
   }
 
-  return byUser;
+  return byWallet;
 }
 
-/**
- * Extracts sell data from a Helius enhanced webhook tokenTransfers array.
- *
- * Uses feePayer (the transaction signer) as the anchor for detection:
- * a sell is a transaction where PYTH moves OUT of the feePayer's wallet.
- * This avoids false positives from pool/vault accounts that also have
- * non-empty fromUserAccount in Jupiter aggregator routes.
- *
- * Returns null if feePayer has no PYTH outbound transfer (not a PYTH sell).
- * Falls back to toToken "unknown" / toAmount 0 if no inbound leg is found.
- */
-export function extractSellData(
-  tokenTransfers: TokenTransfer[],
-  pythMint: string,
-  feePayer: string,
-  swapEvent?: SwapEvent
-): SellData | null {
-  const swapSeller = swapEvent?.tokenInputs?.find(
-    (t) => t.mint === pythMint && t.userAccount
-  );
-  if (swapSeller) {
-    const tokenOut = swapEvent?.tokenOutputs?.find(
-      (t) => t.userAccount === swapSeller.userAccount && t.mint !== pythMint
-    );
-    const tokenOutSymbol = tokenTransfers.find(
-      (t) =>
-        t.toUserAccount === swapSeller.userAccount &&
-        t.mint === tokenOut?.mint &&
-        typeof t.symbol === "string"
-    )?.symbol;
+function collectTransferDrivenEvents(tokenTransfers: TokenTransfer[], pythMint: string) {
+  const byWallet = new Map<
+    string,
+    { pythIn: number; pythOut: number; otherIn: number; otherOut: number }
+  >();
 
-    return {
-      fromAddress: swapSeller.userAccount,
-      pythAmount: toUiTokenAmount(swapSeller.rawTokenAmount),
-      toToken: tokenOut?.mint ?? "unknown",
-      toTokenSymbol: tokenOutSymbol,
-      toAmount: toUiTokenAmount(tokenOut?.rawTokenAmount),
-    };
-  }
-
-  // Find PYTH outbound FROM the fee payer (the user who signed the transaction)
-  const pythOut = tokenTransfers.find(
-    (t) => t.mint === pythMint && t.fromUserAccount === feePayer
-  );
-  if (!pythOut) return null;
-
-  // Find the inbound non-PYTH leg to the fee payer
-  const tokenIn = tokenTransfers.find(
-    (t) => t.toUserAccount === feePayer && t.mint !== pythMint
-  );
-
-  return {
-    fromAddress: feePayer,
-    pythAmount: pythOut.tokenAmount,
-    toToken: tokenIn?.mint ?? "unknown",
-    toTokenSymbol: tokenIn?.symbol,
-    toAmount: tokenIn?.tokenAmount ?? 0,
+  const entryFor = (wallet: string) => {
+    let entry = byWallet.get(wallet);
+    if (!entry) {
+      entry = { pythIn: 0, pythOut: 0, otherIn: 0, otherOut: 0 };
+      byWallet.set(wallet, entry);
+    }
+    return entry;
   };
+
+  for (const transfer of tokenTransfers) {
+    if (!transfer.tokenAmount || !Number.isFinite(transfer.tokenAmount)) continue;
+    const amount = Math.abs(transfer.tokenAmount);
+    const isPyth = transfer.mint === pythMint;
+
+    if (transfer.fromUserAccount && transfer.toUserAccount && transfer.fromUserAccount === transfer.toUserAccount) {
+      continue;
+    }
+
+    if (transfer.fromUserAccount) {
+      const entry = entryFor(transfer.fromUserAccount);
+      if (isPyth) entry.pythOut += amount;
+      else entry.otherOut += amount;
+    }
+
+    if (transfer.toUserAccount) {
+      const entry = entryFor(transfer.toUserAccount);
+      if (isPyth) entry.pythIn += amount;
+      else entry.otherIn += amount;
+    }
+  }
+
+  const events: PythEventCandidate[] = [];
+  for (const [walletAddress, flows] of byWallet.entries()) {
+    if (flows.pythIn > 0 && flows.otherOut > 0 && flows.otherIn === 0) {
+      events.push({
+        walletAddress,
+        direction: "buy",
+        pythAmount: flows.pythIn,
+        matchedVia: "swap_transfers",
+      });
+    }
+
+    if (flows.pythOut > 0 && flows.otherIn > 0 && flows.otherOut === 0) {
+      events.push({
+        walletAddress,
+        direction: "sell",
+        pythAmount: flows.pythOut,
+        matchedVia: "swap_transfers",
+      });
+    }
+  }
+
+  return events.sort((a, b) =>
+    a.walletAddress === b.walletAddress
+      ? a.direction.localeCompare(b.direction)
+      : a.walletAddress.localeCompare(b.walletAddress)
+  );
 }
 
-export type BuyData = {
-  // toAddress = buyer's wallet (receiving PYTH).
-  // Note: storeBuyEvent stores this as fromAddress in buy_events to mirror
-  // sell_events.fromAddress naming convention (both mean "swap initiator").
-  toAddress: string;
-  pythAmount: number;
-  fromToken: string;        // token spent to buy PYTH
-  fromTokenSymbol?: string;
-  fromAmount: number;       // amount of fromToken spent
-};
-
-/**
- * Extracts buy data from a Helius enhanced webhook tokenTransfers array.
- *
- * Uses feePayer (the transaction signer) as the buyer identity — the person
- * who initiated and signed the transaction is always the buyer.
- *
- * Primary detection: PYTH arriving directly at feePayer's wallet
- * (toUserAccount === feePayer).
- *
- * Fallback: toUserAccount may be empty or unresolved in some routing patterns
- * (e.g. SOL→PYTH where the outbound leg is native SOL not an SPL token, or
- * multi-hop aggregator routes). In that case, any PYTH inbound transfer that
- * did NOT come FROM feePayer is the buy leg — we know feePayer didn't send it
- * because extractSellData already ruled that out upstream. Prefer transfers
- * where toUserAccount is non-empty (a real user wallet) over fully anonymous
- * pool-to-pool hops.
- *
- * The buyer address is always feePayer regardless of which transfer is found.
- * Falls back to fromToken "unknown" / fromAmount 0 for native SOL spends
- * (SOL does not appear in tokenTransfers, only in nativeTransfers).
- */
-export function extractBuyData(
+export function extractPythEvents(
+  accountData: AccountData[],
   tokenTransfers: TokenTransfer[],
   pythMint: string,
-  feePayer: string,
-  swapEvent?: SwapEvent,
-  accountData: AccountData[] = []
-): BuyData | null {
-  const swapBuyer = swapEvent?.tokenOutputs?.find(
-    (t) => t.mint === pythMint && t.userAccount
-  );
-  if (swapBuyer) {
-    const tokenIn = swapEvent?.tokenInputs?.find(
-      (t) => t.userAccount === swapBuyer.userAccount && t.mint !== pythMint
-    );
-    const tokenInSymbol = tokenTransfers.find(
-      (t) =>
-        t.fromUserAccount === swapBuyer.userAccount &&
-        t.mint === tokenIn?.mint &&
-        typeof t.symbol === "string"
-    )?.symbol;
+  options?: {
+    feePayer?: string;
+  }
+): PythEventCandidate[] {
+  const transferEvents = collectTransferDrivenEvents(tokenTransfers, pythMint);
+  const feePayer = options?.feePayer;
 
-    return {
-      toAddress: swapBuyer.userAccount,
-      pythAmount: toUiTokenAmount(swapBuyer.rawTokenAmount),
-      fromToken: tokenIn?.mint ?? "unknown",
-      fromTokenSymbol: tokenInSymbol,
-      fromAmount: toUiTokenAmount(tokenIn?.rawTokenAmount),
-    };
+  if (feePayer) {
+    const feePayerTransferEvents = transferEvents.filter((event) => event.walletAddress === feePayer);
+    if (feePayerTransferEvents.length > 0) {
+      return feePayerTransferEvents;
+    }
   }
 
-  // Primary: PYTH arriving directly at feePayer's wallet
-  let pythIn = tokenTransfers.find(
-    (t) => t.mint === pythMint && t.toUserAccount === feePayer
+  if (transferEvents.length === 1) {
+    return transferEvents;
+  }
+
+  const deltas = [...collectNetPythChanges(accountData, pythMint).entries()].filter(
+    ([, delta]) => delta !== 0
   );
 
-  // Fallback: find any PYTH inbound not sent by feePayer.
-  // toUserAccount may be empty for some routing patterns (native SOL→PYTH,
-  // multi-hop aggregators). Prefer transfers going to a named user wallet.
-  if (!pythIn) {
-    pythIn =
-      tokenTransfers.find(
-        (t) =>
-          t.mint === pythMint &&
-          t.toUserAccount !== "" &&
-          t.fromUserAccount !== feePayer
-      ) ??
-      tokenTransfers.find(
-        (t) => t.mint === pythMint && t.fromUserAccount !== feePayer
-      );
+  if (deltas.length === 0) return [];
+
+  if (feePayer) {
+    const feePayerDelta = new Map(deltas).get(feePayer) ?? 0;
+    if (feePayerDelta !== 0) {
+      return [
+        {
+          walletAddress: feePayer,
+          direction: (feePayerDelta > 0 ? "buy" : "sell") as Direction,
+          pythAmount: Math.abs(feePayerDelta),
+          matchedVia: "net_delta",
+        },
+      ];
+    }
   }
 
-  if (!pythIn) {
-    return extractBuyDataFromAccountData(tokenTransfers, pythMint, accountData);
+  if (deltas.length === 1) {
+    const [walletAddress, delta] = deltas[0];
+    return [
+      {
+        walletAddress,
+        direction: (delta > 0 ? "buy" : "sell") as Direction,
+        pythAmount: Math.abs(delta),
+        matchedVia: "net_delta",
+      },
+    ];
   }
 
-  // Find the outbound non-PYTH SPL token leg from feePayer (e.g. USDC, wSOL).
-  // Will be "unknown" / 0 for native SOL spends.
-  const tokenOut = tokenTransfers.find(
-    (t) => t.fromUserAccount === feePayer && t.mint !== pythMint
-  );
-
-  return {
-    toAddress: feePayer,
-    pythAmount: pythIn.tokenAmount,
-    fromToken: tokenOut?.mint ?? "unknown",
-    fromTokenSymbol: tokenOut?.symbol,
-    fromAmount: tokenOut?.tokenAmount ?? 0,
-  };
-}
-
-export function extractBuyDataFromAccountData(
-  tokenTransfers: TokenTransfer[],
-  pythMint: string,
-  accountData: AccountData[]
-): BuyData | null {
-  const netChanges = collectNetTokenChanges(accountData);
-
-  for (const [userAccount, mintChanges] of netChanges.entries()) {
-    const pythDelta = mintChanges.get(pythMint) ?? 0;
-    if (pythDelta <= 0) continue;
-
-    const spentToken = [...mintChanges.entries()].find(
-      ([mint, amount]) => mint !== pythMint && amount < 0
-    );
-
-    const spentMint = spentToken?.[0] ?? "unknown";
-    const spentAmount = spentToken ? Math.abs(spentToken[1]) : 0;
-    const spentSymbol = tokenTransfers.find(
-      (t) => t.fromUserAccount === userAccount && t.mint === spentMint && typeof t.symbol === "string"
-    )?.symbol;
-
-    return {
-      toAddress: userAccount,
-      pythAmount: pythDelta,
-      fromToken: spentMint,
-      fromTokenSymbol: spentSymbol,
-      fromAmount: spentAmount,
-    };
+  const positiveDeltas = deltas.filter(([, delta]) => delta > 0);
+  const negativeDeltas = deltas.filter(([, delta]) => delta < 0);
+  if (positiveDeltas.length === 1 && negativeDeltas.length === 1) {
+    const [walletAddress, delta] = positiveDeltas[0];
+    return [
+      {
+        walletAddress,
+        direction: "buy",
+        pythAmount: delta,
+        matchedVia: "net_delta",
+      },
+    ];
   }
 
-  return null;
+  return [];
 }

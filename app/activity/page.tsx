@@ -51,7 +51,10 @@ export default function ActivityPage() {
               </Badge>
             </div>
             <p className="max-w-xl text-sm text-white/80 sm:text-base">
-              Tracking all on-chain PYTH {isSell ? "sell" : "buy"} events in real-time
+              Tracking on-chain PYTH {isSell ? "sell" : "buy"} activity in real-time
+            </p>
+            <p className="max-w-2xl text-xs text-cyan-100/75 sm:text-sm">
+              Current scope: best-effort swap tracking. We classify PYTH buys and sells from the final wallet-level PYTH balance change on swap transactions and keep raw payloads for debugging edge cases.
             </p>
             <div className="flex flex-wrap gap-2 pt-1">
               <span className="flex items-center gap-1.5 rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs text-white/70">
@@ -72,7 +75,7 @@ export default function ActivityPage() {
                 variant="outline"
                 className="w-fit rounded-xl border-white/10 bg-black/15 px-3 py-1 text-xs text-white/70"
               >
-                Webhook-powered · No polling
+                Webhook-powered · Best effort
               </Badge>
               {trackingSince && (
                 <Badge

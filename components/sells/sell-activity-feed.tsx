@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { usePaginatedQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { formatPythAmount, truncateAddress, formatTimeAgo } from "@/lib/sells/format";
-import { getTokenSymbol } from "@/lib/sells/tokenSymbols";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -76,7 +75,7 @@ export function SellActivityFeed({
           </div>
           <h3 className="mb-2 text-lg font-semibold text-white">No Sell Events Yet</h3>
           <p className="mx-auto max-w-sm text-sm text-[#b4aec8]">
-            Sell events above 10,000 PYTH will appear here once the webhook is active.
+            PYTH sell events will appear here once the webhook is active.
           </p>
         </CardContent>
       </Card>
@@ -102,9 +101,6 @@ export function SellActivityFeed({
           </div>
           <div className="w-32 text-right">
             <p className="text-xs font-medium text-[#8f88a9]">PYTH Sold</p>
-          </div>
-          <div className="w-20 text-right">
-            <p className="text-xs font-medium text-[#8f88a9]">Received</p>
           </div>
           <div className="w-24 text-right">
             <p className="text-xs font-medium text-[#8f88a9]">When</p>
@@ -140,8 +136,7 @@ export function SellActivityFeed({
                   <span className="font-mono text-xs text-[#d8d3ea]">{truncateAddress(event.fromAddress)}</span>
                   <span className="text-sm font-bold text-white">{formatPythAmount(event.pythAmount)} PYTH</span>
                 </div>
-                <div className="flex items-center justify-between text-xs text-white/50">
-                  <span>→ {event.toTokenSymbol ?? getTokenSymbol(event.toToken)}</span>
+                <div className="flex items-center justify-end text-xs text-white/50">
                   <ExternalLink className="h-3 w-3" />
                 </div>
               </div>
@@ -158,9 +153,6 @@ export function SellActivityFeed({
                 </div>
                 <div className="w-32 text-right">
                   <span className="text-sm font-bold text-white">{formatPythAmount(event.pythAmount)}</span>
-                </div>
-                <div className="w-20 text-right">
-                  <span className="text-xs text-[#a8a1bf]">{event.toTokenSymbol ?? getTokenSymbol(event.toToken)}</span>
                 </div>
                 <div className="w-24 text-right">
                   <span className="text-xs text-[#a8a1bf]">{formatTimeAgo(event.timestamp)}</span>
