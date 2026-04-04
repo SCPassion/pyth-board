@@ -14,19 +14,33 @@ import { PublicKey, Connection } from "@solana/web3.js";
 const INITIAL_REWARD_POOL_SIZE = 60_000_000_000_000n;
 const STAKE_ACCOUNT_DISCOVERY_TIMEOUT_MS = 10000;
 
-// RPC endpoints with fallback support
-const RPC_ENDPOINTS = [
-  "https://solana-mainnet.g.alchemy.com/v2/VAWGO1qOMcxkm0B9H0xUPzpNMzBnIvo8",
-  "https://api.mainnet-beta.solana.com",
-  "https://rpc.ankr.com/solana",
-  "https://solana-api.projectserum.com",
-];
+// RPC endpoints with fallback support.
+// Alchemy (paid) is tried first; public endpoints are fallbacks.
+// The Alchemy URL is read from an env var to keep the API key out of source.
+const buildRpcEndpoints = (): string[] => {
+  const endpoints: string[] = [];
+  if (process.env.PRIMARY_SOLANA_RPC_URL) {
+    endpoints.push(process.env.PRIMARY_SOLANA_RPC_URL);
+  }
+  // Hard-coded public fallback ensures we always have at least one option.
+  const defaults = [
+    "https://api.mainnet-beta.solana.com",
+  ];
+  for (const url of defaults) {
+    if (!endpoints.includes(url)) endpoints.push(url);
+  }
+  return endpoints;
+};
 
-// Connection configuration for better performance
+const RPC_ENDPOINTS = buildRpcEndpoints();
+
+// Connection configuration for better performance.
+// disableRetryOnRateLimit: true — we handle 429 fallback ourselves; the SDK's
+// built-in exponential backoff causes 20-30s hangs when an endpoint rate-limits.
 const CONNECTION_CONFIG = {
   commitment: "confirmed" as const,
   confirmTransactionInitialTimeout: 60000,
-  disableRetryOnRateLimit: false,
+  disableRetryOnRateLimit: true,
   httpHeaders: {
     "User-Agent": "PythBoard/1.0",
   },
@@ -44,6 +58,20 @@ function isValidSolanaAddress(address: string): boolean {
   } catch {
     return false;
   }
+}
+
+/**
+ * Fetches the 5 raw data payloads needed to build PythStakingInfo.
+ * Extracted so callers can retry with a different client on 429.
+ */
+async function fetchStakingData(client: PythStakingClient, stakeAccount: PublicKey) {
+  return Promise.all([
+    getClaimableRewards(client, stakeAccount).catch(() => ({ totalRewards: 0n })),
+    client.getStakeAccountPositions(stakeAccount),
+    client.getTargetAccount(),
+    client.getPoolDataAccount(),
+    client.getRewardCustodyAccount(),
+  ]);
 }
 
 /**
@@ -86,19 +114,28 @@ export async function getOISStakingInfo(
     const { client: responsiveClient, stakeAccount } =
       await discoverStakeAccount(client, walletPublicKey);
 
-    // Fetch everything in one parallel batch.
-    // poolData is fetched once and reused for both generalStats and publisherPoolData.
-    // getClaimableRewards runs in parallel with the rest; failures fall back to 0.
-    const [rewards, positions, targetAccount, poolData, rewardCustodyAccount] =
-      await Promise.all([
-        getClaimableRewards(responsiveClient, stakeAccount).catch(() => ({
-          totalRewards: 0n,
-        })),
-        responsiveClient.getStakeAccountPositions(stakeAccount),
-        responsiveClient.getTargetAccount(),
-        responsiveClient.getPoolDataAccount(),
-        responsiveClient.getRewardCustodyAccount(),
-      ]);
+    // Fetch staking data, with endpoint fallback if the winning discovery client
+    // gets rate-limited (429) on the data fetch calls.
+    const allClients = RPC_ENDPOINTS.map((_, index) =>
+      createPythStakingClientWithFallback(walletPublicKey, index)
+    );
+    // Put the responsive client first so we try it before the others.
+    const orderedClients = [
+      responsiveClient,
+      ...allClients.filter((_, i) => RPC_ENDPOINTS[i] !== (responsiveClient as any).connection?.rpcEndpoint),
+    ];
+
+    let fetchResult: Awaited<ReturnType<typeof fetchStakingData>> | null = null;
+    for (let i = 0; i < orderedClients.length; i++) {
+      try {
+        fetchResult = await fetchStakingData(orderedClients[i], stakeAccount);
+        break;
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Unknown";
+        if (!isSkippableRpcError(msg) || i === orderedClients.length - 1) throw err;
+      }
+    }
+    const [rewards, positions, targetAccount, poolData, rewardCustodyAccount] = fetchResult!;
 
     const generalStats: PythGeneralStats = {
       totalGovernance:
@@ -199,6 +236,10 @@ export async function getOISStakingInfo(
       throw new Error(
         "RPC data unavailable: Historical slot data is missing. Please try again later."
       );
+    } else if (isSkippableRpcError(errorMessage)) {
+      throw new Error(
+        "Unable to reach Solana network: all RPC endpoints failed. Please try again shortly."
+      );
     } else if (
       errorMessage.includes("fetch") ||
       errorMessage.includes("network")
@@ -269,7 +310,23 @@ function createPythStakingClientWithFallback(
 }
 
 /**
- * Discovers the stake account address for a wallet, with RPC fallback.
+ * Returns true if the error is a transient/auth HTTP error that warrants
+ * skipping to the next RPC endpoint (429 rate-limit or 403 forbidden).
+ */
+function isSkippableRpcError(message: string): boolean {
+  return (
+    message.includes("429") ||
+    message.includes("403") ||
+    message.toLowerCase().includes("too many requests") ||
+    message.toLowerCase().includes("rate limit") ||
+    message.toLowerCase().includes("forbidden")
+  );
+}
+
+/**
+ * Discovers the stake account address for a wallet.
+ * All RPC endpoints race in parallel (Promise.any) for the fastest response.
+ * Endpoints that return 403/429 reject immediately, letting other endpoints win.
  */
 async function discoverStakeAccount(
   client: PythStakingClient,
@@ -286,22 +343,11 @@ async function discoverStakeAccount(
   try {
     const discovery = Promise.any(
       clients.map(async (rpcClient) => {
-        try {
-          const mainAccount = await rpcClient.getMainStakeAccount(walletPublicKey);
-
-          if (!mainAccount) {
-            throw new Error("No staking account found for this wallet");
-          }
-
-          return {
-            client: rpcClient,
-            stakeAccount: mainAccount.stakeAccountPosition,
-          };
-        } catch (error) {
-          const msg = error instanceof Error ? error.message : "Unknown error";
-          failures.push(msg);
-          throw error;
+        const mainAccount = await rpcClient.getMainStakeAccount(walletPublicKey);
+        if (!mainAccount) {
+          throw new Error("No staking account found for this wallet");
         }
+        return { client: rpcClient, stakeAccount: mainAccount.stakeAccountPosition };
       })
     );
 
@@ -311,13 +357,20 @@ async function discoverStakeAccount(
       "Stake account discovery timed out across all RPC endpoints"
     );
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
 
     if (errorMessage.includes("timed out across all RPC endpoints")) {
-      throw new Error(
-        "Failed to discover staking account: all RPC endpoints timed out"
+      throw new Error("Failed to discover staking account: all RPC endpoints timed out");
+    }
+
+    // AggregateError from Promise.any — collect all rejection reasons
+    if (error instanceof AggregateError) {
+      const msgs = error.errors.map((e: unknown) =>
+        e instanceof Error ? e.message : "Unknown error"
       );
+      failures.push(...msgs);
+    } else {
+      failures.push(errorMessage);
     }
 
     if (failures.some((msg) => msg.startsWith("No staking account"))) {
@@ -375,10 +428,10 @@ async function getClaimableRewards(
       return { totalRewards: 0n };
     }
 
-    // If it's a network error and we haven't tried all endpoints, retry with different RPC
+    // If it's a rate-limit or network error and we haven't tried all endpoints, retry with different RPC
     if (
       retryCount < RPC_ENDPOINTS.length - 1 &&
-      (errorMessage.includes("fetch") || errorMessage.includes("network"))
+      (isSkippableRpcError(errorMessage) || errorMessage.includes("fetch") || errorMessage.includes("network"))
     ) {
       const newClient = createPythStakingClientWithFallback(
         client.wallet.publicKey,
