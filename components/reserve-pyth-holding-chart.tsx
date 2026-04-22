@@ -299,7 +299,7 @@ export function ReservePythHoldingChart({
                       />
                       <Area
                         dataKey="totalPythHeld"
-                        type="natural"
+                        type="monotone"
                         stroke="var(--color-totalPythHeld)"
                         fill="url(#pythHoldingsFill)"
                         strokeWidth={4}
