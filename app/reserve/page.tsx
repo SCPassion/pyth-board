@@ -6,6 +6,7 @@ import { ReserveAccountCard } from "@/components/reserve-account-card";
 import { ReserveBuybackSummary } from "@/components/reserve-buyback-summary";
 import { SwapTransactions } from "@/components/swap-transactions";
 import { ReservePythHoldingChart } from "@/components/reserve-pyth-holding-chart";
+import { ReservePythBoughtChart } from "@/components/reserve-pyth-bought-chart";
 import {
   getCurrentPythPriceUsd,
   getPythReserveSummary,
@@ -24,9 +25,9 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
 
 export default function ReservePage() {
-  const [activeTab, setActiveTab] = useState<"overview" | "pyth-history">(
-    "overview"
-  );
+  const [activeTab, setActiveTab] = useState<
+    "overview" | "pyth-history" | "pyth-bought"
+  >("overview");
   const [reserveSummary, setReserveSummary] =
     useState<PythReserveSummary | null>(null);
   const [swapTransactions, setSwapTransactions] = useState<SwapTransaction[]>([]);
@@ -175,6 +176,7 @@ export default function ReservePage() {
         <div className="flex items-center justify-center gap-2 rounded-[24px] border border-white/8 bg-[#312940] p-2">
           <div className="h-10 w-24 animate-pulse rounded-2xl bg-white/10" />
           <div className="h-10 w-40 animate-pulse rounded-2xl bg-white/10" />
+          <div className="h-10 w-36 animate-pulse rounded-2xl bg-white/10" />
         </div>
 
         <section className="grid gap-5 lg:grid-cols-2">
@@ -312,6 +314,18 @@ export default function ReservePage() {
         >
           PYTH Holding History
         </Button>
+        <Button
+          size="sm"
+          variant={activeTab === "pyth-bought" ? "default" : "ghost"}
+          className={
+            activeTab === "pyth-bought"
+              ? "h-10 rounded-2xl bg-[#6f4bd8] px-4 text-white hover:bg-[#7b57e3]"
+              : "h-10 rounded-2xl px-4 text-[#b4aec8] hover:bg-white/5 hover:text-white"
+          }
+          onClick={() => setActiveTab("pyth-bought")}
+        >
+          PYTH Bought History
+        </Button>
       </div>
 
       {activeTab === "overview" ? (
@@ -398,9 +412,13 @@ export default function ReservePage() {
             </CardContent>
           </Card>
         </>
-      ) : (
+      ) : activeTab === "pyth-history" ? (
         <div className="rounded-[30px] border border-white/10 bg-[linear-gradient(148deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.02)_100%)] p-4 shadow-[0_20px_50px_rgba(9,5,20,0.18)] sm:p-5">
           <ReservePythHoldingChart currentPythPriceUsd={currentPythPriceUsd} />
+        </div>
+      ) : (
+        <div className="rounded-[30px] border border-white/10 bg-[linear-gradient(148deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.02)_100%)] p-4 shadow-[0_20px_50px_rgba(9,5,20,0.18)] sm:p-5">
+          <ReservePythBoughtChart />
         </div>
       )}
     </div>

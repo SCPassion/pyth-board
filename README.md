@@ -2,7 +2,7 @@
 
 Pyth Board is a Next.js dashboard for tracking Pyth staking positions and monitoring the Pyth Strategic Reserve.
 
-Current stage: **v0.3.5 (beta)**.
+Current stage: **v0.3.6 (beta)**.
 
 ## What is live right now
 
