@@ -20,56 +20,28 @@ import { Loader2 } from "lucide-react";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-interface ReservePythHoldingChartProps {
-  currentPythPriceUsd: number;
+type HoldingHistoryPoint = {
+  timestampMs: number;
+  minuteBucketMs: number;
+  totalPythHeld: number;
 }
 
-export function ReservePythHoldingChart({
-  currentPythPriceUsd,
-}: ReservePythHoldingChartProps) {
+export function ReservePythHoldingChart() {
   const rawHistory = useQuery(api.reserveSnapshots.getPythHoldingHistory, {});
 
   const chartData = useMemo(() => {
     if (!rawHistory) return [];
-    return rawHistory.map((point: any) => ({
-      timestampMs: point.timestampMs,
-      minuteBucketMs: point.minuteBucketMs,
-      totalPythHeld: Number(point.totalPythHeld.toFixed(2)),
-    }));
+    return (rawHistory as HoldingHistoryPoint[]).map((point) => {
+      return {
+        timestampMs: point.timestampMs,
+        minuteBucketMs: point.minuteBucketMs,
+        totalPythHeld: Number(point.totalPythHeld.toFixed(2)),
+      };
+    });
   }, [rawHistory]);
 
   const latestValue = chartData.at(-1)?.totalPythHeld ?? null;
-  const firstTrackedTimestampMs = chartData.at(0)?.timestampMs ?? null;
   const latestTrackedTimestampMs = chartData.at(-1)?.timestampMs ?? null;
-  const cumulativePurchasedSinceTracking = useMemo(() => {
-    if (chartData.length === 0) return null;
-
-    let purchased = 0;
-    for (let i = 1; i < chartData.length; i += 1) {
-      const delta = chartData[i].totalPythHeld - chartData[i - 1].totalPythHeld;
-      if (delta > 0) {
-        purchased += delta;
-      }
-    }
-
-    return Number(purchased.toFixed(2));
-  }, [chartData]);
-  const elapsedDays =
-    typeof latestTrackedTimestampMs === "number" &&
-    typeof firstTrackedTimestampMs === "number" &&
-    latestTrackedTimestampMs > firstTrackedTimestampMs
-      ? (latestTrackedTimestampMs - firstTrackedTimestampMs) / DAY_MS
-      : null;
-  const averageDailyPurchased =
-    cumulativePurchasedSinceTracking !== null &&
-    typeof elapsedDays === "number" &&
-    elapsedDays > 0
-      ? Number((cumulativePurchasedSinceTracking / elapsedDays).toFixed(2))
-      : null;
-  const averageDailyPurchasedUsd =
-    averageDailyPurchased !== null && currentPythPriceUsd > 0
-      ? averageDailyPurchased * currentPythPriceUsd
-      : null;
   const firstValue = chartData.at(0)?.totalPythHeld ?? null;
   const lastUpdated = chartData.at(-1)?.timestampMs;
   const spanMs =
@@ -123,11 +95,6 @@ export function ReservePythHoldingChart({
     return ticks;
   }, [axisMode, chartData]);
 
-  const formattedTrackingStart =
-    typeof firstTrackedTimestampMs === "number"
-      ? new Date(firstTrackedTimestampMs).toLocaleDateString()
-      : "-";
-
   return (
     <div className="space-y-5">
       <div className="grid min-h-0 grid-cols-1 lg:grid-cols-[320px_1fr] lg:min-h-[calc(100vh-360px)] lg:h-[calc(100vh-360px)] lg:overflow-hidden">
@@ -140,52 +107,13 @@ export function ReservePythHoldingChart({
                 {latestValue !== null ? latestValue.toLocaleString() : "-"}
               </p>
             </div>
-
-            <div>
-              <p className="text-[#a8a1bf] text-sm mb-2">$PYTH Purchased</p>
-              <p className="text-white text-2xl sm:text-3xl font-semibold tracking-tight">
-                {cumulativePurchasedSinceTracking !== null
-                  ? cumulativePurchasedSinceTracking.toLocaleString()
-                  : "-"}
-              </p>
-              <p className="text-[#8f88a9] text-xs mt-2">
-                Since tracking started: {formattedTrackingStart}
-              </p>
-            </div>
-
-            <div>
-              <p className="text-[#a8a1bf] text-sm mb-2">
-                Average Daily $PYTH Purchased
-              </p>
-              <p className="text-white text-2xl sm:text-3xl font-semibold tracking-tight">
-                {averageDailyPurchased !== null
-                  ? averageDailyPurchased.toLocaleString()
-                  : "-"}
-              </p>
-            </div>
-
-            <div>
-              <p className="text-[#a8a1bf] text-sm mb-2">
-                Average Daily Purchased in USD
-              </p>
-              <p className="text-white text-2xl sm:text-3xl font-semibold tracking-tight">
-                {averageDailyPurchasedUsd !== null
-                  ? new Intl.NumberFormat("en-US", {
-                      style: "currency",
-                      currency: "USD",
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    }).format(averageDailyPurchasedUsd)
-                  : "-"}
-              </p>
-            </div>
           </div>
 
           <div className="flex min-w-0 flex-col p-6 lg:min-h-0">
             <CardHeader className="px-0 pt-0 pb-4 flex-row items-start justify-between space-y-0">
               <div>
                 <CardTitle className="text-white text-2xl sm:text-3xl">
-                  Reserve PYTH Holdings over time
+                  DAO PYTH Holdings over time
                 </CardTitle>
                 <CardDescription className="text-[#a8a1bf] mt-1">
                   {lastUpdated

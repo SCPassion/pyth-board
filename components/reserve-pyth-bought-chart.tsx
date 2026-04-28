@@ -147,7 +147,7 @@ export function ReservePythBoughtChart() {
           <CardHeader className="flex-row items-start justify-between space-y-0 px-0 pb-4 pt-0">
             <div>
               <CardTitle className="text-2xl text-white sm:text-3xl">
-                Total PYTH Bought over time
+                PYTH Buybacks over time
               </CardTitle>
               <CardDescription className="mt-1 text-[#a8a1bf]">
                 {lastUpdated

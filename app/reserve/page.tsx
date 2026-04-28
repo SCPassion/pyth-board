@@ -8,7 +8,6 @@ import { SwapTransactions } from "@/components/swap-transactions";
 import { ReservePythHoldingChart } from "@/components/reserve-pyth-holding-chart";
 import { ReservePythBoughtChart } from "@/components/reserve-pyth-bought-chart";
 import {
-  getCurrentPythPriceUsd,
   getPythReserveSummary,
 } from "@/action/pythReserveActions";
 import { getSwapTransactionsPage } from "@/action/swapTransactionsActions";
@@ -44,7 +43,6 @@ export default function ReservePage() {
   const [swapError, setSwapError] = useState<string | null>(null);
   const [dcaStatus, setDcaStatus] =
     useState<JupiterDcaCouncilOpsStatus | null>(null);
-  const [currentPythPriceUsd, setCurrentPythPriceUsd] = useState(0);
   const [dcaLoading, setDcaLoading] = useState(true);
   const hasFetchedRef = useRef(false);
   const isFetchingReserveRef = useRef(false);
@@ -121,14 +119,12 @@ export default function ReservePage() {
       setLoading(true);
       setReserveError(null);
       setDcaLoading(true);
-      const [data, dca, pythPriceUsd] = await Promise.all([
+      const [data, dca] = await Promise.all([
         getPythReserveSummary(),
         getJupiterDcaCouncilOps(),
-        getCurrentPythPriceUsd(),
       ]);
       setReserveSummary(data);
       setDcaStatus(dca);
-      setCurrentPythPriceUsd(pythPriceUsd);
       hasFetchedRef.current = true;
     } catch (err) {
       const errorMessage =
@@ -289,14 +285,14 @@ export default function ReservePage() {
         </div>
       </section>
 
-      <div className="flex items-center justify-center gap-2 rounded-[24px] border border-white/8 bg-[#312940] p-2">
+      <div className="flex w-full max-w-full items-center gap-2 overflow-x-auto rounded-[24px] border border-white/8 bg-[#312940] p-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:justify-center">
         <Button
           size="sm"
           variant={activeTab === "overview" ? "default" : "ghost"}
           className={
             activeTab === "overview"
-              ? "h-10 rounded-2xl bg-[#6f4bd8] px-4 text-white hover:bg-[#7b57e3]"
-              : "h-10 rounded-2xl px-4 text-[#b4aec8] hover:bg-white/5 hover:text-white"
+              ? "h-10 shrink-0 whitespace-nowrap rounded-2xl bg-[#6f4bd8] px-4 text-white hover:bg-[#7b57e3]"
+              : "h-10 shrink-0 whitespace-nowrap rounded-2xl px-4 text-[#b4aec8] hover:bg-white/5 hover:text-white"
           }
           onClick={() => setActiveTab("overview")}
         >
@@ -304,27 +300,27 @@ export default function ReservePage() {
         </Button>
         <Button
           size="sm"
-          variant={activeTab === "pyth-history" ? "default" : "ghost"}
-          className={
-            activeTab === "pyth-history"
-              ? "h-10 rounded-2xl bg-[#6f4bd8] px-4 text-white hover:bg-[#7b57e3]"
-              : "h-10 rounded-2xl px-4 text-[#b4aec8] hover:bg-white/5 hover:text-white"
-          }
-          onClick={() => setActiveTab("pyth-history")}
-        >
-          PYTH Holding History
-        </Button>
-        <Button
-          size="sm"
           variant={activeTab === "pyth-bought" ? "default" : "ghost"}
           className={
             activeTab === "pyth-bought"
-              ? "h-10 rounded-2xl bg-[#6f4bd8] px-4 text-white hover:bg-[#7b57e3]"
-              : "h-10 rounded-2xl px-4 text-[#b4aec8] hover:bg-white/5 hover:text-white"
+              ? "h-10 shrink-0 whitespace-nowrap rounded-2xl bg-[#6f4bd8] px-4 text-white hover:bg-[#7b57e3]"
+              : "h-10 shrink-0 whitespace-nowrap rounded-2xl px-4 text-[#b4aec8] hover:bg-white/5 hover:text-white"
           }
           onClick={() => setActiveTab("pyth-bought")}
         >
-          PYTH Bought History
+          PYTH Buybacks
+        </Button>
+        <Button
+          size="sm"
+          variant={activeTab === "pyth-history" ? "default" : "ghost"}
+          className={
+            activeTab === "pyth-history"
+              ? "h-10 shrink-0 whitespace-nowrap rounded-2xl bg-[#6f4bd8] px-4 text-white hover:bg-[#7b57e3]"
+              : "h-10 shrink-0 whitespace-nowrap rounded-2xl px-4 text-[#b4aec8] hover:bg-white/5 hover:text-white"
+          }
+          onClick={() => setActiveTab("pyth-history")}
+        >
+          DAO PYTH Holdings
         </Button>
       </div>
 
@@ -414,7 +410,7 @@ export default function ReservePage() {
         </>
       ) : activeTab === "pyth-history" ? (
         <div className="rounded-[30px] border border-white/10 bg-[linear-gradient(148deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.02)_100%)] p-4 shadow-[0_20px_50px_rgba(9,5,20,0.18)] sm:p-5">
-          <ReservePythHoldingChart currentPythPriceUsd={currentPythPriceUsd} />
+          <ReservePythHoldingChart />
         </div>
       ) : (
         <div className="rounded-[30px] border border-white/10 bg-[linear-gradient(148deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.02)_100%)] p-4 shadow-[0_20px_50px_rgba(9,5,20,0.18)] sm:p-5">
