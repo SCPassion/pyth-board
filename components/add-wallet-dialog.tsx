@@ -71,7 +71,7 @@ export function AddWalletDialog({ open, onOpenChange, onAddWallet }: AddWalletDi
               placeholder="Enter Solana wallet address"
               value={address}
               onChange={(e) => setAddress(e.target.value)}
-              className="font-mono text-sm"
+              className="font-data text-sm"
               required
             />
             {address && !isValidSolanaAddress(address) && (

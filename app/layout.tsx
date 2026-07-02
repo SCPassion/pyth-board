@@ -1,14 +1,12 @@
 import type React from "react";
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
 import { AppLayout } from "@/components/app-layout";
 import { ConvexClientProvider } from "@/components/convex-provider";
 import { PwaInstallProvider } from "@/components/pwa-install-context";
 import { Analytics } from "@vercel/analytics/react";
 import { Toaster } from "react-hot-toast";
-
-const inter = Inter({ subsets: ["latin"] });
+import { uiSansFont, displayFont, monoFont } from "@/lib/fonts";
 
 export const metadata: Metadata = {
   title: "Pyth Network Staking Dashboard",
@@ -63,7 +61,9 @@ export default function RootLayout({
         <meta name="msapplication-TileColor" content="#8b5cf6" />
         <meta name="msapplication-tap-highlight" content="no" />
       </head>
-      <body className={inter.className}>
+      <body
+        className={`${uiSansFont.className} ${uiSansFont.variable} ${displayFont.variable} ${monoFont.variable}`}
+      >
         <PwaInstallProvider>
           <ConvexClientProvider>
             <AppLayout>{children}</AppLayout>

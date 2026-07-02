@@ -62,27 +62,9 @@ export function MetricCards({
   const yAxisMax = dayHigh !== null ? dayHigh + yAxisPadding : "auto";
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-        <div>
-          <h2 className="text-xl font-bold text-white sm:text-2xl">
-            Market Metrics
-          </h2>
-          <p className="mt-1 text-sm text-[#a8a1bf]">
-            Live PYTH price and wallet spread.
-          </p>
-        </div>
-        <Badge
-          variant="outline"
-          className="rounded-xl border-white/8 bg-[#2f2942] px-3 py-1 text-xs text-[#b8b0d0]"
-        >
-          Live Data
-        </Badge>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Card className="group rounded-[28px] border-white/10 bg-[linear-gradient(148deg,rgba(255,255,255,0.09)_0%,rgba(255,255,255,0.02)_100%)] py-0 shadow-[0_20px_55px_rgba(8,5,18,0.2)] sm:col-span-2">
-          <CardContent className="space-y-4 p-5 sm:p-6">
+          <CardContent className="space-y-5 p-6 sm:p-7">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#2a2238] ring-1 ring-white/8">
@@ -100,7 +82,7 @@ export function MetricCards({
               </Badge>
             </div>
 
-            <p className="text-3xl font-bold text-white sm:text-4xl">
+            <p className="font-data text-3xl font-medium text-white sm:text-4xl">
               ${pythPrice ? pythPrice.toFixed(4) : "..."} USD
             </p>
 
@@ -219,7 +201,7 @@ export function MetricCards({
               </Badge>
             </div>
 
-            <p className="text-3xl font-bold text-white">
+            <p className="font-data text-3xl font-medium text-white">
               {wallets.length === 0 ? "No wallets connected" : `${wallets.length} Wallets`}
             </p>
 
@@ -278,7 +260,6 @@ export function MetricCards({
             ) : null}
           </CardContent>
         </Card>
-      </div>
     </div>
   );
 }

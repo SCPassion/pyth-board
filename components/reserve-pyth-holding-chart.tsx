@@ -4,13 +4,6 @@ import { useMemo } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
@@ -24,26 +17,29 @@ type HoldingHistoryPoint = {
   timestampMs: number;
   minuteBucketMs: number;
   totalPythHeld: number;
-}
+};
 
 export function ReservePythHoldingChart() {
   const rawHistory = useQuery(api.reserveSnapshots.getPythHoldingHistory, {});
 
   const chartData = useMemo(() => {
     if (!rawHistory) return [];
-    return (rawHistory as HoldingHistoryPoint[]).map((point) => {
-      return {
-        timestampMs: point.timestampMs,
-        minuteBucketMs: point.minuteBucketMs,
-        totalPythHeld: Number(point.totalPythHeld.toFixed(2)),
-      };
-    });
+    return (rawHistory as HoldingHistoryPoint[]).map((point) => ({
+      timestampMs: point.timestampMs,
+      minuteBucketMs: point.minuteBucketMs,
+      totalPythHeld: Number(point.totalPythHeld.toFixed(2)),
+    }));
   }, [rawHistory]);
 
   const latestValue = chartData.at(-1)?.totalPythHeld ?? null;
-  const latestTrackedTimestampMs = chartData.at(-1)?.timestampMs ?? null;
   const firstValue = chartData.at(0)?.totalPythHeld ?? null;
+  const firstTrackedTimestampMs = chartData.at(0)?.timestampMs ?? null;
+  const changeSinceTracking =
+    latestValue !== null && firstValue !== null
+      ? Number((latestValue - firstValue).toFixed(2))
+      : null;
   const lastUpdated = chartData.at(-1)?.timestampMs;
+
   const spanMs =
     chartData.length > 1
       ? chartData[chartData.length - 1].minuteBucketMs -
@@ -80,7 +76,7 @@ export function ReservePythHoldingChart() {
     const startDate = new Date(start);
     const endDate = new Date(end);
     const cursor = new Date(
-      Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), 1),
+      Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), 1)
     );
 
     while (cursor.getTime() <= endDate.getTime()) {
@@ -95,151 +91,176 @@ export function ReservePythHoldingChart() {
     return ticks;
   }, [axisMode, chartData]);
 
+  const formattedTrackingStart =
+    typeof firstTrackedTimestampMs === "number"
+      ? new Date(firstTrackedTimestampMs).toLocaleDateString()
+      : "-";
+
   return (
-    <div className="space-y-5">
-      <div className="grid min-h-0 grid-cols-1 lg:grid-cols-[320px_1fr] lg:min-h-[calc(100vh-360px)] lg:h-[calc(100vh-360px)] lg:overflow-hidden">
-          <div className="border-b lg:border-b-0 lg:border-r border-white/8 p-6 space-y-6">
-            <div>
-              <p className="text-[#a8a1bf] text-sm mb-2">
-                Current Reserve Size ($PYTH)
-              </p>
-              <p className="text-white text-3xl sm:text-4xl font-semibold tracking-tight">
-                {latestValue !== null ? latestValue.toLocaleString() : "-"}
-              </p>
-            </div>
+    <div className="flex h-full flex-col gap-6">
+      <div>
+        <p
+          className={`font-data text-[11px] uppercase tracking-[0.25em] text-fuchsia-300/60`}
+        >
+          DAO Treasury &rarr; PYTH
+        </p>
+        <h3
+          className={`font-display mt-1 text-xl text-white sm:text-2xl`}
+        >
+          DAO PYTH Holdings over time
+        </h3>
+        <p
+          className={`font-data mt-1 text-[11px] text-[#8f88a9]`}
+        >
+          {lastUpdated
+            ? `UPDATED ${new Date(lastUpdated).toLocaleString()}`
+            : "WAITING FOR FIRST SNAPSHOT"}
+        </p>
+      </div>
+
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-5 border-t border-white/8 pt-5">
+        <div>
+          <dt className="text-[11px] text-[#a8a1bf] sm:text-xs">
+            Current Reserve Size
+          </dt>
+          <dd
+            className={`font-data mt-1 text-lg font-medium tabular-nums text-white sm:text-xl`}
+          >
+            {latestValue !== null ? latestValue.toLocaleString() : "-"}
+          </dd>
+        </div>
+
+        <div>
+          <dt className="text-[11px] text-[#a8a1bf] sm:text-xs">
+            Since Tracking
+          </dt>
+          <dd
+            className={`font-data mt-1 text-lg font-medium tabular-nums text-white sm:text-xl`}
+          >
+            {changeSinceTracking !== null
+              ? `${changeSinceTracking >= 0 ? "+" : ""}${changeSinceTracking.toLocaleString()}`
+              : "-"}
+          </dd>
+          <dd className={`font-data mt-0.5 text-[10px] text-[#7d7593]`}>
+            since {formattedTrackingStart}
+          </dd>
+        </div>
+      </dl>
+
+      <div className="min-h-0 flex-1">
+        {!rawHistory ? (
+          <div className="flex aspect-[16/10] max-h-[320px] min-h-[220px] items-center justify-center text-[#a8a1bf]">
+            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+            Loading history...
           </div>
-
-          <div className="flex min-w-0 flex-col p-6 lg:min-h-0">
-            <CardHeader className="px-0 pt-0 pb-4 flex-row items-start justify-between space-y-0">
-              <div>
-                <CardTitle className="text-white text-2xl sm:text-3xl">
-                  DAO PYTH Holdings over time
-                </CardTitle>
-                <CardDescription className="text-[#a8a1bf] mt-1">
-                  {lastUpdated
-                    ? `Updated ${new Date(lastUpdated).toLocaleString()}`
-                    : "Waiting for first snapshot"}
-                </CardDescription>
-              </div>
-            </CardHeader>
-
-            <CardContent className="mt-2 min-w-0 px-0 pb-0 lg:mt-0 lg:flex lg:min-h-0 lg:flex-1 lg:flex-col">
-              {!rawHistory ? (
-                <div className="h-[260px] sm:h-[320px] lg:h-full flex items-center justify-center text-[#a8a1bf]">
-                  <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                  Loading history...
-                </div>
-              ) : chartData.length === 0 ? (
-                <div className="h-[260px] sm:h-[320px] lg:h-full flex items-center justify-center text-[#a8a1bf] text-sm">
-                  No snapshots yet. Wait for the daily cron to populate data.
-                </div>
-              ) : (
-                <div className="h-[260px] w-full min-w-0 sm:h-[320px] lg:h-full">
-                  <ChartContainer
-                    className="!block h-full w-full min-w-0 aspect-auto"
-                    config={{
-                      totalPythHeld: {
-                        label: "PYTH",
-                        color: "#a855f7",
-                      },
-                    }}
+        ) : chartData.length === 0 ? (
+          <div className="flex aspect-[16/10] max-h-[320px] min-h-[220px] items-center justify-center text-sm text-[#a8a1bf]">
+            No holding snapshots yet. Wait for the reserve cron to populate
+            data.
+          </div>
+        ) : (
+          <div className="aspect-[16/10] max-h-[320px] min-h-[220px] w-full">
+            <ChartContainer
+              className="!block h-full w-full min-w-0 aspect-auto"
+              config={{
+                totalPythHeld: {
+                  label: "PYTH",
+                  color: "#a855f7",
+                },
+              }}
+            >
+              <AreaChart
+                data={chartData}
+                margin={{ left: 0, right: 10, top: 10, bottom: 6 }}
+              >
+                <defs>
+                  <linearGradient
+                    id="pythHoldingsFill"
+                    x1="0"
+                    y1="0"
+                    x2="0"
+                    y2="1"
                   >
-                    <AreaChart
-                      data={chartData}
-                      margin={{ left: 0, right: 10, top: 10, bottom: 6 }}
-                    >
-                      <defs>
-                        <linearGradient
-                          id="pythHoldingsFill"
-                          x1="0"
-                          y1="0"
-                          x2="0"
-                          y2="1"
-                        >
-                          <stop
-                            offset="0%"
-                            stopColor="var(--color-totalPythHeld)"
-                            stopOpacity={0.4}
-                          />
-                          <stop
-                            offset="55%"
-                            stopColor="var(--color-totalPythHeld)"
-                            stopOpacity={0.16}
-                          />
-                          <stop
-                            offset="100%"
-                            stopColor="var(--color-totalPythHeld)"
-                            stopOpacity={0.03}
-                          />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid
-                        vertical={false}
-                        strokeDasharray="3 3"
-                        stroke="rgba(148, 163, 184, 0.25)"
-                      />
-                      <XAxis
-                        dataKey="minuteBucketMs"
-                        type="number"
-                        scale="time"
-                        domain={["dataMin", "dataMax"]}
-                        ticks={axisTicks}
-                        tickLine={false}
-                        axisLine={false}
-                        minTickGap={24}
-                        tick={{ fill: "#94a3b8", fontSize: 12 }}
-                        tickFormatter={(value) =>
-                          axisMode === "monthly"
-                            ? new Date(value).toLocaleDateString([], {
-                                year: "2-digit",
-                                month: "short",
-                              })
-                            : new Date(value).toLocaleDateString([], {
-                                month: "short",
-                                day: "2-digit",
-                              })
-                        }
-                      />
-                      <YAxis
-                        tickLine={false}
-                        axisLine={false}
-                        width={96}
-                        domain={[firstValue ?? "dataMin", "dataMax"]}
-                        tick={{ fill: "#94a3b8", fontSize: 12 }}
-                        tickFormatter={(value) =>
-                          Number(value).toLocaleString()
-                        }
-                      />
-                      <ChartTooltip
-                        content={
-                          <ChartTooltipContent
-                            formatter={(value) =>
-                              `${Number(value).toLocaleString()} PYTH`
-                            }
-                            labelFormatter={(_, payload) => {
-                              const timestampMs =
-                                payload?.[0]?.payload?.timestampMs;
-                              if (!timestampMs) return "";
-                              return new Date(timestampMs).toLocaleString();
-                            }}
-                          />
-                        }
-                      />
-                      <Area
-                        dataKey="totalPythHeld"
-                        type="monotone"
-                        stroke="var(--color-totalPythHeld)"
-                        fill="url(#pythHoldingsFill)"
-                        strokeWidth={4}
-                        dot={false}
-                        activeDot={{ r: 4, fill: "var(--color-totalPythHeld)" }}
-                      />
-                    </AreaChart>
-                  </ChartContainer>
-                </div>
-              )}
-            </CardContent>
+                    <stop
+                      offset="0%"
+                      stopColor="var(--color-totalPythHeld)"
+                      stopOpacity={0.4}
+                    />
+                    <stop
+                      offset="55%"
+                      stopColor="var(--color-totalPythHeld)"
+                      stopOpacity={0.16}
+                    />
+                    <stop
+                      offset="100%"
+                      stopColor="var(--color-totalPythHeld)"
+                      stopOpacity={0.03}
+                    />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid
+                  vertical={false}
+                  strokeDasharray="3 3"
+                  stroke="rgba(148, 163, 184, 0.25)"
+                />
+                <XAxis
+                  dataKey="minuteBucketMs"
+                  type="number"
+                  scale="time"
+                  domain={["dataMin", "dataMax"]}
+                  ticks={axisTicks}
+                  tickLine={false}
+                  axisLine={false}
+                  minTickGap={24}
+                  tick={{ fill: "#94a3b8", fontSize: 11 }}
+                  tickFormatter={(value) =>
+                    axisMode === "monthly"
+                      ? new Date(value).toLocaleDateString([], {
+                          year: "2-digit",
+                          month: "short",
+                        })
+                      : new Date(value).toLocaleDateString([], {
+                          month: "short",
+                          day: "2-digit",
+                        })
+                  }
+                />
+                <YAxis
+                  tickLine={false}
+                  axisLine={false}
+                  width={80}
+                  domain={[firstValue ?? "dataMin", "dataMax"]}
+                  tick={{ fill: "#94a3b8", fontSize: 11 }}
+                  tickFormatter={(value) => Number(value).toLocaleString()}
+                />
+                <ChartTooltip
+                  content={
+                    <ChartTooltipContent
+                      formatter={(value) =>
+                        `${Number(value).toLocaleString()} PYTH`
+                      }
+                      labelFormatter={(_, payload) => {
+                        const timestampMs =
+                          payload?.[0]?.payload?.timestampMs;
+                        if (!timestampMs) return "";
+                        return new Date(timestampMs).toLocaleString();
+                      }}
+                    />
+                  }
+                />
+                <Area
+                  dataKey="totalPythHeld"
+                  type="monotone"
+                  stroke="var(--color-totalPythHeld)"
+                  fill="url(#pythHoldingsFill)"
+                  strokeWidth={2.5}
+                  dot={false}
+                  activeDot={{ r: 4, fill: "var(--color-totalPythHeld)" }}
+                />
+              </AreaChart>
+            </ChartContainer>
           </div>
+        )}
       </div>
     </div>
   );

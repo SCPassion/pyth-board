@@ -1,5 +1,17 @@
 @import "tailwindcss";
 
+@layer utilities {
+  /* Editorial display serif — page titles & section headings. */
+  .font-display {
+    font-family: var(--font-display), ui-serif, serif;
+  }
+
+  /* Ledger monospace — figures, timestamps, addresses, tickers. */
+  .font-data {
+    font-family: var(--font-mono), ui-monospace, monospace;
+  }
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;

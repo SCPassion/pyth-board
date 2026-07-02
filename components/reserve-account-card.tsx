@@ -76,10 +76,10 @@ export function ReserveAccountCard({
               <Wallet className="h-5 w-5 text-[#c4a6ff] sm:h-6 sm:w-6" />
             </div>
             <div className="min-w-0 flex-1">
-              <CardTitle className="text-white text-lg sm:text-xl truncate">
+              <CardTitle className="font-display text-white text-lg sm:text-xl truncate">
                 {accountInfo.name}
               </CardTitle>
-              <p className="mt-1 truncate font-mono text-xs text-[#a8a1bf] sm:text-sm">
+              <p className="mt-1 truncate font-data text-xs text-[#a8a1bf] sm:text-sm">
                 {formatAddress(accountInfo.address)}
               </p>
             </div>
@@ -114,7 +114,7 @@ export function ReserveAccountCard({
               <p className="mb-1 text-xs text-[#a8a1bf] sm:text-sm">
                 Total Value
               </p>
-              <p className="text-2xl sm:text-3xl font-bold text-white break-words">
+              <p className="font-data text-2xl sm:text-3xl font-medium text-white break-words">
                 {formatCurrency(calculatedTotal)}
               </p>
               {dcaVaultUsd > 0 && (

@@ -190,13 +190,13 @@ export function AppLayout({ children }: AppLayoutProps) {
             onMobileMenuToggle={toggleMobileMenu}
           />
 
-          <main className="flex-1 overflow-auto overflow-x-hidden bg-[radial-gradient(circle_at_top_right,rgba(135,80,255,0.12),transparent_22%),linear-gradient(180deg,#261e35_0%,#251c34_100%)] p-3 sm:p-6 min-w-0">
+          <main className="flex-1 overflow-auto overflow-x-hidden bg-[radial-gradient(circle_at_top_right,rgba(135,80,255,0.12),transparent_22%),linear-gradient(180deg,#261e35_0%,#251c34_100%)] p-4 sm:p-8 lg:p-12 min-w-0">
             {isLoading && (
               <div className="fixed right-4 top-4 z-50 rounded-2xl bg-[#6f4bd8] px-4 py-2 text-white shadow-lg">
                 Loading wallet data...
               </div>
             )}
-            <div className="mx-auto max-w-[1360px] space-y-5">{children}</div>
+            <div className="mx-auto max-w-[1360px]">{children}</div>
           </main>
         </div>
       </div>

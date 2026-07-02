@@ -2,6 +2,7 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { SectionRule } from "@/components/section-rule";
 import { cn } from "@/lib/utils";
 import type { NewsDigest } from "@/lib/news/types";
 
@@ -23,21 +24,20 @@ export function NewsArchive({
       .filter(Boolean);
 
   return (
-    <section className="space-y-4">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h2 className="text-xl font-bold text-white sm:text-2xl">Archive</h2>
-          <p className="text-sm text-[#958daf]">
-            Browse recent digests without leaving the page.
-          </p>
-        </div>
-        <Badge
-          variant="outline"
-          className="rounded-xl border-white/10 bg-[#2d2741] px-3 py-1 text-xs text-[#c3bdd6]"
-        >
-          {digests.length} weeks
-        </Badge>
-      </div>
+    <section className="space-y-6 pb-2">
+      <SectionRule
+        index="02"
+        title="Archive"
+        description="Browse recent digests without leaving the page."
+        right={
+          <Badge
+            variant="outline"
+            className="font-data rounded-xl border-white/10 bg-[#2d2741] px-3 py-1 text-xs text-[#c3bdd6]"
+          >
+            {digests.length} weeks
+          </Badge>
+        }
+      />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {digests.map((digest) => {

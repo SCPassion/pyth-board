@@ -188,13 +188,13 @@ export function WalletDropdown({
                         <p className="text-white font-medium text-sm sm:text-base group-hover:text-purple-100 transition-colors">
                           {wallet.name}
                         </p>
-                        <p className="text-[#a8a1bf] text-xs sm:text-sm font-mono break-all transition-colors">
+                        <p className="text-[#a8a1bf] text-xs sm:text-sm font-data break-all transition-colors">
                           Solana:{" "}
                           {wallet.address.slice(0, 5) +
                             "..." +
                             wallet.address.slice(-4)}
                         </p>
-                        <p className="text-[#a8a1bf] text-xs sm:text-sm font-mono break-all transition-colors">
+                        <p className="text-[#a8a1bf] text-xs sm:text-sm font-data break-all transition-colors">
                           Staking:{" "}
                           {wallet.stakingAddress.slice(0, 5) +
                             "..." +
@@ -274,7 +274,7 @@ export function WalletDropdown({
                   name="wallet-address"
                   type="text"
                   placeholder="Enter Solana wallet address"
-                  className="rounded-2xl border-white/8 bg-[#241d34] text-white font-mono text-xs sm:text-sm"
+                  className="rounded-2xl border-white/8 bg-[#241d34] text-white font-data text-xs sm:text-sm"
                   required
                 />
               </div>

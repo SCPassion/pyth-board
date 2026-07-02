@@ -51,7 +51,7 @@ export default function NewsPage() {
             <Newspaper className="h-8 w-8" />
           </div>
           <div className="space-y-2">
-            <h1 className="text-2xl font-bold text-white">Weekly Pyth Digest</h1>
+            <h1 className="font-display text-2xl text-white">Weekly Pyth Digest</h1>
             <p className="max-w-xl text-sm leading-6 text-[#c8c1dc]">
               No digest has been generated yet. Once the weekly forum job runs,
               this page will show the latest digest and archive.
@@ -74,7 +74,7 @@ export default function NewsPage() {
     (latestDigest as NewsDigest);
 
   return (
-    <div className="space-y-5 w-full min-w-0 overflow-x-hidden px-1 sm:px-2 lg:px-3">
+    <div className="w-full min-w-0 space-y-10 overflow-x-hidden">
       <NewsHero digest={selectedDigest} />
       <NewsDigestCard digest={selectedDigest} />
       <NewsArchive
