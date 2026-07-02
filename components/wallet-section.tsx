@@ -46,20 +46,20 @@ export function WalletSection({ wallet }: WalletSectionProps) {
 
   return (
     <Card className="rounded-[28px] border-white/10 bg-[linear-gradient(148deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.02)_100%)] py-0 shadow-[0_20px_55px_rgba(8,5,18,0.2)]">
-      <CardContent className="p-5 sm:p-6">
-        <div className="space-y-6">
+      <CardContent className="p-6 sm:p-8">
+        <div className="space-y-8">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-            <div className="min-w-0 space-y-2">
+            <div className="min-w-0 space-y-3">
               <div className="flex flex-wrap items-center gap-2">
-                <h3 className="text-2xl font-bold text-white">{wallet.name}</h3>
-                <span className="rounded-full border border-white/8 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-[#b8b0d0]">
+                <h3 className="font-display text-2xl text-white">{wallet.name}</h3>
+                <span className="font-data rounded-full border border-white/8 px-2.5 py-1 text-[11px] uppercase tracking-[0.18em] text-[#b8b0d0]">
                   Wallet
                 </span>
               </div>
-              <p className="break-all font-mono text-xs text-[#a8a1bf] sm:text-sm">
+              <p className="font-data break-all text-xs text-[#a8a1bf] sm:text-sm">
                 Solana: {wallet.address}
               </p>
-              <p className="break-all font-mono text-xs text-[#a8a1bf] sm:text-sm">
+              <p className="font-data break-all text-xs text-[#a8a1bf] sm:text-sm">
                 Staking: {wallet.stakingAddress}
               </p>
             </div>
@@ -94,41 +94,41 @@ export function WalletSection({ wallet }: WalletSectionProps) {
             </Button>
           </div>
 
-          <div className="grid gap-3 md:grid-cols-3">
-            <div className="rounded-3xl border border-white/8 bg-white/[0.03] p-4">
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="rounded-3xl border border-white/8 bg-white/[0.03] p-5">
               <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#8f88a9]">
                 Total Staked
               </p>
-              <p className="mt-3 text-4xl font-bold tracking-tight text-white">
+              <p className="font-data mt-3 text-4xl font-medium tracking-tight text-white">
                 {totalStaked.toFixed(2)}
               </p>
               <p className="mt-1 text-sm text-[#a8a1bf]">PYTH</p>
             </div>
 
-            <div className="rounded-3xl border border-white/8 bg-white/[0.03] p-4">
+            <div className="rounded-3xl border border-white/8 bg-white/[0.03] p-5">
               <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#8f88a9]">
                 Staking APY
               </p>
-              <p className="mt-3 text-4xl font-bold tracking-tight text-emerald-400">
+              <p className="font-data mt-3 text-4xl font-medium tracking-tight text-emerald-400">
                 {averageApy.toFixed(2)}%
               </p>
             </div>
 
-            <div className="rounded-3xl border border-white/8 bg-white/[0.03] p-4">
+            <div className="rounded-3xl border border-white/8 bg-white/[0.03] p-5">
               <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#8f88a9]">
                 Claimable Rewards
               </p>
-              <p className="mt-3 text-4xl font-bold tracking-tight text-amber-300">
+              <p className="font-data mt-3 text-4xl font-medium tracking-tight text-amber-300">
                 {claimableRewards.toFixed(2)}
               </p>
               <p className="mt-1 text-sm text-[#a8a1bf]">PYTH</p>
             </div>
           </div>
 
-          <div className="space-y-4 border-t border-white/8 pt-5">
+          <div className="space-y-5 border-t border-white/8 pt-6">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <h4 className="text-xl font-bold text-white">Staked Validators</h4>
+                <h4 className="font-display text-xl text-white">Staked Validators</h4>
                 <p className="mt-1 text-sm text-[#a8a1bf]">
                   {validators.length} delegated validators for{" "}
                   {shortAddress(wallet.address)}.
@@ -171,11 +171,11 @@ export function WalletSection({ wallet }: WalletSectionProps) {
                       </p>
                     </div>
 
-                    <div className="hidden text-center text-base font-semibold text-white md:block">
+                    <div className="font-data hidden text-center text-base font-medium text-white md:block">
                       {validator.stakedAmount.toLocaleString()} PYTH
                     </div>
 
-                    <div className="hidden text-right text-base font-semibold text-emerald-400 md:block">
+                    <div className="font-data hidden text-right text-base font-medium text-emerald-400 md:block">
                       {validator.apy}%
                     </div>
                   </div>

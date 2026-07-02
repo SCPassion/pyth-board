@@ -3,7 +3,6 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { ReserveSummary } from "@/components/reserve-summary";
 import { ReserveAccountCard } from "@/components/reserve-account-card";
-import { ReserveBuybackSummary } from "@/components/reserve-buyback-summary";
 import { SwapTransactions } from "@/components/swap-transactions";
 import { ReservePythHoldingChart } from "@/components/reserve-pyth-holding-chart";
 import { ReservePythBoughtChart } from "@/components/reserve-pyth-bought-chart";
@@ -19,14 +18,10 @@ import type {
   JupiterDcaCouncilOpsStatus,
 } from "@/types/pythTypes";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
+import { SectionRule } from "@/components/section-rule";
 
 export default function ReservePage() {
-  const [activeTab, setActiveTab] = useState<
-    "overview" | "pyth-history" | "pyth-bought"
-  >("overview");
   const [reserveSummary, setReserveSummary] =
     useState<PythReserveSummary | null>(null);
   const [swapTransactions, setSwapTransactions] = useState<SwapTransaction[]>([]);
@@ -149,58 +144,29 @@ export default function ReservePage() {
 
   if (loading) {
     return (
-      <div className="space-y-5 w-full min-w-0 overflow-x-hidden px-1 sm:px-2 lg:px-3">
-        <section className="relative overflow-hidden rounded-[30px] border border-white/10 bg-[linear-gradient(135deg,rgba(47,34,82,0.96)_0%,rgba(93,47,141,0.88)_54%,rgba(181,88,152,0.72)_100%)] px-6 py-7 shadow-[0_28px_70px_rgba(9,5,20,0.28)] sm:px-8">
-          <div className="pointer-events-none absolute -right-8 top-2 h-36 w-36 rounded-full bg-white/10 blur-3xl" />
-          <div className="pointer-events-none absolute bottom-[-28px] left-[38%] h-24 w-24 rounded-full bg-cyan-300/15 blur-2xl" />
-          <div className="relative flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between min-w-0">
-            <div className="space-y-3">
-              <div className="h-8 w-64 animate-pulse rounded-2xl bg-white/18" />
-              <div className="h-4 w-[32rem] max-w-full animate-pulse rounded-xl bg-white/12" />
-              <div className="h-4 w-[26rem] max-w-full animate-pulse rounded-xl bg-white/12" />
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="h-7 w-24 animate-pulse rounded-xl bg-white/14" />
-              <div className="flex h-10 items-center rounded-2xl bg-[#23144d] px-4 text-white/80">
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Loading
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <div className="flex items-center justify-center gap-2 rounded-[24px] border border-white/8 bg-[#312940] p-2">
-          <div className="h-10 w-24 animate-pulse rounded-2xl bg-white/10" />
-          <div className="h-10 w-40 animate-pulse rounded-2xl bg-white/10" />
-          <div className="h-10 w-36 animate-pulse rounded-2xl bg-white/10" />
+      <div className="w-full min-w-0 space-y-8 overflow-x-hidden">
+        <div className="space-y-4 border-b border-white/10 pb-6">
+          <div className="h-3 w-40 animate-pulse rounded-full bg-white/10" />
+          <div className="h-9 w-72 animate-pulse rounded-2xl bg-white/12" />
+          <div className="h-4 w-full max-w-2xl animate-pulse rounded-xl bg-white/8" />
         </div>
-
-        <section className="grid gap-5 lg:grid-cols-2">
+        <div className="grid gap-5 lg:grid-cols-2">
           {[1, 2].map((index) => (
             <div
               key={index}
               className="rounded-[28px] border border-white/10 bg-[linear-gradient(148deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.02)_100%)] p-5 shadow-[0_20px_50px_rgba(9,5,20,0.18)] sm:p-6"
             >
               <div className="space-y-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 animate-pulse rounded-2xl bg-white/10" />
-                    <div className="space-y-2">
-                      <div className="h-6 w-44 animate-pulse rounded-2xl bg-white/12" />
-                      <div className="h-4 w-32 animate-pulse rounded-xl bg-white/10" />
-                    </div>
-                  </div>
-                  <div className="h-5 w-5 animate-pulse rounded bg-white/10" />
+                <div className="space-y-2">
+                  <div className="h-3 w-40 animate-pulse rounded-full bg-white/10" />
+                  <div className="h-6 w-52 animate-pulse rounded-2xl bg-white/12" />
                 </div>
-                <div className="h-28 animate-pulse rounded-[22px] bg-[#312940]" />
-                <div className="space-y-3">
-                  <div className="h-4 w-28 animate-pulse rounded-xl bg-white/10" />
-                  <div className="h-16 animate-pulse rounded-[20px] bg-[#312940]" />
-                </div>
+                <div className="h-16 animate-pulse rounded-[20px] bg-[#312940]" />
+                <div className="h-56 animate-pulse rounded-[22px] bg-[#312940]" />
               </div>
             </div>
           ))}
-        </section>
+        </div>
       </div>
     );
   }
@@ -228,44 +194,54 @@ export default function ReservePage() {
   }
 
   return (
-    <div className="space-y-5 w-full min-w-0 overflow-x-hidden px-1 sm:px-2 lg:px-3">
-      <section className="relative overflow-hidden rounded-[30px] border border-white/10 bg-[linear-gradient(135deg,rgba(47,34,82,0.96)_0%,rgba(93,47,141,0.88)_54%,rgba(181,88,152,0.72)_100%)] px-6 py-7 shadow-[0_28px_70px_rgba(9,5,20,0.28)] sm:px-8">
-        <div className="pointer-events-none absolute -right-8 top-2 h-36 w-36 rounded-full bg-white/10 blur-3xl" />
-        <div className="pointer-events-none absolute bottom-[-28px] left-[38%] h-24 w-24 rounded-full bg-cyan-300/15 blur-2xl" />
-        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between min-w-0">
-          <div className="space-y-2">
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-white sm:text-3xl">
-                Pyth Strategic Reserve
-              </h1>
-              <Badge
-                className="rounded-full border border-cyan-300/35 bg-cyan-400/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-cyan-100 shadow-[0_8px_24px_rgba(73,224,255,0.16)]"
-              >
-                BETA
-              </Badge>
-            </div>
-            <p className="max-w-3xl text-sm text-white/80 sm:text-base sm:leading-7">
-              Monitor the operations and holdings of the Pyth DAO Strategic Reserve
-              as per{" "}
+    <div className="w-full min-w-0 space-y-10 overflow-x-hidden">
+      {/* Masthead */}
+      <header className="relative border-b border-white/10 pb-7">
+        <div
+          aria-hidden
+          className="absolute -top-1 left-0 h-px w-full bg-gradient-to-r from-cyan-400/70 via-fuchsia-400/60 to-transparent"
+        />
+        <div className="flex flex-col gap-6 pt-5 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0 space-y-2">
+            <p
+              className={`font-data text-[11px] uppercase tracking-[0.32em] text-cyan-300/70`}
+            >
+              Strategic Reserve &middot; OP&#8209;PIP&#8209;87
+            </p>
+            <h1
+              className={`font-display text-3xl italic text-white sm:text-4xl lg:text-5xl`}
+            >
+              Pyth Strategic Reserve
+            </h1>
+            <p className="max-w-2xl text-sm leading-relaxed text-white/70 sm:text-base">
+              A DAO-owned ledger of Pyth&apos;s{" "}
               <a
                 href="https://forum.pyth.network/t/passed-op-pip-87-pyth-token-phase-2-pyth-strategic-reserve/2293"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-medium text-white underline underline-offset-4"
+                className="font-medium text-white underline decoration-white/30 underline-offset-4 hover:decoration-white"
               >
-                OP-PIP-87
+                treasury-funded buyback program
               </a>
-              . Currently tracking $SOL, $PYTH, $USDC & $USDT only.
+              , tracking $SOL, $PYTH, $USDC &amp; $USDT holdings in real time.
             </p>
           </div>
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
-            <Badge
-              variant="outline"
-              className="rounded-xl border-white/10 bg-black/15 px-3 py-1 text-xs text-white/85 sm:text-sm"
-            >
-              {swapTransactions.length} Recent Swaps
-            </Badge>
-            <Button
+
+          <div className="flex items-center justify-between gap-6 sm:flex-col sm:items-end sm:gap-3">
+            <div className={`font-data text-right`}>
+              <div className="flex items-center justify-end gap-1.5 text-[11px] text-emerald-300/90">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400/70" />
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                </span>
+                LIVE
+              </div>
+              <p className="mt-1 text-[11px] text-white/40">
+                {swapTransactions.length.toString().padStart(2, "0")} swaps
+                tracked
+              </p>
+            </div>
+            <button
               onClick={() => {
                 swapCacheRef.current.clear();
                 swapHasMoreCacheRef.current.clear();
@@ -273,150 +249,119 @@ export default function ReservePage() {
                 fetchSwapPage(swapPage, true);
               }}
               disabled={loading}
-              size="sm"
-              className="h-10 rounded-2xl bg-[#23144d] px-4 text-white hover:bg-[#2d1b5d]"
+              className={`font-data group flex items-center gap-2 rounded-full border border-white/15 px-4 py-2 text-[11px] uppercase tracking-[0.18em] text-white/80 transition-colors hover:border-white/35 hover:text-white disabled:opacity-50`}
             >
               <RefreshCw
-                className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`}
+                className={`h-3.5 w-3.5 ${loading ? "animate-spin" : "transition-transform group-hover:rotate-90"}`}
               />
               Refresh
-            </Button>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* 01 — Reserve Summary */}
+      <section className="space-y-5">
+        <SectionRule index="01" title="Reserve Summary" />
+        <ReserveSummary
+          reserveSummary={reserveSummary}
+          dcaVaultUsdc={dcaStatus?.usdcBalanceVault ?? 0}
+        />
+      </section>
+
+      {/* 02 — Buyback & Holdings Trends */}
+      <section className="space-y-5">
+        <SectionRule index="02" title="Buyback & Holdings Trends" />
+        <div className="grid grid-cols-1 divide-y divide-white/10 overflow-hidden rounded-[30px] border border-white/10 bg-[linear-gradient(148deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.02)_100%)] shadow-[0_20px_50px_rgba(9,5,20,0.18)] lg:grid-cols-2 lg:divide-x lg:divide-y-0">
+          <div className="min-w-0 p-5 sm:p-7">
+            <ReservePythBoughtChart />
+          </div>
+          <div className="min-w-0 p-5 sm:p-7">
+            <ReservePythHoldingChart />
           </div>
         </div>
       </section>
 
-      <div className="flex w-full max-w-full items-center gap-2 overflow-x-auto rounded-[24px] border border-white/8 bg-[#312940] p-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:justify-center">
-        <Button
-          size="sm"
-          variant={activeTab === "overview" ? "default" : "ghost"}
-          className={
-            activeTab === "overview"
-              ? "h-10 shrink-0 whitespace-nowrap rounded-2xl bg-[#6f4bd8] px-4 text-white hover:bg-[#7b57e3]"
-              : "h-10 shrink-0 whitespace-nowrap rounded-2xl px-4 text-[#b4aec8] hover:bg-white/5 hover:text-white"
-          }
-          onClick={() => setActiveTab("overview")}
-        >
-          Overview
-        </Button>
-        <Button
-          size="sm"
-          variant={activeTab === "pyth-bought" ? "default" : "ghost"}
-          className={
-            activeTab === "pyth-bought"
-              ? "h-10 shrink-0 whitespace-nowrap rounded-2xl bg-[#6f4bd8] px-4 text-white hover:bg-[#7b57e3]"
-              : "h-10 shrink-0 whitespace-nowrap rounded-2xl px-4 text-[#b4aec8] hover:bg-white/5 hover:text-white"
-          }
-          onClick={() => setActiveTab("pyth-bought")}
-        >
-          PYTH Buybacks
-        </Button>
-        <Button
-          size="sm"
-          variant={activeTab === "pyth-history" ? "default" : "ghost"}
-          className={
-            activeTab === "pyth-history"
-              ? "h-10 shrink-0 whitespace-nowrap rounded-2xl bg-[#6f4bd8] px-4 text-white hover:bg-[#7b57e3]"
-              : "h-10 shrink-0 whitespace-nowrap rounded-2xl px-4 text-[#b4aec8] hover:bg-white/5 hover:text-white"
-          }
-          onClick={() => setActiveTab("pyth-history")}
-        >
-          DAO PYTH Holdings
-        </Button>
-      </div>
-
-      {activeTab === "overview" ? (
-        <>
-          <ReserveSummary
-            reserveSummary={reserveSummary}
-            dcaVaultUsdc={dcaStatus?.usdcBalanceVault ?? 0}
+      {/* 03 — Reserve Accounts */}
+      <section className="space-y-5">
+        <SectionRule index="03" title="Reserve Accounts" />
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 sm:gap-5">
+          <ReserveAccountCard accountInfo={reserveSummary.daoTreasury} />
+          <ReserveAccountCard
+            accountInfo={reserveSummary.pythianCouncilOps}
+            jupiterDca={{
+              usingDca: dcaStatus?.usingDca ?? false,
+              usdcBalanceVault: dcaStatus?.usdcBalanceVault ?? 0,
+              vaultUrl: getDcaCardHref(dcaStatus),
+            }}
+            dcaLoading={dcaLoading}
           />
+        </div>
+      </section>
 
-          <ReserveBuybackSummary />
+      {/* 04 — Recent Swap Operations */}
+      <section className="space-y-5">
+        <SectionRule index="04" title="Recent Swap Operations" />
+        <SwapTransactions
+          transactions={swapTransactions}
+          page={swapPage}
+          pageSize={swapPageSize}
+          hasMore={swapHasMore}
+          isLoading={swapLoading}
+          throttleRemainingMs={swapThrottleRemainingMs}
+          error={swapError}
+          onPageChange={(page) => fetchSwapPage(page)}
+        />
+      </section>
 
-          <div className="space-y-5">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <h2 className="text-xl sm:text-2xl font-bold text-white">
-                Reserve Accounts
-              </h2>
-              <Badge
-                variant="outline"
-                className="rounded-xl border-white/8 bg-[#2f2942] px-3 py-1 text-sm text-[#b8b0d0]"
+      {/* 05 — About */}
+      <section className="space-y-5 pb-2">
+        <SectionRule index="05" title="About the Strategic Reserve" />
+        <div className="grid grid-cols-1 gap-x-8 gap-y-4 text-sm leading-relaxed text-[#b4aec8] sm:text-[15px] lg:grid-cols-[1fr_1px_1fr]">
+          <p>
+            The Pyth Strategic Reserve is a DAO-owned reserve established to
+            systematically acquire PYTH tokens using protocol revenue,
+            administered under strict on-chain guardrails.
+          </p>
+          <div className="hidden bg-white/10 lg:block" aria-hidden />
+          <ul className="space-y-2">
+            <li className="flex gap-3">
+              <span
+                className={`font-data shrink-0 text-cyan-300/60`}
               >
-                2 Accounts
-              </Badge>
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
-              <ReserveAccountCard accountInfo={reserveSummary.daoTreasury} />
-              <ReserveAccountCard
-                accountInfo={reserveSummary.pythianCouncilOps}
-                jupiterDca={{
-                  usingDca: dcaStatus?.usingDca ?? false,
-                  usdcBalanceVault: dcaStatus?.usdcBalanceVault ?? 0,
-                  vaultUrl: getDcaCardHref(dcaStatus),
-                }}
-                dcaLoading={dcaLoading}
-              />
-            </div>
-          </div>
-
-          <div className="space-y-5">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <h2 className="text-xl sm:text-2xl font-bold text-white">
-                Recent Swap Operations
-              </h2>
-            </div>
-            <SwapTransactions
-              transactions={swapTransactions}
-              page={swapPage}
-              pageSize={swapPageSize}
-              hasMore={swapHasMore}
-              isLoading={swapLoading}
-              throttleRemainingMs={swapThrottleRemainingMs}
-              error={swapError}
-              onPageChange={(page) => fetchSwapPage(page)}
-            />
-          </div>
-
-          <Card className="rounded-[28px] border-white/10 bg-[linear-gradient(148deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.02)_100%)] py-0 shadow-[0_20px_55px_rgba(8,5,18,0.2)]">
-            <CardContent className="space-y-4 p-5 sm:p-6">
-              <h3 className="text-base sm:text-lg font-semibold text-white">
-                About the Strategic Reserve
-              </h3>
-              <div className="space-y-2 text-[#b4aec8] text-xs sm:text-sm">
-                <p>
-                  The Pyth Strategic Reserve is a DAO-owned reserve established to
-                  systematically acquire PYTH tokens using protocol revenue. The
-                  reserve operates under the following principles:
-                </p>
-                <ul className="list-disc list-inside space-y-1 ml-4">
-                  <li>
-                    Monthly purchases using one-third (33%) of the Treasury balance
-                  </li>
-                  <li>
-                    Administered by the Pythian Council Ops Multisig (6/8 approval
-                    required)
-                  </li>
-                  <li>
-                    All acquired PYTH tokens are repatriated to the DAO Treasury
-                  </li>
-                  <li>
-                    Transactions follow strict parameters: max 5% slippage, max
-                    $25,000 per transaction
-                  </li>
-                </ul>
-              </div>
-            </CardContent>
-          </Card>
-        </>
-      ) : activeTab === "pyth-history" ? (
-        <div className="rounded-[30px] border border-white/10 bg-[linear-gradient(148deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.02)_100%)] p-4 shadow-[0_20px_50px_rgba(9,5,20,0.18)] sm:p-5">
-          <ReservePythHoldingChart />
+                &#8226;
+              </span>
+              Monthly purchases using one-third (33%) of the Treasury balance
+            </li>
+            <li className="flex gap-3">
+              <span
+                className={`font-data shrink-0 text-cyan-300/60`}
+              >
+                &#8226;
+              </span>
+              Administered by the Pythian Council Ops Multisig (6/8 approval
+              required)
+            </li>
+            <li className="flex gap-3">
+              <span
+                className={`font-data shrink-0 text-cyan-300/60`}
+              >
+                &#8226;
+              </span>
+              All acquired PYTH tokens are repatriated to the DAO Treasury
+            </li>
+            <li className="flex gap-3">
+              <span
+                className={`font-data shrink-0 text-cyan-300/60`}
+              >
+                &#8226;
+              </span>
+              Transactions follow strict parameters: max 5% slippage, max
+              $25,000 per transaction
+            </li>
+          </ul>
         </div>
-      ) : (
-        <div className="rounded-[30px] border border-white/10 bg-[linear-gradient(148deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.02)_100%)] p-4 shadow-[0_20px_50px_rgba(9,5,20,0.18)] sm:p-5">
-          <ReservePythBoughtChart />
-        </div>
-      )}
+      </section>
     </div>
   );
 }

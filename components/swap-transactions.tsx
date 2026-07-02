@@ -213,7 +213,7 @@ export function SwapTransactions({
                   <div className="grid grid-cols-2 gap-2">
                     <div className="col-span-2 min-w-0">
                       <p className="mb-1 text-xs text-[#8f88a9]">Signature</p>
-                      <p className="truncate font-mono text-xs text-[#d8d3ea]">
+                      <p className="truncate font-data text-xs text-[#d8d3ea]">
                         {formatAddress(tx.signature)}
                       </p>
                     </div>
@@ -288,7 +288,7 @@ export function SwapTransactions({
 
                 {/* Signature */}
                 <div className="flex-1 text-center min-w-0">
-                  <p className="truncate font-mono text-xs text-[#d8d3ea]">{formatAddress(tx.signature)}</p>
+                  <p className="truncate font-data text-xs text-[#d8d3ea]">{formatAddress(tx.signature)}</p>
                 </div>
 
                 {/* Date/Time */}

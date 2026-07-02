@@ -74,7 +74,7 @@ export function PriceTicker() {
             className="w-5 h-5"
           />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="font-data flex items-center gap-2">
           <span className="text-white text-sm font-medium">
             ${data.symbol}
           </span>

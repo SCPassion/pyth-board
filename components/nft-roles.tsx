@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Image as ImageIcon, Filter, Search, X } from "lucide-react";
 import { NFTRole } from "@/types/pythTypes";
 import { NFTCard } from "@/components/nft-card";
+import { PageMasthead } from "@/components/page-masthead";
+import { SectionRule } from "@/components/section-rule";
 
 interface NFTRolesProps {
   nftRoles: NFTRole[];
@@ -24,20 +26,20 @@ export function NFTRoles({ nftRoles }: NFTRolesProps) {
   // Ensure we have data before rendering
   if (!safeNftRoles || safeNftRoles.length === 0) {
     return (
-      <div className="space-y-5">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <h2 className="text-xl sm:text-2xl font-bold text-white">
-            Pythenians Partnerships
-          </h2>
-        </div>
-        <div className="text-center py-8 sm:py-12 px-4">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#312940] ring-1 ring-white/8 sm:h-24 sm:w-24">
+      <div className="w-full min-w-0 space-y-16 sm:space-y-20">
+        <PageMasthead
+          eyebrow="Ecosystem Partnerships"
+          title="Pythenians and the NFTs that unlock them."
+          description="A directory of Pyth ecosystem partner NFTs, their claim status, and links to mint or learn more."
+        />
+        <div className="px-4 py-10 text-center sm:py-14">
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-[#312940] ring-1 ring-white/8 sm:h-24 sm:w-24">
             <ImageIcon className="h-8 w-8 text-[#a8a1bf] sm:h-12 sm:w-12" />
           </div>
-          <h3 className="text-lg sm:text-xl font-semibold text-white mb-2">
+          <h3 className="font-display mb-3 text-lg text-white sm:text-xl">
             Loading NFT Roles...
           </h3>
-          <p className="text-sm sm:text-base text-gray-400 max-w-md mx-auto">
+          <p className="mx-auto max-w-md text-sm text-gray-400 sm:text-base">
             Please wait while we load the NFT role data.
           </p>
         </div>
@@ -62,26 +64,33 @@ export function NFTRoles({ nftRoles }: NFTRolesProps) {
   });
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <h2 className="text-xl sm:text-2xl font-bold text-white">
-          Pythenians Partnerships
-        </h2>
-        <div className="flex items-center gap-3">
-          <Badge
-            variant="outline"
-            className="rounded-xl border-white/8 bg-[#2f2942] px-3 py-1 text-sm text-[#b8b0d0]"
-          >
-            {filteredRoles.length}{" "}
-            {filter === "all"
-              ? "Total"
-              : filter === "claimable"
-              ? "Claimable"
-              : "Not Claimable"}{" "}
-            Roles
-          </Badge>
-        </div>
-      </div>
+    <div className="w-full min-w-0 space-y-16 sm:space-y-20">
+      <PageMasthead
+        eyebrow="Ecosystem Partnerships"
+        title="Pythenians and the NFTs that unlock them."
+        description="A directory of Pyth ecosystem partner NFTs, their claim status, and links to mint or learn more."
+      />
+
+      <section className="space-y-7 pb-2">
+        <SectionRule
+          index="01"
+          title="Partnership NFTs"
+          description="Search and filter every partner collection linked to the Pythenians program."
+          right={
+            <Badge
+              variant="outline"
+              className="font-data w-fit rounded-xl border-white/8 bg-[#2f2942] px-3 py-1 text-sm text-[#b8b0d0]"
+            >
+              {filteredRoles.length}{" "}
+              {filter === "all"
+                ? "Total"
+                : filter === "claimable"
+                ? "Claimable"
+                : "Not Claimable"}{" "}
+              Roles
+            </Badge>
+          }
+        />
 
       {/* Search and Filter Section */}
       <div className="flex flex-col xl:flex-row gap-4 items-stretch lg:items-center justify-between">
@@ -180,6 +189,7 @@ export function NFTRoles({ nftRoles }: NFTRolesProps) {
           </p>
         </div>
       )}
+      </section>
     </div>
   );
 }

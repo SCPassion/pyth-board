@@ -4,6 +4,8 @@ import { PortfolioSummary } from "@/components/portfolio-summary";
 import { MetricCards } from "@/components/metric-cards";
 import { GeneralSummary } from "@/components/general-summary";
 import { DashboardSkeleton } from "@/components/dashboard-skeleton";
+import { PageMasthead } from "@/components/page-masthead";
+import { SectionRule } from "@/components/section-rule";
 import { useAppLoading } from "@/components/app-loading-context";
 import { useWalletInfosStore } from "@/store/store";
 import { usePythPrice } from "@/hooks/use-pyth-price";
@@ -55,27 +57,56 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="space-y-6">
-      <PortfolioSummary
-        connectedWallets={connectedWallets}
-        totalStaked={totalStaked}
-        totalClaimableRewards={totalClaimableRewards}
-        pythPrice={pythPrice}
-      >
-        Portfolio Summary
-      </PortfolioSummary>
-      <MetricCards 
-        pythPrice={pythPrice} 
-        totalStaked={totalStaked}
-        totalClaimableRewards={totalClaimableRewards}
+    <div className="w-full min-w-0 space-y-16 sm:space-y-20">
+      <PageMasthead
+        eyebrow="Portfolio Overview"
+        title={
+          <>
+            Your PYTH staking, <em>in one place.</em>
+          </>
+        }
+        description="A live snapshot of every connected wallet: staked balance, claimable rewards, and the validators securing your exposure across the network."
       />
-      <GeneralSummary
-        totalGovernance={totalGovernance.toFixed(1)}
-        oisTotalStaked={oisTotalStaked.toFixed(0)}
-        rewardsDistributed={rewardsDistributed.toFixed(1)}
-      >
-        General Information
-      </GeneralSummary>
+
+      <section className="space-y-7">
+        <SectionRule
+          index="01"
+          title="Portfolio Summary"
+          description={`${connectedWallets} connected wallet${connectedWallets === 1 ? "" : "s"} · ${totalStaked.toFixed(0)} PYTH staked`}
+        />
+        <PortfolioSummary
+          connectedWallets={connectedWallets}
+          totalStaked={totalStaked}
+          totalClaimableRewards={totalClaimableRewards}
+          pythPrice={pythPrice}
+        />
+      </section>
+
+      <section className="space-y-7">
+        <SectionRule
+          index="02"
+          title="Market Metrics"
+          description="Live PYTH price and wallet spread."
+        />
+        <MetricCards
+          pythPrice={pythPrice}
+          totalStaked={totalStaked}
+          totalClaimableRewards={totalClaimableRewards}
+        />
+      </section>
+
+      <section className="space-y-7 pb-2">
+        <SectionRule
+          index="03"
+          title="General Information"
+          description={`Network-wide figures across ${uniqueValidatorSize} unique validators.`}
+        />
+        <GeneralSummary
+          totalGovernance={totalGovernance.toFixed(1)}
+          oisTotalStaked={oisTotalStaked.toFixed(0)}
+          rewardsDistributed={rewardsDistributed.toFixed(1)}
+        />
+      </section>
     </div>
   );
 }

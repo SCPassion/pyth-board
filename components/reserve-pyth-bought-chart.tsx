@@ -4,12 +4,6 @@ import { useMemo } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import {
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
@@ -100,179 +94,196 @@ export function ReservePythBoughtChart() {
       : "-";
 
   return (
-    <div className="space-y-5">
-      <div className="grid min-h-0 grid-cols-1 lg:grid-cols-[320px_1fr] lg:min-h-[calc(100vh-360px)] lg:h-[calc(100vh-360px)] lg:overflow-hidden">
-        <div className="space-y-6 border-b border-white/8 p-6 lg:border-b-0 lg:border-r">
-          <div>
-            <p className="mb-2 text-sm text-[#a8a1bf]">Total PYTH Bought</p>
-            <p className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-              {latestPythBought !== null
-                ? formatPythAmount(latestPythBought)
-                : "-"}
-            </p>
-          </div>
+    <div className="flex h-full flex-col gap-6">
+      <div>
+        <p
+          className={`font-data text-[11px] uppercase tracking-[0.25em] text-cyan-300/60`}
+        >
+          Council Ops &rarr; USDC / PYTH
+        </p>
+        <h3
+          className={`font-display mt-1 text-xl text-white sm:text-2xl`}
+        >
+          PYTH Buybacks over time
+        </h3>
+        <p
+          className={`font-data mt-1 text-[11px] text-[#8f88a9]`}
+        >
+          {lastUpdated
+            ? `UPDATED ${new Date(lastUpdated).toLocaleString()}`
+            : "WAITING FOR FIRST SNAPSHOT"}
+        </p>
+      </div>
 
-          <div>
-            <p className="mb-2 text-sm text-[#a8a1bf]">
-              PYTH Bought Since Tracking
-            </p>
-            <p className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
-              {pythBoughtSinceTracking !== null
-                ? formatPythAmount(pythBoughtSinceTracking)
-                : "-"}
-            </p>
-            <p className="mt-2 text-xs text-[#8f88a9]">
-              Since tracking started: {formattedTrackingStart}
-            </p>
-          </div>
-
-          <div>
-            <p className="mb-2 text-sm text-[#a8a1bf]">Total USDC Spent</p>
-            <p className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
-              {latestPoint ? formatUsd(latestPoint.totalUsdcSpent) : "-"}
-            </p>
-          </div>
-
-          <div>
-            <p className="mb-2 text-sm text-[#a8a1bf]">Average Buy Price</p>
-            <p className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
-              {latestPoint && latestPoint.avgBuyPriceUsd > 0
-                ? formatUsdPerPyth(latestPoint.avgBuyPriceUsd)
-                : "-"}
-            </p>
-          </div>
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-5 border-t border-white/8 pt-5 sm:grid-cols-4">
+        <div>
+          <dt className="text-[11px] text-[#a8a1bf] sm:text-xs">
+            Total Bought
+          </dt>
+          <dd
+            className={`font-data mt-1 text-lg font-medium tabular-nums text-white sm:text-xl`}
+          >
+            {latestPythBought !== null
+              ? formatPythAmount(latestPythBought)
+              : "-"}
+          </dd>
         </div>
 
-        <div className="flex min-w-0 flex-col p-6 lg:min-h-0">
-          <CardHeader className="flex-row items-start justify-between space-y-0 px-0 pb-4 pt-0">
-            <div>
-              <CardTitle className="text-2xl text-white sm:text-3xl">
-                PYTH Buybacks over time
-              </CardTitle>
-              <CardDescription className="mt-1 text-[#a8a1bf]">
-                {lastUpdated
-                  ? `Updated ${new Date(lastUpdated).toLocaleString()}`
-                  : "Waiting for first snapshot"}
-              </CardDescription>
-            </div>
-          </CardHeader>
+        <div>
+          <dt className="text-[11px] text-[#a8a1bf] sm:text-xs">
+            Since Tracking
+          </dt>
+          <dd
+            className={`font-data mt-1 text-lg font-medium tabular-nums text-white sm:text-xl`}
+          >
+            {pythBoughtSinceTracking !== null
+              ? formatPythAmount(pythBoughtSinceTracking)
+              : "-"}
+          </dd>
+          <dd className={`font-data mt-0.5 text-[10px] text-[#7d7593]`}>
+            since {formattedTrackingStart}
+          </dd>
+        </div>
 
-          <CardContent className="mt-2 min-w-0 px-0 pb-0 lg:mt-0 lg:flex lg:min-h-0 lg:flex-1 lg:flex-col">
-            {!rawHistory ? (
-              <div className="flex h-[260px] items-center justify-center text-[#a8a1bf] sm:h-[320px] lg:h-full">
-                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                Loading history...
-              </div>
-            ) : chartData.length === 0 ? (
-              <div className="flex h-[260px] items-center justify-center text-sm text-[#a8a1bf] sm:h-[320px] lg:h-full">
-                No buyback snapshots yet. Wait for the buyback cron to populate
-                data.
-              </div>
-            ) : (
-              <div className="h-[260px] w-full min-w-0 sm:h-[320px] lg:h-full">
-                <ChartContainer
-                  className="!block h-full w-full min-w-0 aspect-auto"
-                  config={{
-                    totalPythBought: {
-                      label: "PYTH Bought",
-                      color: "#22d3ee",
-                    },
-                  }}
-                >
-                  <AreaChart
-                    data={chartData}
-                    margin={{ left: 0, right: 10, top: 10, bottom: 6 }}
+        <div>
+          <dt className="text-[11px] text-[#a8a1bf] sm:text-xs">
+            USDC Spent
+          </dt>
+          <dd
+            className={`font-data mt-1 text-lg font-medium tabular-nums text-white sm:text-xl`}
+          >
+            {latestPoint ? formatUsd(latestPoint.totalUsdcSpent) : "-"}
+          </dd>
+        </div>
+
+        <div>
+          <dt className="text-[11px] text-[#a8a1bf] sm:text-xs">
+            Avg. Price
+          </dt>
+          <dd
+            className={`font-data mt-1 text-lg font-medium tabular-nums text-white sm:text-xl`}
+          >
+            {latestPoint && latestPoint.avgBuyPriceUsd > 0
+              ? formatUsdPerPyth(latestPoint.avgBuyPriceUsd)
+              : "-"}
+          </dd>
+        </div>
+      </dl>
+
+      <div className="min-h-0 flex-1">
+        {!rawHistory ? (
+          <div className="flex aspect-[16/10] max-h-[320px] min-h-[220px] items-center justify-center text-[#a8a1bf]">
+            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+            Loading history...
+          </div>
+        ) : chartData.length === 0 ? (
+          <div className="flex aspect-[16/10] max-h-[320px] min-h-[220px] items-center justify-center text-sm text-[#a8a1bf]">
+            No buyback snapshots yet. Wait for the buyback cron to populate
+            data.
+          </div>
+        ) : (
+          <div className="aspect-[16/10] max-h-[320px] min-h-[220px] w-full">
+            <ChartContainer
+              className="!block h-full w-full min-w-0 aspect-auto"
+              config={{
+                totalPythBought: {
+                  label: "PYTH Bought",
+                  color: "#22d3ee",
+                },
+              }}
+            >
+              <AreaChart
+                data={chartData}
+                margin={{ left: 0, right: 10, top: 10, bottom: 6 }}
+              >
+                <defs>
+                  <linearGradient
+                    id="pythBoughtFill"
+                    x1="0"
+                    y1="0"
+                    x2="0"
+                    y2="1"
                   >
-                    <defs>
-                      <linearGradient
-                        id="pythBoughtFill"
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
-                      >
-                        <stop
-                          offset="0%"
-                          stopColor="var(--color-totalPythBought)"
-                          stopOpacity={0.4}
-                        />
-                        <stop
-                          offset="55%"
-                          stopColor="var(--color-totalPythBought)"
-                          stopOpacity={0.16}
-                        />
-                        <stop
-                          offset="100%"
-                          stopColor="var(--color-totalPythBought)"
-                          stopOpacity={0.03}
-                        />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid
-                      vertical={false}
-                      strokeDasharray="3 3"
-                      stroke="rgba(148, 163, 184, 0.25)"
+                    <stop
+                      offset="0%"
+                      stopColor="var(--color-totalPythBought)"
+                      stopOpacity={0.4}
                     />
-                    <XAxis
-                      dataKey="minuteBucketMs"
-                      type="number"
-                      scale="time"
-                      domain={["dataMin", "dataMax"]}
-                      ticks={axisTicks}
-                      tickLine={false}
-                      axisLine={false}
-                      minTickGap={24}
-                      tick={{ fill: "#94a3b8", fontSize: 12 }}
-                      tickFormatter={(value) =>
-                        axisMode === "monthly"
-                          ? new Date(value).toLocaleDateString([], {
-                              year: "2-digit",
-                              month: "short",
-                            })
-                          : new Date(value).toLocaleDateString([], {
-                              month: "short",
-                              day: "2-digit",
-                            })
+                    <stop
+                      offset="55%"
+                      stopColor="var(--color-totalPythBought)"
+                      stopOpacity={0.16}
+                    />
+                    <stop
+                      offset="100%"
+                      stopColor="var(--color-totalPythBought)"
+                      stopOpacity={0.03}
+                    />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid
+                  vertical={false}
+                  strokeDasharray="3 3"
+                  stroke="rgba(148, 163, 184, 0.25)"
+                />
+                <XAxis
+                  dataKey="minuteBucketMs"
+                  type="number"
+                  scale="time"
+                  domain={["dataMin", "dataMax"]}
+                  ticks={axisTicks}
+                  tickLine={false}
+                  axisLine={false}
+                  minTickGap={24}
+                  tick={{ fill: "#94a3b8", fontSize: 11 }}
+                  tickFormatter={(value) =>
+                    axisMode === "monthly"
+                      ? new Date(value).toLocaleDateString([], {
+                          year: "2-digit",
+                          month: "short",
+                        })
+                      : new Date(value).toLocaleDateString([], {
+                          month: "short",
+                          day: "2-digit",
+                        })
+                  }
+                />
+                <YAxis
+                  tickLine={false}
+                  axisLine={false}
+                  width={80}
+                  domain={[firstValue ?? "dataMin", "dataMax"]}
+                  tick={{ fill: "#94a3b8", fontSize: 11 }}
+                  tickFormatter={(value) => Number(value).toLocaleString()}
+                />
+                <ChartTooltip
+                  content={
+                    <ChartTooltipContent
+                      formatter={(value) =>
+                        `${Number(value).toLocaleString()} PYTH`
                       }
+                      labelFormatter={(_, payload) => {
+                        const timestampMs =
+                          payload?.[0]?.payload?.timestampMs;
+                        if (!timestampMs) return "";
+                        return new Date(timestampMs).toLocaleString();
+                      }}
                     />
-                    <YAxis
-                      tickLine={false}
-                      axisLine={false}
-                      width={96}
-                      domain={[firstValue ?? "dataMin", "dataMax"]}
-                      tick={{ fill: "#94a3b8", fontSize: 12 }}
-                      tickFormatter={(value) => Number(value).toLocaleString()}
-                    />
-                    <ChartTooltip
-                      content={
-                        <ChartTooltipContent
-                          formatter={(value) =>
-                            `${Number(value).toLocaleString()} PYTH`
-                          }
-                          labelFormatter={(_, payload) => {
-                            const timestampMs =
-                              payload?.[0]?.payload?.timestampMs;
-                            if (!timestampMs) return "";
-                            return new Date(timestampMs).toLocaleString();
-                          }}
-                        />
-                      }
-                    />
-                    <Area
-                      dataKey="totalPythBought"
-                      type="monotone"
-                      stroke="var(--color-totalPythBought)"
-                      fill="url(#pythBoughtFill)"
-                      strokeWidth={4}
-                      dot={false}
-                      activeDot={{ r: 4, fill: "var(--color-totalPythBought)" }}
-                    />
-                  </AreaChart>
-                </ChartContainer>
-              </div>
-            )}
-          </CardContent>
-        </div>
+                  }
+                />
+                <Area
+                  dataKey="totalPythBought"
+                  type="monotone"
+                  stroke="var(--color-totalPythBought)"
+                  fill="url(#pythBoughtFill)"
+                  strokeWidth={2.5}
+                  dot={false}
+                  activeDot={{ r: 4, fill: "var(--color-totalPythBought)" }}
+                />
+              </AreaChart>
+            </ChartContainer>
+          </div>
+        )}
       </div>
     </div>
   );

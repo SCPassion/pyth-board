@@ -33,10 +33,10 @@ export function NewsDigestCard({ digest }: NewsDigestCardProps) {
 
   return (
     <Card className="rounded-[28px] border-white/10 bg-[linear-gradient(148deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.02)_100%)] py-0 shadow-[0_20px_55px_rgba(8,5,18,0.2)]">
-      <CardContent className="space-y-6 p-6 sm:p-7">
+      <CardContent className="space-y-7 p-6 sm:p-8">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="space-y-3">
-            <h2 className="text-2xl font-bold text-white sm:text-[30px]">
+            <h2 className="font-display text-2xl text-white sm:text-[30px]">
               {digest.title}
             </h2>
             <div className="max-w-4xl rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-4 sm:px-5">
@@ -109,7 +109,7 @@ export function NewsDigestCard({ digest }: NewsDigestCardProps) {
           ))}
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 text-xs text-[#9f97b8]">
+        <div className="font-data flex flex-wrap items-center gap-3 text-xs text-[#9f97b8]">
           <span>{digest.sourceCounts.forumTopics} topics reviewed</span>
           <span>{digest.sourceCounts.forumPosts} posts retained</span>
           <span>Generated {new Date(digest.generatedAtMs).toLocaleString()}</span>
