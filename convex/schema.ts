@@ -84,4 +84,63 @@ export default defineSchema({
   })
     .index("by_weekKey", ["weekKey"])
     .index("by_generatedAtMs", ["generatedAtMs"]),
+  pythProReports: defineTable({
+    topicId: v.number(),
+    title: v.string(),
+    slug: v.string(),
+    url: v.string(),
+    authorUsername: v.string(),
+    createdAtMs: v.number(),
+    lastPostedAtMs: v.number(),
+    highestPostNumber: v.number(),
+    reportPeriodLabel: v.optional(v.string()),
+    distribution: v.optional(
+      v.object({
+        tokenAmount: v.optional(v.number()),
+        usdValue: v.optional(v.number()),
+        tokenSymbol: v.union(v.literal("PYTH"), v.literal("USDC")),
+        twapUsd: v.optional(v.number()),
+        pythPerUsd: v.optional(v.number()),
+      })
+    ),
+    monthlyRevenueRows: v.array(
+      v.object({
+        product: v.string(),
+        splitLabel: v.optional(v.string()),
+        grossRevenueUsd: v.optional(v.number()),
+        daoShareUsd: v.optional(v.number()),
+        daoSharePyth: v.optional(v.number()),
+        douroLabsUsd: v.optional(v.number()),
+        isTotal: v.boolean(),
+      })
+    ),
+    cumulativeRevenueRows: v.array(
+      v.object({
+        product: v.string(),
+        splitLabel: v.optional(v.string()),
+        grossRevenueUsd: v.optional(v.number()),
+        daoShareUsd: v.optional(v.number()),
+        daoSharePyth: v.optional(v.number()),
+        douroLabsUsd: v.optional(v.number()),
+        isTotal: v.boolean(),
+      })
+    ),
+    legacySummaryRows: v.array(
+      v.object({
+        label: v.string(),
+        usdValue: v.number(),
+      })
+    ),
+    monthlyGrossRevenueUsd: v.optional(v.number()),
+    monthlyDaoShareUsd: v.optional(v.number()),
+    monthlyDouroLabsUsd: v.optional(v.number()),
+    cumulativeGrossRevenueUsd: v.optional(v.number()),
+    cumulativeDaoShareUsd: v.optional(v.number()),
+    cumulativeDouroLabsUsd: v.optional(v.number()),
+    rawCooked: v.string(),
+    syncedAtMs: v.number(),
+  })
+    .index("by_topicId", ["topicId"])
+    .index("by_createdAtMs", ["createdAtMs"])
+    .index("by_lastPostedAtMs", ["lastPostedAtMs"]),
 });

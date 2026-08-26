@@ -1,28 +1,30 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-// ─── Mock global fetch ────────────────────────────────────────────────────────
+import { getRealtimePrices } from "@/action/priceActions";
 
 const mockFetch = vi.fn();
 vi.stubGlobal("fetch", mockFetch);
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function hermesLatestResponse(price: number) {
+function llamaCurrentPriceResponse(input: {
+  solPrice: number;
+  pythPrice: number;
+}) {
   return {
     ok: true,
     json: async () => ({
-      parsed: [{ price: { price: String(Math.round(price * 1e8)), expo: -8 } }],
+      coins: {
+        "coingecko:solana": {
+          price: input.solPrice,
+          symbol: "SOL",
+        },
+        "coingecko:pyth-network": {
+          price: input.pythPrice,
+          symbol: "PYTH",
+        },
+      },
     }),
   };
 }
-
-function hermesHistoricalResponse(price: number) {
-  return hermesLatestResponse(price);
-}
-
-// ─── Tests ───────────────────────────────────────────────────────────────────
-
-import { getRealtimePrices } from "@/action/priceActions";
 
 describe("getRealtimePrices", () => {
   beforeEach(() => {
@@ -33,98 +35,121 @@ describe("getRealtimePrices", () => {
     vi.restoreAllMocks();
   });
 
-  it("never calls CoinGecko", async () => {
-    // Return valid Hermes responses for all 4 calls (2 latest + 2 historical)
-    mockFetch.mockResolvedValue(hermesLatestResponse(150));
+  it("fetches SOL and PYTH current and historical prices from DefiLlama", async () => {
+    mockFetch.mockImplementation((url: string) =>
+      Promise.resolve(
+        url.includes("/prices/historical/")
+          ? llamaCurrentPriceResponse({
+              solPrice: 100,
+              pythPrice: 0.4,
+            })
+          : llamaCurrentPriceResponse({
+              solPrice: 110,
+              pythPrice: 0.5,
+            })
+      )
+    );
 
     await getRealtimePrices();
 
-    const urls: string[] = mockFetch.mock.calls.map((c) => c[0] as string);
-    expect(urls.every((u) => !u.includes("coingecko"))).toBe(true);
+    const urls: string[] = mockFetch.mock.calls.map((call) => call[0] as string);
+    expect(urls[0]).toBe(
+      "https://coins.llama.fi/prices/current/coingecko:solana,coingecko:pyth-network"
+    );
+    expect(urls[1]).toContain(
+      "https://coins.llama.fi/prices/historical/"
+    );
+    expect(urls[1]).toContain("coingecko:solana,coingecko:pyth-network");
+    expect(mockFetch).toHaveBeenCalledWith(
+      urls[0],
+      expect.objectContaining({
+        cache: "no-store",
+        headers: { Accept: "application/json" },
+      })
+    );
   });
 
-  it("fetches both latest and 24h-ago prices from Hermes for each asset", async () => {
-    mockFetch.mockResolvedValue(hermesLatestResponse(150));
-
-    await getRealtimePrices();
-
-    const urls: string[] = mockFetch.mock.calls.map((c) => c[0] as string);
-    const latestCalls = urls.filter((u) => u.includes("/price/latest"));
-    const historicalCalls = urls.filter((u) => !u.includes("/price/latest"));
-
-    expect(latestCalls.length).toBeGreaterThanOrEqual(2); // SOL + PYTH latest
-    expect(historicalCalls.length).toBeGreaterThanOrEqual(2); // SOL + PYTH 24h ago
-  });
-
-  it("computes positive 24h change correctly", async () => {
-    // SOL: was $100, now $110 → +10%
-    // PYTH: was $0.50, now $0.50 → 0%
-    let callCount = 0;
-    mockFetch.mockImplementation((url: string) => {
-      callCount++;
-      // latest calls come first in Promise.all, then historical
-      // We'll key off call order: 1=SOL latest, 2=PYTH latest, 3=SOL 24h, 4=PYTH 24h
-      if (url.includes("/price/latest")) {
-        return Promise.resolve(
-          url.includes("ef0d8b6f")
-            ? hermesLatestResponse(110) // SOL now
-            : hermesLatestResponse(0.5) // PYTH now
-        );
-      } else {
-        return Promise.resolve(
-          url.includes("ef0d8b6f")
-            ? hermesHistoricalResponse(100) // SOL 24h ago
-            : hermesHistoricalResponse(0.5) // PYTH 24h ago
-        );
-      }
-    });
+  it("computes positive 24h change from current and historical prices", async () => {
+    mockFetch.mockImplementation((url: string) =>
+      Promise.resolve(
+        url.includes("/prices/historical/")
+          ? llamaCurrentPriceResponse({
+              solPrice: 100,
+              pythPrice: 0.5,
+            })
+          : llamaCurrentPriceResponse({
+        solPrice: 110,
+        pythPrice: 0.5,
+            })
+      )
+    );
 
     const result = await getRealtimePrices();
 
-    expect(result.sol.change24h).toBeCloseTo(10, 0); // ~10%
+    expect(result.sol.price).toBe(110);
+    expect(result.sol.change24h).toBeCloseTo(10, 0);
+    expect(result.pyth.price).toBe(0.5);
     expect(result.pyth.change24h).toBeCloseTo(0, 1);
   });
 
-  it("computes negative 24h change correctly", async () => {
-    // SOL: was $200, now $150 → -25%
-    mockFetch.mockImplementation((url: string) => {
-      if (url.includes("/price/latest")) {
-        return Promise.resolve(
-          url.includes("ef0d8b6f")
-            ? hermesLatestResponse(150)
-            : hermesLatestResponse(0.5)
-        );
-      } else {
-        return Promise.resolve(
-          url.includes("ef0d8b6f")
-            ? hermesHistoricalResponse(200)
-            : hermesHistoricalResponse(0.5)
-        );
-      }
-    });
+  it("computes negative 24h change from current and historical prices", async () => {
+    mockFetch.mockImplementation((url: string) =>
+      Promise.resolve(
+        url.includes("/prices/historical/")
+          ? llamaCurrentPriceResponse({
+              solPrice: 200,
+              pythPrice: 0.5,
+            })
+          : llamaCurrentPriceResponse({
+        solPrice: 150,
+              pythPrice: 0.506,
+            })
+      )
+    );
 
     const result = await getRealtimePrices();
 
     expect(result.sol.change24h).toBeCloseTo(-25, 0);
+    expect(result.pyth.change24h).toBeCloseTo(1.2, 1);
   });
 
   it("returns zero change when historical price is unavailable", async () => {
-    mockFetch.mockImplementation((url: string) => {
-      if (url.includes("/price/latest")) {
-        return Promise.resolve(hermesLatestResponse(150));
-      }
-      // historical fetch fails
-      return Promise.resolve({ ok: false, json: async () => ({}) });
-    });
+    mockFetch.mockImplementation((url: string) =>
+      Promise.resolve(
+        url.includes("/prices/historical/")
+          ? llamaCurrentPriceResponse({
+              solPrice: 0,
+              pythPrice: 0,
+            })
+          : llamaCurrentPriceResponse({
+        solPrice: 150,
+        pythPrice: 0.5,
+            })
+      )
+    );
 
     const result = await getRealtimePrices();
 
     expect(result.sol.change24h).toBe(0);
     expect(result.sol.price).toBeCloseTo(150);
+    expect(result.pyth.change24h).toBe(0);
+    expect(result.pyth.price).toBeCloseTo(0.5);
   });
 
   it("returns the correct price shape", async () => {
-    mockFetch.mockResolvedValue(hermesLatestResponse(150));
+    mockFetch.mockImplementation((url: string) =>
+      Promise.resolve(
+        url.includes("/prices/historical/")
+          ? llamaCurrentPriceResponse({
+              solPrice: 100,
+              pythPrice: 0.4,
+            })
+          : llamaCurrentPriceResponse({
+        solPrice: 150,
+        pythPrice: 0.5,
+            })
+      )
+    );
 
     const result = await getRealtimePrices();
 

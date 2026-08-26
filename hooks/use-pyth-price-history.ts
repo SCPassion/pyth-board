@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-const BENCHMARKS_BASE_URL = "https://benchmarks.pyth.network";
-const PYTH_SYMBOL = "Crypto.PYTH/USD";
+const LLAMA_CHART_URL = "https://coins.llama.fi/chart/coingecko:pyth-network";
 const HISTORY_HOURS = 24;
 const HISTORY_SAFETY_DELAY_SECONDS = 90;
 
@@ -30,60 +29,72 @@ function formatTooltipLabel(timestamp: number) {
   }).format(new Date(timestamp * 1000));
 }
 
-async function fetchPythPriceHistory(
-  fromTimestamp: number,
-  toTimestamp: number,
-  signal: AbortSignal
-): Promise<PythPriceHistoryPoint[]> {
-  const params = new URLSearchParams();
-  params.append("symbol", PYTH_SYMBOL);
-  params.append("resolution", "60");
-  params.append("from", String(fromTimestamp));
-  params.append("to", String(toTimestamp));
+type FetchPythPriceHistoryOptions = {
+  fromTimestamp: number;
+  toTimestamp: number;
+  signal: AbortSignal;
+  fetcher?: typeof fetch;
+};
 
-  const response = await fetch(
-    `${BENCHMARKS_BASE_URL}/v1/shims/tradingview/history?${params.toString()}`,
-    {
+export async function fetchPythPriceHistory({
+  fromTimestamp,
+  toTimestamp,
+  signal,
+  fetcher = fetch,
+}: FetchPythPriceHistoryOptions): Promise<PythPriceHistoryPoint[]> {
+  const params = new URLSearchParams({
+    start: String(fromTimestamp),
+    period: "1h",
+    span: "24",
+  });
+
+  try {
+    const response = await fetcher(
+      `${LLAMA_CHART_URL}?${params.toString()}`,
+      {
       method: "GET",
+        cache: "no-store",
       headers: {
         Accept: "application/json",
-        "User-Agent": "PythBoard/1.0",
       },
       signal,
+      }
+    );
+
+    if (!response.ok) {
+      return [];
     }
-  );
 
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-  }
+    const data = await response.json();
+    const prices = Array.isArray(data?.coins?.["coingecko:pyth-network"]?.prices)
+      ? data.coins["coingecko:pyth-network"].prices
+      : [];
 
-  const data = await response.json();
-  const timestamps = Array.isArray(data.t) ? data.t : [];
-  const closePrices = Array.isArray(data.c) ? data.c : [];
+    return (prices as unknown[])
+      .map((entry: unknown) => {
+        if (!entry || typeof entry !== "object") return null;
+        const timestamp = Number((entry as { timestamp?: unknown }).timestamp);
+        const price = Number((entry as { price?: unknown }).price);
 
-  if (data.s !== "ok" || timestamps.length === 0 || closePrices.length === 0) {
+        if (!Number.isFinite(timestamp) || !Number.isFinite(price)) {
+          return null;
+        }
+
+        return {
+          label: formatTimeLabel(timestamp),
+          price,
+          timestamp,
+          tooltipLabel: formatTooltipLabel(timestamp),
+        };
+      })
+      .filter(
+        (point: PythPriceHistoryPoint | null): point is PythPriceHistoryPoint =>
+          point !== null && Number.isFinite(point.price)
+      )
+      .sort((a, b) => a.timestamp - b.timestamp);
+  } catch {
     return [];
   }
-
-  return timestamps
-    .map((timestamp: number, index: number) => {
-      const price = Number(closePrices[index]);
-
-      if (!Number.isFinite(timestamp) || !Number.isFinite(price)) {
-        return null;
-      }
-
-      return {
-        label: formatTimeLabel(timestamp),
-        price,
-        timestamp,
-        tooltipLabel: formatTooltipLabel(timestamp),
-      };
-    })
-    .filter(
-      (point: PythPriceHistoryPoint | null): point is PythPriceHistoryPoint =>
-        point !== null && Number.isFinite(point.price)
-    );
 }
 
 export function usePythPriceHistory() {
@@ -103,11 +114,11 @@ export function usePythPriceHistory() {
       try {
         setIsRateLimited(false);
 
-        const points = await fetchPythPriceHistory(
-          startTimestamp,
-          endTimestamp,
-          controller.signal
-        ).catch((error) => {
+        const points = await fetchPythPriceHistory({
+          fromTimestamp: startTimestamp,
+          toTimestamp: endTimestamp,
+          signal: controller.signal,
+        }).catch((error) => {
           if (error instanceof Error && error.message.includes("HTTP 429")) {
             sawRateLimit = true;
           }

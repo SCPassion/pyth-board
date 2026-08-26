@@ -7,6 +7,7 @@ import {
   Building2,
   Newspaper,
   ArrowUpRight,
+  BriefcaseBusiness,
 } from "lucide-react";
 import { TwitterIcon } from "@/components/icons/twitter-icon";
 import { cn } from "@/lib/utils";
@@ -29,6 +30,7 @@ export function Sidebar({
     { href: "/wallets", label: "Wallets", icon: Wallet },
     { href: "/pythenians", label: "Pythenians", icon: ImageIcon },
     { href: "/reserve", label: "Reserve", icon: Building2 },
+    { href: "/pyth-pro", label: "Pyth Pro", icon: BriefcaseBusiness },
     { href: "/news", label: "News", icon: Newspaper },
   ];
 
