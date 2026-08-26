@@ -9,6 +9,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
+import { buildRevenueBreakdownSections } from "@/lib/pyth-pro/breakdown";
 import { buildDouroRevenueSeries, buildProductRevenueSeries } from "@/lib/pyth-pro/history";
 import type { ParsedDouroReport, RevenueRow } from "@/lib/pyth-pro/forum";
 import { formatPythAmount, formatUsd, formatUsdPerPyth } from "@/lib/buyback/format";
@@ -336,6 +337,13 @@ export default function PythProPage() {
     latestBreakdownReport?.cumulativeRevenueRows.length
       ? latestBreakdownReport.cumulativeRevenueRows
       : [];
+  const breakdownSections = latestBreakdownReport
+    ? buildRevenueBreakdownSections({
+        monthlyRows: latestBreakdownReport.monthlyRevenueRows,
+        cumulativeRows: latestCumulativeRows,
+        reportPeriodLabel: latestBreakdownReport.reportPeriodLabel,
+      })
+    : [];
 
   if (!reports) {
     return (
@@ -444,10 +452,21 @@ export default function PythProPage() {
                 </p>
               ) : null}
             </div>
-            <RevenueTable rows={latestBreakdownReport.monthlyRevenueRows} />
-            {latestCumulativeRows.length > 0 ? (
-              <RevenueTable rows={latestCumulativeRows} />
-            ) : null}
+            <div className="space-y-5">
+              {breakdownSections.map((section) => (
+                <div key={section.key} className="space-y-3">
+                  <div>
+                    <h3 className="font-display text-xl text-white">
+                      {section.title}
+                    </h3>
+                    <p className="text-xs text-[#8f88a9]">
+                      {section.description}
+                    </p>
+                  </div>
+                  <RevenueTable rows={section.rows} />
+                </div>
+              ))}
+            </div>
           </div>
         ) : (
           <div className="rounded-[26px] border border-white/10 bg-[#2b223d]/70 p-6 text-sm text-[#a8a1bf]">
