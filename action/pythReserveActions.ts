@@ -11,6 +11,7 @@ import {
   PYTHIAN_COUNCIL_OPS_MULTISIG_ADDRESS,
   TOKEN_SYMBOLS,
 } from "@/data/pythReserveAddresses";
+import { getCurrentMarketPrices } from "@/lib/market-prices";
 
 // RPC endpoints with fallback support
 const RPC_ENDPOINTS = [
@@ -143,89 +144,38 @@ async function getTokenBalances(
   }
 }
 
+export type ReserveAssetPrices = {
+  pythPrice: number;
+  solPrice: number;
+  usdcPrice: number;
+  usdtPrice: number;
+};
+
 /**
- * Generic function to fetch price from Pyth Network Hermes API
- * @param priceId - The price feed ID (hex string without 0x prefix)
- * @returns Promise<number> - The price in USD, or 0 if fetch fails
+ * Fetches reserve asset prices from DefiLlama's no-key current price API.
  */
-async function getPriceFromHermes(priceId: string): Promise<number> {
-  const HERMES_API_URL = `https://hermes.pyth.network/v2/updates/price/latest?ids%5B%5D=${priceId}`;
-
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10000);
-
-  try {
-    const response = await fetch(HERMES_API_URL, {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-        "User-Agent": "PythBoard/1.0",
-      },
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-
-    if (!data.parsed || !data.parsed[0] || !data.parsed[0].price) {
-      throw new Error("Invalid price data format received");
-    }
-
-    return Number(data.parsed[0].price.price) * 1e-8;
-  } catch (error) {
-    clearTimeout(timeoutId);
-    // Return 0 if price fetch fails
-    return 0;
+export async function getReserveAssetPrices(): Promise<ReserveAssetPrices> {
+  const { pythPrice, solPrice } = await getCurrentMarketPrices();
+  if (pythPrice > 0 || solPrice > 0) {
+    return {
+      pythPrice,
+      solPrice,
+      usdcPrice: 1,
+      usdtPrice: 1,
+    };
   }
-}
 
-/**
- * Fetches PYTH price for USD value calculations
- */
-async function getPythPrice(): Promise<number> {
-  const PYTH_PRICE_ID =
-    "0bbf28e9a841a1cc788f6a361b17ca072d0ea3098a1e5df1c3922d06719579ff";
-  return await getPriceFromHermes(PYTH_PRICE_ID);
+  return {
+    pythPrice: 0,
+    solPrice: 0,
+    usdcPrice: 1,
+    usdtPrice: 1,
+  };
 }
 
 export async function getCurrentPythPriceUsd(): Promise<number> {
-  return await getPythPrice();
-}
-
-/**
- * Fetches SOL price for USD value calculations
- */
-async function getSolPrice(): Promise<number> {
-  // SOL/USD price feed ID from Pyth Network
-  // Correct ID: 0xef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d
-  const SOL_PRICE_ID =
-    "ef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d";
-  return await getPriceFromHermes(SOL_PRICE_ID);
-}
-
-/**
- * Fetches USDC price for USD value calculations
- */
-async function getUsdcPrice(): Promise<number> {
-  // USDC/USD price feed ID from Pyth Network
-  const USDC_PRICE_ID =
-    "eaa020c61cc479712813461ce153894a96a6c00b21ed0cfc2798d1f9a9e9c94a";
-  return await getPriceFromHermes(USDC_PRICE_ID);
-}
-
-/**
- * Fetches USDT price for USD value calculations
- */
-async function getUsdtPrice(): Promise<number> {
-  // USDT/USD price feed ID from Pyth Network
-  const USDT_PRICE_ID =
-    "2b89b9dc8fdf9f34709a5b106b472f0f39bb6ca9ce04b0fd7f2e971688e2e53b";
-  return await getPriceFromHermes(USDT_PRICE_ID);
+  const { pythPrice } = await getReserveAssetPrices();
+  return pythPrice;
 }
 
 /**
@@ -233,7 +183,8 @@ async function getUsdtPrice(): Promise<number> {
  */
 async function getReserveAccountInfo(
   address: string,
-  name: string
+  name: string,
+  prices: ReserveAssetPrices
 ): Promise<ReserveAccountInfo> {
   if (!isValidSolanaAddress(address)) {
     throw new Error(`Invalid address format: ${address}`);
@@ -265,13 +216,7 @@ async function getReserveAccountInfo(
     }
   }
 
-  // Get prices from Hermes API for USD calculations
-  const [pythPrice, solPrice, usdcPrice, usdtPrice] = await Promise.all([
-    getPythPrice(),
-    getSolPrice(),
-    getUsdcPrice(),
-    getUsdtPrice(),
-  ]);
+  const { pythPrice, solPrice, usdcPrice, usdtPrice } = prices;
 
   // Calculate USD values
   // Use fallback prices if fetch failed (0 means fetch failed)
@@ -307,13 +252,11 @@ async function getReserveAccountInfo(
   const updatedTokenBalances = otherTokens.map((token) => {
     let usdValue = 0;
     if (token.symbol === "USDC") {
-      // Use USDC price from Hermes API
       usdValue = token.amount * effectiveUsdcPrice;
     } else if (token.symbol === "PYTH" && pythPrice > 0) {
       // Only calculate USD value if it's actually PYTH (symbol from TOKEN_SYMBOLS)
       usdValue = token.amount * pythPrice;
     } else if (token.symbol === "USDT") {
-      // Use USDT price from Hermes API
       usdValue = token.amount * effectiveUsdtPrice;
     }
 
@@ -346,15 +289,19 @@ async function getReserveAccountInfo(
  */
 export async function getPythReserveSummary(): Promise<PythReserveSummary> {
   try {
+    const prices = await getReserveAssetPrices();
+
     // Fetch both accounts in parallel
     const [daoTreasury, pythianCouncilOps] = await Promise.all([
       getReserveAccountInfo(
         DAO_TREASURY_ADDRESS,
-        "DAO Treasury"
+        "DAO Treasury",
+        prices
       ),
       getReserveAccountInfo(
         PYTHIAN_COUNCIL_OPS_MULTISIG_ADDRESS,
-        "Pythian Council Ops Multisig"
+        "Pythian Council Ops Multisig",
+        prices
       ),
     ]);
 
@@ -373,27 +320,20 @@ export async function getPythReserveSummary(): Promise<PythReserveSummary> {
       .filter((token) => token.amount > 0); // Only show tokens with balance > 0
 
     // Recalculate total USD value for DAO Treasury after filtering
-    const [pythPrice, solPrice, usdcPrice, usdtPrice] = await Promise.all([
-      getPythPrice(),
-      getSolPrice(),
-      getUsdcPrice(),
-      getUsdtPrice(),
-    ]);
+    const { pythPrice, solPrice, usdcPrice, usdtPrice } = prices;
     // Use fallback prices if fetch failed
     const effectiveSolPrice = solPrice > 0 ? solPrice : 150;
     const effectiveUsdcPrice = usdcPrice > 0 ? usdcPrice : 1;
     const effectiveUsdtPrice = usdtPrice > 0 ? usdtPrice : 1;
     
-    // Recalculate USD values for filtered tokens using prices from Hermes API
+    // Recalculate USD values for filtered tokens using current market prices
     const recalculatedTokenBalances = filteredDaoTreasuryBalances.map((token) => {
       let usdValue = 0;
       if (token.symbol === "USDC") {
-        // Use USDC price from Hermes API
         usdValue = token.amount * effectiveUsdcPrice;
       } else if (token.symbol === "PYTH" && pythPrice > 0) {
         usdValue = token.amount * pythPrice;
       } else if (token.symbol === "USDT") {
-        // Use USDT price from Hermes API
         usdValue = token.amount * effectiveUsdtPrice;
       }
       

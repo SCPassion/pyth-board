@@ -24,4 +24,11 @@ crons.weekly(
   {}
 );
 
+crons.daily(
+  "sync pyth pro douro reports",
+  { hourUTC: 2, minuteUTC: 15 },
+  internal.pythPro.syncDouroReports,
+  {}
+);
+
 export default crons;
