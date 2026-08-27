@@ -11,7 +11,7 @@ import {
 } from "@/action/pythReserveActions";
 import { getSwapTransactionsPage } from "@/action/swapTransactionsActions";
 import { getJupiterDcaCouncilOps } from "@/action/jupiterDcaActions";
-import { getDcaCardHref } from "@/components/jupiter-dca-card";
+import { TOKEN_SYMBOLS } from "@/data/pythReserveAddresses";
 import type {
   PythReserveSummary,
   SwapTransaction,
@@ -20,6 +20,23 @@ import type {
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import { SectionRule } from "@/components/section-rule";
+
+function getDcaVaultUsd(
+  dcaStatus: JupiterDcaCouncilOpsStatus | null,
+  solPrice: number
+) {
+  return (dcaStatus?.orders ?? []).reduce((sum, order) => {
+    const symbol = TOKEN_SYMBOLS[order.inputMint];
+    const remaining = Math.max(
+      0,
+      order.inDeposited - order.inUsed - order.inWithdrawn
+    );
+
+    if (symbol === "SOL") return sum + remaining * solPrice;
+    if (symbol === "USDC" || symbol === "USDT") return sum + remaining;
+    return sum;
+  }, 0);
+}
 
 export default function ReservePage() {
   const [reserveSummary, setReserveSummary] =
@@ -265,7 +282,10 @@ export default function ReservePage() {
         <SectionRule index="01" title="Reserve Summary" />
         <ReserveSummary
           reserveSummary={reserveSummary}
-          dcaVaultUsdc={dcaStatus?.usdcBalanceVault ?? 0}
+          dcaVaultUsd={getDcaVaultUsd(
+            dcaStatus,
+            reserveSummary.pythianCouncilOps.solPrice
+          )}
         />
       </section>
 
@@ -291,8 +311,7 @@ export default function ReservePage() {
             accountInfo={reserveSummary.pythianCouncilOps}
             jupiterDca={{
               usingDca: dcaStatus?.usingDca ?? false,
-              usdcBalanceVault: dcaStatus?.usdcBalanceVault ?? 0,
-              vaultUrl: getDcaCardHref(dcaStatus),
+              orders: dcaStatus?.orders ?? [],
             }}
             dcaLoading={dcaLoading}
           />

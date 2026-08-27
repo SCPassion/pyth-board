@@ -1,8 +1,8 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import type { ReserveAccountInfo } from "@/types/pythTypes";
+import { TOKEN_SYMBOLS } from "@/data/pythReserveAddresses";
+import type { JupiterDcaOrder, ReserveAccountInfo } from "@/types/pythTypes";
 import {
   Wallet,
   ExternalLink,
@@ -14,8 +14,7 @@ import Image from "next/image";
 
 export type JupiterDcaBlock = {
   usingDca: boolean;
-  usdcBalanceVault: number;
-  vaultUrl: string;
+  orders: JupiterDcaOrder[];
 };
 
 interface ReserveAccountCardProps {
@@ -67,6 +66,24 @@ export function ReserveAccountCard({
     return iconMap[symbol] || "";
   };
 
+  const getDcaOrderSymbol = (order: JupiterDcaOrder) =>
+    TOKEN_SYMBOLS[order.inputMint] || `${order.inputMint.slice(0, 4)}...`;
+
+  const getDcaOrderRemaining = (order: JupiterDcaOrder) =>
+    Math.max(0, order.inDeposited - order.inUsed - order.inWithdrawn);
+
+  const getDcaOrderUsdValue = (order: JupiterDcaOrder, solPrice: number) => {
+    const symbol = getDcaOrderSymbol(order);
+    const remaining = getDcaOrderRemaining(order);
+
+    if (symbol === "SOL") return remaining * solPrice;
+    if (symbol === "USDC" || symbol === "USDT") return remaining;
+    return 0;
+  };
+
+  const getDcaOrderHref = (order: JupiterDcaOrder) =>
+    `https://solscan.io/account/${order.orderKey}`;
+
   return (
     <Card className="group rounded-[28px] border-white/10 bg-[linear-gradient(148deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.02)_100%)] py-0 shadow-[0_20px_55px_rgba(8,5,18,0.2)] transition-all duration-300 hover:border-white/15">
       <CardHeader className="px-7 pt-7 pb-3 sm:px-8">
@@ -96,7 +113,7 @@ export function ReserveAccountCard({
       </CardHeader>
       <CardContent className="space-y-5 px-7 pb-7 sm:px-8 sm:pb-8">
         {/* Total USD Value */}
-        {/* Wallet tokens + SOL; add Jupiter DCA vault USDC when present (vault is separate, no double count) */}
+        {/* Wallet tokens + SOL; add Jupiter DCA vault balances when present (vaults are separate, no double count) */}
         {(() => {
           const solPrice = accountInfo.solPrice || 150;
           const solValue = accountInfo.solBalance * solPrice;
@@ -104,9 +121,14 @@ export function ReserveAccountCard({
             (sum, token) => sum + (token.usdValue || 0),
             0,
           );
-          // DCA vault USDC is held in Jupiter's vault, not in this wallet's token accounts
+          // DCA vault balances are held in Jupiter vaults, not in this wallet's token accounts.
           const dcaVaultUsd =
-            jupiterDca && jupiterDca.usingDca ? jupiterDca.usdcBalanceVault : 0;
+            jupiterDca && jupiterDca.usingDca
+              ? jupiterDca.orders.reduce(
+                  (sum, order) => sum + getDcaOrderUsdValue(order, solPrice),
+                  0
+                )
+              : 0;
           const calculatedTotal = solValue + tokenTotal + dcaVaultUsd;
 
           return (
@@ -225,59 +247,99 @@ export function ReserveAccountCard({
                 </div>
               </div>
             ) : (
-              <a
-                href={jupiterDca?.vaultUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block rounded-2xl border border-white/6 bg-[#2f2942] p-3 transition-colors hover:border-emerald-500/30 hover:bg-[#352d47] sm:p-4"
-              >
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 min-w-0">
-                      <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-emerald-500/20">
-                      <Repeat className="h-4 w-4 text-emerald-400" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        {jupiterDca?.usingDca ? (
-                          <>
-                            <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0" />
-                            <span className="text-white font-medium text-sm">
-                              DCA Vault
-                            </span>
-                          </>
-                        ) : (
-                          <>
-                            <XCircle className="h-4 w-4 text-gray-500 flex-shrink-0" />
-                            <span className="text-white font-medium text-sm">
-                              No ongoing DCA
-                            </span>
-                          </>
-                        )}
-                            <ExternalLink className="h-4 w-4 flex-shrink-0 text-[#8f88a9]" />
-                      </div>
-                      {!jupiterDca?.usingDca && (
-                        <p className="mt-0.5 text-xs text-[#8f88a9]">
-                          No active USDC → PYTH orders
-                        </p>
+              <div className="rounded-2xl border border-white/6 bg-[#2f2942] p-3 sm:p-4">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-emerald-500/20">
+                    <Repeat className="h-4 w-4 text-emerald-400" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      {jupiterDca?.usingDca ? (
+                        <>
+                          <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0" />
+                          <span className="text-white font-medium text-sm">
+                            Active DCA vaults
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <XCircle className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                          <span className="text-white font-medium text-sm">
+                            No ongoing DCA
+                          </span>
+                        </>
                       )}
                     </div>
+                    <p className="mt-0.5 text-xs text-[#8f88a9]">
+                      {jupiterDca?.usingDca
+                        ? "Each vault links to its Jupiter order account"
+                        : "No active DCA orders into PYTH"}
+                    </p>
                   </div>
-                  {jupiterDca?.usingDca && (
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <Image
-                        src="/usdc.webp"
-                        alt="USDC"
-                        width={20}
-                        height={20}
-                        className="w-5 h-5"
-                      />
-                      <span className="text-white font-semibold text-sm tabular-nums">
-                        {formatCurrency(jupiterDca.usdcBalanceVault)} USDC
-                      </span>
-                    </div>
-                  )}
                 </div>
-              </a>
+                {jupiterDca?.usingDca && (
+                  <div className="mt-3 grid gap-2">
+                    {jupiterDca.orders.map((order) => {
+                      const symbol = getDcaOrderSymbol(order);
+                      const remaining = getDcaOrderRemaining(order);
+                      const usdValue = getDcaOrderUsdValue(
+                        order,
+                        accountInfo.solPrice || 150
+                      );
+                      return (
+                        <a
+                          key={order.orderKey}
+                          href={getDcaOrderHref(order)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-between gap-3 rounded-xl border border-white/6 bg-white/[0.03] px-3 py-2 transition-colors hover:border-emerald-500/25 hover:bg-white/[0.06]"
+                        >
+                          <div className="flex min-w-0 items-center gap-2">
+                            {getTokenIcon(symbol) ? (
+                              <Image
+                                src={getTokenIcon(symbol)}
+                                alt={symbol}
+                                width={20}
+                                height={20}
+                                className="w-5 h-5"
+                              />
+                            ) : (
+                              <div className="flex h-5 w-5 items-center justify-center rounded-full bg-purple-500/20 text-[9px] font-bold text-[#c4a6ff]">
+                                {symbol.slice(0, 2).toUpperCase()}
+                              </div>
+                            )}
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-white">
+                                {symbol} → PYTH
+                              </p>
+                              <p className="font-data truncate text-[10px] text-[#8f88a9]">
+                                {order.orderKey.slice(0, 8)}...
+                                {order.orderKey.slice(-6)}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex flex-shrink-0 items-center gap-2 text-right">
+                            <div>
+                              <p className="text-white font-semibold text-sm tabular-nums">
+                                {symbol === "USDC" || symbol === "USDT"
+                                  ? formatCurrency(remaining)
+                                  : formatTokenAmount(remaining, 4)}{" "}
+                                {symbol}
+                              </p>
+                              {usdValue > 0 && symbol !== "USDC" && symbol !== "USDT" ? (
+                                <p className="text-xs text-[#a8a1bf]">
+                                  {formatCurrency(usdValue)}
+                                </p>
+                              ) : null}
+                            </div>
+                            <ExternalLink className="h-3.5 w-3.5 flex-shrink-0 text-[#8f88a9]" />
+                          </div>
+                        </a>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             )}
           </div>
         )}

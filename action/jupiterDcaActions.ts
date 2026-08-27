@@ -7,6 +7,7 @@ import type {
 import { PYTHIAN_COUNCIL_OPS_MULTISIG_ADDRESS } from "@/data/pythReserveAddresses";
 
 const USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
+const SOL_MINT = "So11111111111111111111111111111111111111112";
 const PYTH_MINT = "HZ1JovNiVvGrGNiiYvEozEVgZ58xaU3RKwX8eACQBCt3";
 
 const JUPITER_RECURRING_API =
@@ -21,17 +22,17 @@ type JupiterRecurringResponse = {
     orderKey: string;
     inputMint: string;
     outputMint: string;
-    inDeposited: number;
-    inWithdrawn: number;
+    inDeposited: number | string;
+    inWithdrawn: number | string;
     rawInDeposited: string;
     rawInWithdrawn: string;
     cycleFrequency: string;
-    outWithdrawn: number;
-    inAmountPerCycle: number;
-    minOutAmount: number;
-    maxOutAmount: number;
-    inUsed: number;
-    outReceived: number;
+    outWithdrawn: number | string;
+    inAmountPerCycle: number | string;
+    minOutAmount: number | string;
+    maxOutAmount: number | string;
+    inUsed: number | string;
+    outReceived: number | string;
     rawOutWithdrawn: string;
     rawInAmountPerCycle: string;
     rawMinOutAmount: string;
@@ -49,7 +50,8 @@ type JupiterRecurringResponse = {
 
 /**
  * Fetches Jupiter DCA status for the Pythian Council Ops address.
- * Returns whether it is using Jupiter DCA to swap USDC for PYTH and the USDC balance in the DCA vault(s).
+ * Returns active Jupiter DCA orders that buy PYTH, plus the currently valued
+ * SOL and USDC vault totals used elsewhere on the live Reserve page.
  * Balance is computed as deposited - used - withdrawn per order.
  */
 export async function getJupiterDcaCouncilOps(): Promise<JupiterDcaCouncilOpsStatus> {
@@ -68,45 +70,45 @@ export async function getJupiterDcaCouncilOps(): Promise<JupiterDcaCouncilOpsSta
 
     if (!res.ok) {
       console.warn(`Jupiter DCA API error: ${res.status} ${res.statusText}`);
-      return { usingDca: false, usdcBalanceVault: 0, orders: [] };
+      return { usingDca: false, usdcBalanceVault: 0, solBalanceVault: 0, orders: [] };
     }
 
     const data = (await res.json()) as JupiterRecurringResponse;
     const timeOrders = data.time ?? [];
 
-    const usdcToPythOrders: JupiterDcaOrder[] = timeOrders
-      .filter(
-        (o) =>
-          o.inputMint === USDC_MINT &&
-          o.outputMint === PYTH_MINT
-      )
+    const pythDcaOrders: JupiterDcaOrder[] = timeOrders
+      .filter((o) => o.outputMint === PYTH_MINT)
       .map((o) => ({
         orderKey: o.orderKey,
         userPubkey: o.userPubkey,
         inputMint: o.inputMint,
         outputMint: o.outputMint,
-        inDeposited: o.inDeposited,
-        inWithdrawn: o.inWithdrawn,
-        inUsed: o.inUsed,
-        outWithdrawn: o.outWithdrawn,
-        inAmountPerCycle: o.inAmountPerCycle,
+        inDeposited: Number(o.inDeposited),
+        inWithdrawn: Number(o.inWithdrawn),
+        inUsed: Number(o.inUsed),
+        outWithdrawn: Number(o.outWithdrawn),
+        inAmountPerCycle: Number(o.inAmountPerCycle),
         cycleFrequency: o.cycleFrequency,
         createdAt: o.createdAt,
         updatedAt: o.updatedAt,
       }));
 
-    const usdcBalanceVault = usdcToPythOrders.reduce((sum, o) => {
-      const remaining = o.inDeposited - o.inUsed - o.inWithdrawn;
-      return sum + Math.max(0, remaining);
-    }, 0);
+    const sumRemainingInput = (inputMint: string) =>
+      pythDcaOrders
+        .filter((o) => o.inputMint === inputMint)
+        .reduce((sum, o) => {
+          const remaining = o.inDeposited - o.inUsed - o.inWithdrawn;
+          return sum + Math.max(0, remaining);
+        }, 0);
 
     return {
-      usingDca: usdcToPythOrders.length > 0,
-      usdcBalanceVault,
-      orders: usdcToPythOrders,
+      usingDca: pythDcaOrders.length > 0,
+      usdcBalanceVault: sumRemainingInput(USDC_MINT),
+      solBalanceVault: sumRemainingInput(SOL_MINT),
+      orders: pythDcaOrders,
     };
   } catch (error) {
     console.error("Jupiter DCA fetch error:", error);
-    return { usingDca: false, usdcBalanceVault: 0, orders: [] };
+    return { usingDca: false, usdcBalanceVault: 0, solBalanceVault: 0, orders: [] };
   }
 }

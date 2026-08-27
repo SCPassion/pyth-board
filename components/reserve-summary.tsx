@@ -7,13 +7,13 @@ import Image from "next/image";
 
 interface ReserveSummaryProps {
   reserveSummary: PythReserveSummary;
-  /** USDC balance in Jupiter DCA vault (Council Ops) — included in Total Reserve Value */
-  dcaVaultUsdc?: number;
+  /** USD value in Jupiter DCA vaults (Council Ops) — included in Total Reserve Value */
+  dcaVaultUsd?: number;
 }
 
 export function ReserveSummary({
   reserveSummary,
-  dcaVaultUsdc = 0,
+  dcaVaultUsd = 0,
 }: ReserveSummaryProps) {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -55,10 +55,10 @@ export function ReserveSummary({
                 className={`font-data text-2xl font-medium tracking-tight text-white sm:text-3xl`}
               >
                 {formatCurrency(
-                  reserveSummary.totalReserveValue + dcaVaultUsdc
+                  reserveSummary.totalReserveValue + dcaVaultUsd
                 )}
               </p>
-              {dcaVaultUsdc > 0 && (
+              {dcaVaultUsd > 0 && (
                 <p className="mt-1 text-xs text-[#8f88a9]">
                   includes DCA vault
                 </p>

@@ -77,7 +77,7 @@ export type SwapTransaction = {
   explorerUrl: string;
 };
 
-/** Jupiter DCA time-based order (USDC -> PYTH relevant fields) */
+/** Jupiter DCA time-based order (* -> PYTH relevant fields) */
 export type JupiterDcaOrder = {
   orderKey: string;
   userPubkey: string;
@@ -93,11 +93,13 @@ export type JupiterDcaOrder = {
   updatedAt: string;
 };
 
-/** Status of Jupiter DCA usage for Council Ops (USDC -> PYTH) */
+/** Status of Jupiter DCA usage for Council Ops (* -> PYTH) */
 export type JupiterDcaCouncilOpsStatus = {
   usingDca: boolean;
-  /** Total USDC balance remaining in DCA vault(s) (inDeposited - inUsed - inWithdrawn across orders) */
+  /** Total USDC balance remaining in DCA vault(s) */
   usdcBalanceVault: number;
+  /** Total SOL balance remaining in DCA vault(s) */
+  solBalanceVault: number;
   orders: JupiterDcaOrder[];
 };
 
