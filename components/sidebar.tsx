@@ -1,15 +1,10 @@
 "use client";
 
 import {
-  LayoutDashboard,
-  Wallet,
-  Image as ImageIcon,
-  Building2,
-  Newspaper,
   ArrowUpRight,
-  BriefcaseBusiness,
 } from "lucide-react";
 import { TwitterIcon } from "@/components/icons/twitter-icon";
+import { navItems } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
@@ -25,14 +20,6 @@ export function Sidebar({
   onMobileMenuToggle,
 }: SidebarProps) {
   const pathname = usePathname();
-  const navItems = [
-    { href: "/", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/wallets", label: "Wallets", icon: Wallet },
-    { href: "/pythenians", label: "Pythenians", icon: ImageIcon },
-    { href: "/reserve", label: "Reserve", icon: Building2 },
-    { href: "/pyth-pro", label: "Pyth Pro", icon: BriefcaseBusiness },
-    { href: "/news", label: "News", icon: Newspaper },
-  ];
 
   const isActive = (path: string) => {
     if (path === "/" && pathname === "/") return true;
