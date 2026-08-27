@@ -16,6 +16,8 @@ export type DouroRevenuePoint = {
 
 export type ProductRevenueSeries = {
   products: string[];
+  primaryProduct: string | null;
+  secondaryProducts: string[];
   points: Array<Record<string, number | string | null>>;
 };
 
@@ -65,7 +67,36 @@ export function buildProductRevenueSeries(
     return point;
   });
 
-  return { products, points };
+  const primaryProduct = findPrimaryProduct(products, points);
+  const secondaryProducts = products.filter(
+    (product) => product !== primaryProduct
+  );
+
+  return { products, primaryProduct, secondaryProducts, points };
+}
+
+function findPrimaryProduct(
+  products: string[],
+  points: Array<Record<string, number | string | null>>
+): string | null {
+  let primaryProduct: string | null = null;
+  let highestValue = -Infinity;
+
+  for (const product of products) {
+    const productMax = Math.max(
+      ...points.map((point) => {
+        const value = point[product];
+        return typeof value === "number" ? value : 0;
+      })
+    );
+
+    if (productMax > highestValue) {
+      highestValue = productMax;
+      primaryProduct = product;
+    }
+  }
+
+  return primaryProduct;
 }
 
 function sortReports(reports: ParsedDouroReport[]): ParsedDouroReport[] {

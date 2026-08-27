@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { SectionRule } from "@/components/section-rule";
@@ -10,6 +10,11 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import { buildRevenueBreakdownSections } from "@/lib/pyth-pro/breakdown";
+import {
+  getDefaultProductRevenueKeys,
+  getDefaultRevenueTrendKeys,
+  toggleVisibleSeries,
+} from "@/lib/pyth-pro/chart-visibility";
 import { buildDouroRevenueSeries, buildProductRevenueSeries } from "@/lib/pyth-pro/history";
 import type { ParsedDouroReport, RevenueRow } from "@/lib/pyth-pro/forum";
 import { formatPythAmount, formatUsd, formatUsdPerPyth } from "@/lib/buyback/format";
@@ -43,6 +48,50 @@ const PRODUCT_COLORS = [
   "#f472b6",
   "#93c5fd",
 ];
+
+function ChartLegend({
+  items,
+}: {
+  items: Array<{
+    key: string;
+    label: string;
+    color: string;
+    note?: string;
+    active: boolean;
+    onToggle: () => void;
+  }>;
+}) {
+  return (
+    <div className="flex flex-wrap gap-x-4 gap-y-2">
+      {items.map((item) => (
+        <button
+          key={item.key}
+          type="button"
+          aria-pressed={item.active}
+          onClick={item.onToggle}
+          className={[
+            "flex items-center gap-2 rounded-full border px-2.5 py-1.5 text-xs transition",
+            item.active
+              ? "border-white/10 bg-white/[0.07] text-[#d8d1ea]"
+              : "border-white/5 bg-white/[0.025] text-[#8f88a9] opacity-55 hover:opacity-80",
+          ].join(" ")}
+        >
+          <span
+            className="h-2.5 w-2.5 rounded-full"
+            style={{ backgroundColor: item.active ? item.color : "#6b627f" }}
+            aria-hidden
+          />
+          <span>{item.label}</span>
+          {item.note ? (
+            <span className="font-data text-[10px] uppercase tracking-[0.16em] text-[#8f88a9]">
+              {item.note}
+            </span>
+          ) : null}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 function compactUsd(value: number | null | undefined) {
   if (value === null || value === undefined) return "-";
@@ -103,6 +152,41 @@ function RevenueLinesChart({
 }: {
   data: ReturnType<typeof buildDouroRevenueSeries>;
 }) {
+  const [visibleKeys, setVisibleKeys] = useState(getDefaultRevenueTrendKeys);
+  const isVisible = (key: string) => visibleKeys.includes(key);
+  const hasMonthlyAxis =
+    isVisible("monthlyGrossRevenueUsd") || isVisible("monthlyDaoShareUsd");
+  const hasCumulativeAxis = isVisible("cumulativeGrossRevenueUsd");
+  const toggleSeries = (key: string) => {
+    setVisibleKeys((currentKeys) => toggleVisibleSeries(currentKeys, key));
+  };
+  const legendItems = [
+    {
+      key: "monthlyGrossRevenueUsd",
+      label: "Monthly gross",
+      color: "#67e8f9",
+      note: "left axis",
+      active: isVisible("monthlyGrossRevenueUsd"),
+      onToggle: () => toggleSeries("monthlyGrossRevenueUsd"),
+    },
+    {
+      key: "monthlyDaoShareUsd",
+      label: "Monthly DAO share",
+      color: "#c084fc",
+      note: "left axis",
+      active: isVisible("monthlyDaoShareUsd"),
+      onToggle: () => toggleSeries("monthlyDaoShareUsd"),
+    },
+    {
+      key: "cumulativeGrossRevenueUsd",
+      label: "Cumulative gross",
+      color: "#86efac",
+      note: "right axis",
+      active: isVisible("cumulativeGrossRevenueUsd"),
+      onToggle: () => toggleSeries("cumulativeGrossRevenueUsd"),
+    },
+  ];
+
   return (
     <div className="flex h-full flex-col gap-5">
       <div>
@@ -113,6 +197,7 @@ function RevenueLinesChart({
           Revenue trend
         </h3>
       </div>
+      <ChartLegend items={legendItems} />
       <div className="aspect-[16/10] min-h-[260px] w-full">
         <ChartContainer
           className="!block h-full w-full min-w-0 aspect-auto"
@@ -125,7 +210,7 @@ function RevenueLinesChart({
             },
           }}
         >
-          <LineChart data={data} margin={{ left: 0, right: 10, top: 14, bottom: 6 }}>
+          <LineChart data={data} margin={{ left: 0, right: 0, top: 14, bottom: 6 }}>
             <CartesianGrid stroke="rgba(255,255,255,0.08)" vertical={false} />
             <XAxis
               dataKey="label"
@@ -133,13 +218,27 @@ function RevenueLinesChart({
               axisLine={false}
               tick={{ fill: "#8f88a9", fontSize: 11 }}
             />
-            <YAxis
-              width={58}
-              tickLine={false}
-              axisLine={false}
-              tick={{ fill: "#8f88a9", fontSize: 11 }}
-              tickFormatter={(value) => compactUsd(Number(value))}
-            />
+            {hasMonthlyAxis ? (
+              <YAxis
+                yAxisId="monthly"
+                width={58}
+                tickLine={false}
+                axisLine={false}
+                tick={{ fill: "#8f88a9", fontSize: 11 }}
+                tickFormatter={(value) => compactUsd(Number(value))}
+              />
+            ) : null}
+            {hasCumulativeAxis ? (
+              <YAxis
+                yAxisId="cumulative"
+                orientation="right"
+                width={58}
+                tickLine={false}
+                axisLine={false}
+                tick={{ fill: "#8f88a9", fontSize: 11 }}
+                tickFormatter={(value) => compactUsd(Number(value))}
+              />
+            ) : null}
             <ChartTooltip
               content={
                 <ChartTooltipContent
@@ -155,32 +254,41 @@ function RevenueLinesChart({
                 />
               }
             />
-            <Line
-              type="monotone"
-              dataKey="monthlyGrossRevenueUsd"
-              name="Monthly Gross"
-              stroke="var(--color-monthlyGrossRevenueUsd)"
-              strokeWidth={2.5}
-              dot={{ r: 3 }}
-              connectNulls={false}
-            />
-            <Line
-              type="monotone"
-              dataKey="monthlyDaoShareUsd"
-              name="DAO Share"
-              stroke="var(--color-monthlyDaoShareUsd)"
-              strokeWidth={2.5}
-              dot={{ r: 3 }}
-              connectNulls={false}
-            />
-            <Line
-              type="monotone"
-              dataKey="cumulativeGrossRevenueUsd"
-              name="Cumulative Gross"
-              stroke="var(--color-cumulativeGrossRevenueUsd)"
-              strokeWidth={2.5}
-              dot={{ r: 3 }}
-            />
+            {isVisible("monthlyGrossRevenueUsd") ? (
+              <Line
+                yAxisId="monthly"
+                type="monotone"
+                dataKey="monthlyGrossRevenueUsd"
+                name="Monthly Gross"
+                stroke="var(--color-monthlyGrossRevenueUsd)"
+                strokeWidth={2.5}
+                dot={{ r: 3 }}
+                connectNulls={false}
+              />
+            ) : null}
+            {isVisible("monthlyDaoShareUsd") ? (
+              <Line
+                yAxisId="monthly"
+                type="monotone"
+                dataKey="monthlyDaoShareUsd"
+                name="DAO Share"
+                stroke="var(--color-monthlyDaoShareUsd)"
+                strokeWidth={2.5}
+                dot={{ r: 3 }}
+                connectNulls={false}
+              />
+            ) : null}
+            {isVisible("cumulativeGrossRevenueUsd") ? (
+              <Line
+                yAxisId="cumulative"
+                type="monotone"
+                dataKey="cumulativeGrossRevenueUsd"
+                name="Cumulative Gross"
+                stroke="var(--color-cumulativeGrossRevenueUsd)"
+                strokeWidth={2.5}
+                dot={{ r: 3 }}
+              />
+            ) : null}
           </LineChart>
         </ChartContainer>
       </div>
@@ -193,6 +301,38 @@ function ProductLinesChart({
 }: {
   series: ReturnType<typeof buildProductRevenueSeries>;
 }) {
+  const defaultVisibleKeys = useMemo(
+    () => getDefaultProductRevenueKeys(series),
+    [series]
+  );
+  const [visibleKeys, setVisibleKeys] = useState(defaultVisibleKeys);
+
+  useEffect(() => {
+    setVisibleKeys(defaultVisibleKeys);
+  }, [defaultVisibleKeys]);
+
+  const isVisible = (key: string) => visibleKeys.includes(key);
+  const hasPrimaryAxis =
+    series.primaryProduct !== null && isVisible(series.primaryProduct);
+  const hasSecondaryAxis = series.products.some(
+    (product) => product !== series.primaryProduct && isVisible(product)
+  );
+  const toggleSeries = (key: string) => {
+    setVisibleKeys((currentKeys) => toggleVisibleSeries(currentKeys, key));
+  };
+  const productColor = (product: string) =>
+    PRODUCT_COLORS[
+      Math.max(series.products.indexOf(product), 0) % PRODUCT_COLORS.length
+    ];
+  const legendItems = series.products.map((product) => ({
+    key: product,
+    label: product,
+    color: productColor(product),
+    note: product === series.primaryProduct ? "left axis" : "right axis",
+    active: isVisible(product),
+    onToggle: () => toggleSeries(product),
+  }));
+
   return (
     <div className="flex h-full flex-col gap-5">
       <div>
@@ -203,6 +343,7 @@ function ProductLinesChart({
           Product revenue lines
         </h3>
       </div>
+      <ChartLegend items={legendItems} />
       <div className="aspect-[16/10] min-h-[260px] w-full">
         <ChartContainer className="!block h-full w-full min-w-0 aspect-auto" config={{}}>
           <LineChart
@@ -216,13 +357,27 @@ function ProductLinesChart({
               axisLine={false}
               tick={{ fill: "#8f88a9", fontSize: 11 }}
             />
-            <YAxis
-              width={58}
-              tickLine={false}
-              axisLine={false}
-              tick={{ fill: "#8f88a9", fontSize: 11 }}
-              tickFormatter={(value) => compactUsd(Number(value))}
-            />
+            {hasPrimaryAxis ? (
+              <YAxis
+                yAxisId="primary"
+                width={58}
+                tickLine={false}
+                axisLine={false}
+                tick={{ fill: "#8f88a9", fontSize: 11 }}
+                tickFormatter={(value) => compactUsd(Number(value))}
+              />
+            ) : null}
+            {hasSecondaryAxis ? (
+              <YAxis
+                yAxisId="secondary"
+                orientation="right"
+                width={58}
+                tickLine={false}
+                axisLine={false}
+                tick={{ fill: "#8f88a9", fontSize: 11 }}
+                tickFormatter={(value) => compactUsd(Number(value))}
+              />
+            ) : null}
             <ChartTooltip
               content={
                 <ChartTooltipContent
@@ -238,18 +393,23 @@ function ProductLinesChart({
                 />
               }
             />
-            {series.products.map((product, index) => (
-              <Line
-                key={product}
-                type="monotone"
-                dataKey={product}
-                name={product}
-                stroke={PRODUCT_COLORS[index % PRODUCT_COLORS.length]}
-                strokeWidth={2.5}
-                dot={{ r: 3 }}
-                connectNulls={false}
-              />
-            ))}
+            {series.products.map((product, index) =>
+              isVisible(product) ? (
+                <Line
+                  key={product}
+                  yAxisId={
+                    product === series.primaryProduct ? "primary" : "secondary"
+                  }
+                  type="monotone"
+                  dataKey={product}
+                  name={product}
+                  stroke={PRODUCT_COLORS[index % PRODUCT_COLORS.length]}
+                  strokeWidth={2.5}
+                  dot={{ r: 3 }}
+                  connectNulls={false}
+                />
+              ) : null
+            )}
           </LineChart>
         </ChartContainer>
       </div>
