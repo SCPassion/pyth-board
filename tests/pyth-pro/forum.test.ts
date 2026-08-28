@@ -277,7 +277,6 @@ describe("parseDouroReportPost", () => {
     });
 
     expect(report.distribution).toEqual({
-      tokenAmount: 73_700,
       usdValue: 73_700,
       tokenSymbol: "USDC",
     });

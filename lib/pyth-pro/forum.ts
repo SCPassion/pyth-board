@@ -319,7 +319,6 @@ function extractDistribution(html: string): DouroDistribution | undefined {
   const usdcMatch = text.match(/distribution of\s+\**\$?([\d,]+)\s+USDC/i);
   if (!usdcMatch) return undefined;
   return {
-    tokenAmount: parseNumber(usdcMatch[1]),
     usdValue: parseNumber(usdcMatch[1]),
     tokenSymbol: "USDC",
   };

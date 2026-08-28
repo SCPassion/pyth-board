@@ -12,10 +12,16 @@ import {
 import { buildRevenueBreakdownSections } from "@/lib/pyth-pro/breakdown";
 import {
   getDefaultProductRevenueKeys,
+  getDefaultDistributionKey,
   getDefaultRevenueTrendKeys,
+  selectExclusiveSeries,
   toggleVisibleSeries,
 } from "@/lib/pyth-pro/chart-visibility";
-import { buildDouroRevenueSeries, buildProductRevenueSeries } from "@/lib/pyth-pro/history";
+import {
+  buildDouroDistributionSeries,
+  buildDouroRevenueSeries,
+  buildProductRevenueSeries,
+} from "@/lib/pyth-pro/history";
 import type { ParsedDouroReport, RevenueRow } from "@/lib/pyth-pro/forum";
 import { formatPythAmount, formatUsd, formatUsdPerPyth } from "@/lib/buyback/format";
 import {
@@ -27,7 +33,9 @@ import {
   ReceiptText,
 } from "lucide-react";
 import {
+  Bar,
   CartesianGrid,
+  ComposedChart,
   Line,
   LineChart,
   XAxis,
@@ -58,37 +66,54 @@ function ChartLegend({
     color: string;
     note?: string;
     active: boolean;
-    onToggle: () => void;
+    onToggle?: () => void;
   }>;
 }) {
   return (
     <div className="flex flex-wrap gap-x-4 gap-y-2">
-      {items.map((item) => (
-        <button
-          key={item.key}
-          type="button"
-          aria-pressed={item.active}
-          onClick={item.onToggle}
-          className={[
+      {items.map((item) => {
+        const className = [
             "flex items-center gap-2 rounded-full border px-2.5 py-1.5 text-xs transition",
             item.active
               ? "border-white/10 bg-white/[0.07] text-[#d8d1ea]"
               : "border-white/5 bg-white/[0.025] text-[#8f88a9] opacity-55 hover:opacity-80",
-          ].join(" ")}
-        >
-          <span
-            className="h-2.5 w-2.5 rounded-full"
-            style={{ backgroundColor: item.active ? item.color : "#6b627f" }}
-            aria-hidden
-          />
-          <span>{item.label}</span>
-          {item.note ? (
-            <span className="font-data text-[10px] uppercase tracking-[0.16em] text-[#8f88a9]">
-              {item.note}
-            </span>
-          ) : null}
-        </button>
-      ))}
+          ].join(" ");
+        const content = (
+          <>
+            <span
+              className="h-2.5 w-2.5 rounded-full"
+              style={{ backgroundColor: item.active ? item.color : "#6b627f" }}
+              aria-hidden
+            />
+            <span>{item.label}</span>
+            {item.note ? (
+              <span className="font-data text-[10px] uppercase tracking-[0.16em] text-[#8f88a9]">
+                {item.note}
+              </span>
+            ) : null}
+          </>
+        );
+
+        if (!item.onToggle) {
+          return (
+            <div key={item.key} className={className}>
+              {content}
+            </div>
+          );
+        }
+
+        return (
+          <button
+            key={item.key}
+            type="button"
+            aria-pressed={item.active}
+            onClick={item.onToggle}
+            className={className}
+          >
+            {content}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -417,6 +442,203 @@ function ProductLinesChart({
   );
 }
 
+function DistributionChart({
+  data,
+}: {
+  data: ReturnType<typeof buildDouroDistributionSeries>;
+}) {
+  const [selectedKey, setSelectedKey] = useState(getDefaultDistributionKey);
+  const isVisible = (key: string) => selectedKey === key;
+  const selectSeries = (key: string) => {
+    setSelectedKey((currentKey) => selectExclusiveSeries(currentKey, key));
+  };
+
+  return (
+    <div className="flex h-full flex-col gap-5">
+      <div>
+        <p className="font-data text-[11px] uppercase tracking-[0.25em] text-cyan-300/60">
+          DAO payments
+        </p>
+        <h3 className="font-display mt-1 text-xl text-white sm:text-2xl">
+          Distributions to DAO
+        </h3>
+        <p className="mt-2 text-sm leading-relaxed text-[#a8a1bf]">
+          Since{" "}
+          <a
+            href="https://forum.pyth.network/t/passed-co-pip-104-pyth-pro-governance-payment-currency-flexibility/2480"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-cyan-300 underline decoration-cyan-300/30 underline-offset-4 transition-colors hover:text-white"
+          >
+            CO-PIP-104
+          </a>
+          , DAO distributions can also be paid in PYTH tokens. DAO/operator
+          splits are 60/40 for Pyth Pro subscriptions, 90/10 for Listing as a
+          Service, and 60/40 for Pyth Data Marketplace.
+        </p>
+      </div>
+      <ChartLegend
+        items={[
+          {
+            key: "usdValue",
+            label: "USD value",
+            color: "#86efac",
+            note: "bar",
+            active: isVisible("usdValue"),
+            onToggle: () => selectSeries("usdValue"),
+          },
+          {
+            key: "tokenAmount",
+            label: "PYTH amount",
+            color: "#67e8f9",
+            note: "bar",
+            active: isVisible("tokenAmount"),
+            onToggle: () => selectSeries("tokenAmount"),
+          },
+        ]}
+      />
+      <div className="aspect-[16/5] min-h-[260px] w-full">
+        <ChartContainer
+          className="!block h-full w-full min-w-0 aspect-auto"
+          config={{
+            usdValue: { label: "USD Value", color: "#86efac" },
+            tokenAmount: { label: "PYTH Amount", color: "#67e8f9" },
+          }}
+        >
+          <ComposedChart
+            data={data}
+            margin={{ left: 0, right: 0, top: 14, bottom: 6 }}
+          >
+            <CartesianGrid stroke="rgba(255,255,255,0.08)" vertical={false} />
+            <XAxis
+              dataKey="label"
+              tickLine={false}
+              axisLine={false}
+              tick={{ fill: "#8f88a9", fontSize: 11 }}
+            />
+            {isVisible("usdValue") ? (
+              <YAxis
+                yAxisId="usd"
+                width={58}
+                tickLine={false}
+                axisLine={false}
+                tick={{ fill: "#8f88a9", fontSize: 11 }}
+                tickFormatter={(value) => compactUsd(Number(value))}
+              />
+            ) : null}
+            {isVisible("tokenAmount") ? (
+              <YAxis
+                yAxisId="pyth"
+                width={70}
+                tickLine={false}
+                axisLine={false}
+                tick={{ fill: "#8f88a9", fontSize: 11 }}
+                tickFormatter={(value) => formatPythAmount(Number(value))}
+              />
+            ) : null}
+            <ChartTooltip
+              content={
+                <ChartTooltipContent
+                  className="border-white/10 bg-[#241b35] text-white"
+                  formatter={(value, name) => (
+                    <div className="flex w-full items-center justify-between gap-5">
+                      <span className="text-[#b4aec8]">{String(name)}</span>
+                      <span className="font-data tabular-nums text-white">
+                        {String(name) === "PYTH Amount"
+                          ? `${formatPythAmount(Number(value))} PYTH`
+                          : compactUsd(Number(value))}
+                      </span>
+                    </div>
+                  )}
+                />
+              }
+            />
+            {isVisible("usdValue") ? (
+              <Bar
+                yAxisId="usd"
+                dataKey="usdValue"
+                name="USD Value"
+                fill="rgba(134,239,172,0.72)"
+                radius={[6, 6, 0, 0]}
+              />
+            ) : null}
+            {isVisible("tokenAmount") ? (
+              <Bar
+                yAxisId="pyth"
+                dataKey="tokenAmount"
+                name="PYTH Amount"
+                fill="rgba(103,232,249,0.72)"
+                radius={[6, 6, 0, 0]}
+              />
+            ) : null}
+          </ComposedChart>
+        </ChartContainer>
+      </div>
+    </div>
+  );
+}
+
+function DistributionTable({
+  data,
+}: {
+  data: ReturnType<typeof buildDouroDistributionSeries>;
+}) {
+  return (
+    <div className="overflow-hidden rounded-[26px] border border-white/10 bg-[#2b223d]/70">
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[760px] text-left text-sm">
+          <thead className="border-b border-white/10 text-[11px] uppercase tracking-[0.18em] text-cyan-300/60">
+            <tr>
+              <th className="px-4 py-3 font-medium">Month</th>
+              <th className="px-4 py-3 font-medium">Payment Token</th>
+              <th className="px-4 py-3 font-medium">Amount</th>
+              <th className="px-4 py-3 font-medium">USD value</th>
+              <th className="px-4 py-3 font-medium">TWAP</th>
+              <th className="px-4 py-3 font-medium">Source</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-white/8">
+            {[...data].reverse().map((point) => (
+              <tr key={`${point.timestampMs}-${point.tokenSymbol}`}>
+                <td className="px-4 py-3 font-medium text-white">
+                  {point.label}
+                </td>
+                <td className="font-data px-4 py-3 text-[#d8d1ea]">
+                  {point.tokenSymbol}
+                </td>
+                <td className="font-data px-4 py-3 tabular-nums text-[#d8d1ea]">
+                  {point.tokenSymbol === "PYTH" && point.tokenAmount
+                    ? `${formatPythAmount(point.tokenAmount)} PYTH`
+                    : point.tokenSymbol === "USDC"
+                      ? compactUsd(point.usdValue)
+                      : "-"}
+                </td>
+                <td className="font-data px-4 py-3 tabular-nums text-[#d8d1ea]">
+                  {compactUsd(point.usdValue)}
+                </td>
+                <td className="font-data px-4 py-3 tabular-nums text-cyan-300/70">
+                  {point.twapUsd ? formatUsdPerPyth(point.twapUsd) : "-"}
+                </td>
+                <td className="px-4 py-3">
+                  <a
+                    href={point.reportUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-[#d8d1ea] transition-colors hover:text-white"
+                  >
+                    Report
+                    <ArrowUpRight className="h-3.5 w-3.5" />
+                  </a>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 function RevenueTable({ rows }: { rows: RevenueRow[] }) {
   const visibleRows = rows.filter((row) => !row.isTotal);
   const total = rows.find((row) => row.isTotal);
@@ -484,6 +706,10 @@ export default function RevenuePage() {
   const latest = sortedReports.at(-1);
   const revenueSeries = useMemo(
     () => buildDouroRevenueSeries(sortedReports),
+    [sortedReports]
+  );
+  const distributionSeries = useMemo(
+    () => buildDouroDistributionSeries(sortedReports),
     [sortedReports]
   );
   const productSeries = useMemo(
@@ -584,12 +810,33 @@ export default function RevenuePage() {
 
       <section className="space-y-5">
         <SectionRule index="02" title="Revenue Trends" />
-        <div className="grid grid-cols-1 divide-y divide-white/10 overflow-hidden rounded-[30px] border border-white/10 bg-[linear-gradient(148deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.02)_100%)] shadow-[0_20px_50px_rgba(9,5,20,0.18)] xl:grid-cols-2 xl:divide-x xl:divide-y-0">
-          <div className="min-w-0 p-5 sm:p-7">
-            <RevenueLinesChart data={revenueSeries} />
+        <p className="text-sm leading-relaxed text-[#a8a1bf]">
+          DAO share reflects the CO-PIP-104 revenue splits across products;
+          distributions may be paid in USDC or PYTH depending on the source
+          report.
+        </p>
+        <div className="space-y-5">
+          <div className="grid grid-cols-1 divide-y divide-white/10 overflow-hidden rounded-[30px] border border-white/10 bg-[linear-gradient(148deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.02)_100%)] shadow-[0_20px_50px_rgba(9,5,20,0.18)] xl:grid-cols-2 xl:divide-x xl:divide-y-0">
+            <div className="min-w-0 p-5 sm:p-7">
+              <RevenueLinesChart data={revenueSeries} />
+            </div>
+            <div className="min-w-0 p-5 sm:p-7">
+              <ProductLinesChart series={productSeries} />
+            </div>
           </div>
-          <div className="min-w-0 p-5 sm:p-7">
-            <ProductLinesChart series={productSeries} />
+          <div className="overflow-hidden rounded-[30px] border border-white/10 bg-[linear-gradient(148deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.02)_100%)] shadow-[0_20px_50px_rgba(9,5,20,0.18)]">
+            <div className="min-w-0 p-5 sm:p-7">
+              {distributionSeries.length > 0 ? (
+                <div className="space-y-5">
+                  <DistributionChart data={distributionSeries} />
+                  <DistributionTable data={distributionSeries} />
+                </div>
+              ) : (
+                <div className="rounded-[26px] border border-white/10 bg-[#2b223d]/70 p-6 text-sm text-[#a8a1bf]">
+                  No DAO distribution data has been synced yet.
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </section>

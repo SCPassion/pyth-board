@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { ParsedDouroReport } from "@/lib/pyth-pro/forum";
 import {
+  buildDouroDistributionSeries,
   buildDouroRevenueSeries,
   buildProductRevenueSeries,
 } from "@/lib/pyth-pro/history";
@@ -85,6 +86,53 @@ describe("buildDouroRevenueSeries", () => {
         cumulativeDaoShareUsd: 1_519_197,
         cumulativeDouroLabsUsd: null,
         distributionUsd: null,
+      },
+    ]);
+  });
+});
+
+describe("buildDouroDistributionSeries", () => {
+  it("orders reports chronologically and keeps PYTH payment details", () => {
+    const series = buildDouroDistributionSeries([
+      report("Pyth Pro: Douro Labs Report - April 2026", 3000, {
+        distribution: {
+          tokenAmount: 5_059_107,
+          usdValue: 229_132,
+          tokenSymbol: "PYTH",
+          twapUsd: 0.045291,
+          pythPerUsd: 22.08,
+        },
+      }),
+      report("Pyth Pro: Douro Labs Report - March 2026", 2000, {}),
+      report("Pyth Pro: Douro Labs Report - January 2026", 1000, {
+        distribution: {
+          tokenSymbol: "USDC",
+          tokenAmount: 73_700,
+          usdValue: 73_700,
+        },
+      }),
+    ]);
+
+    expect(series).toEqual([
+      {
+        label: "Jan 2026",
+        reportTitle: "Pyth Pro: Douro Labs Report - January 2026",
+        reportUrl: "https://forum.pyth.network/t/1000",
+        timestampMs: 1000,
+        tokenSymbol: "USDC",
+        tokenAmount: null,
+        usdValue: 73_700,
+        twapUsd: null,
+      },
+      {
+        label: "Apr 2026",
+        reportTitle: "Pyth Pro: Douro Labs Report - April 2026",
+        reportUrl: "https://forum.pyth.network/t/3000",
+        timestampMs: 3000,
+        tokenSymbol: "PYTH",
+        tokenAmount: 5_059_107,
+        usdValue: 229_132,
+        twapUsd: 0.045291,
       },
     ]);
   });

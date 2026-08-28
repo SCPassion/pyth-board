@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import {
   getDefaultProductRevenueKeys,
+  getDefaultDistributionKey,
   getDefaultRevenueTrendKeys,
+  selectExclusiveSeries,
   toggleVisibleSeries,
 } from "@/lib/pyth-pro/chart-visibility";
 
@@ -40,5 +42,14 @@ describe("revenue chart visibility", () => {
       "LaaS",
     ]);
     expect(toggleVisibleSeries(["LaaS"], "LaaS")).toEqual(["LaaS"]);
+  });
+
+  it("defaults DAO distributions to USD value", () => {
+    expect(getDefaultDistributionKey()).toBe("usdValue");
+  });
+
+  it("selects exactly one exclusive chart series", () => {
+    expect(selectExclusiveSeries("usdValue", "tokenAmount")).toBe("tokenAmount");
+    expect(selectExclusiveSeries("tokenAmount", "tokenAmount")).toBe("tokenAmount");
   });
 });

@@ -21,6 +21,17 @@ export type ProductRevenueSeries = {
   points: Array<Record<string, number | string | null>>;
 };
 
+export type DouroDistributionPoint = {
+  label: string;
+  reportTitle: string;
+  reportUrl: string;
+  timestampMs: number;
+  tokenSymbol: string;
+  tokenAmount: number | null;
+  usdValue: number | null;
+  twapUsd: number | null;
+};
+
 export function buildDouroRevenueSeries(
   reports: ParsedDouroReport[]
 ): DouroRevenuePoint[] {
@@ -37,6 +48,26 @@ export function buildDouroRevenueSeries(
     cumulativeDouroLabsUsd: toNullable(report.cumulativeDouroLabsUsd),
     distributionUsd: toNullable(report.distribution?.usdValue),
   }));
+}
+
+export function buildDouroDistributionSeries(
+  reports: ParsedDouroReport[]
+): DouroDistributionPoint[] {
+  return sortReports(reports)
+    .filter((report) => report.distribution)
+    .map((report) => ({
+      label: formatReportLabel(report),
+      reportTitle: report.title,
+      reportUrl: report.url,
+      timestampMs: report.createdAtMs,
+      tokenSymbol: report.distribution?.tokenSymbol ?? "",
+      tokenAmount:
+        report.distribution?.tokenSymbol === "PYTH"
+          ? toNullable(report.distribution?.tokenAmount)
+          : null,
+      usdValue: toNullable(report.distribution?.usdValue),
+      twapUsd: toNullable(report.distribution?.twapUsd),
+    }));
 }
 
 export function buildProductRevenueSeries(
