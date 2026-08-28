@@ -11,6 +11,12 @@ interface ReserveSummaryProps {
   dcaVaultUsd?: number;
 }
 
+export const PYTH_TOTAL_SUPPLY = 10_000_000_000;
+
+export function formatPythSupplyShare(totalPythHeld: number) {
+  return `${((totalPythHeld / PYTH_TOTAL_SUPPLY) * 100).toFixed(3)}%`;
+}
+
 export function ReserveSummary({
   reserveSummary,
   dcaVaultUsd = 0,
@@ -88,6 +94,12 @@ export function ReserveSummary({
                 className={`font-data text-2xl font-medium tracking-tight text-white sm:text-3xl`}
               >
                 {formatTokenAmount(reserveSummary.totalPythHeld)} PYTH
+              </p>
+              <p className="mt-1 text-xs text-[#8f88a9]">
+                <span className="font-data text-sm font-semibold tabular-nums text-[#86efac]">
+                  {formatPythSupplyShare(reserveSummary.totalPythHeld)}
+                </span>{" "}
+                of 10B supply
               </p>
             </div>
           </div>
