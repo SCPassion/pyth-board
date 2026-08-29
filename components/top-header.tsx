@@ -39,7 +39,9 @@ export function TopHeader({
         : pathname.startsWith("/pythenians")
           ? "Pythenians"
           : pathname.startsWith("/reserve")
-            ? "Reserve"
+            ? "DAO Reserve"
+            : pathname.startsWith("/revenue")
+              ? "Protocol Revenue"
             : "Pyth Dashboard";
 
   useEffect(() => {
