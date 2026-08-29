@@ -42,6 +42,8 @@ export function TopHeader({
             ? "DAO Reserve"
             : pathname.startsWith("/revenue")
               ? "Protocol Revenue"
+              : pathname.startsWith("/news")
+                ? "News"
             : "Pyth Dashboard";
 
   useEffect(() => {
