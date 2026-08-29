@@ -70,7 +70,7 @@ function ChartLegend({
   }>;
 }) {
   return (
-    <div className="flex flex-wrap gap-x-4 gap-y-2">
+    <div className="flex flex-wrap gap-2 sm:gap-x-4">
       {items.map((item) => {
         const className = [
             "flex items-center gap-2 rounded-full border px-2.5 py-1.5 text-xs transition",
@@ -497,7 +497,7 @@ function DistributionChart({
           },
         ]}
       />
-      <div className="aspect-[16/5] min-h-[260px] w-full">
+      <div className="h-[190px] w-full sm:aspect-[16/5] sm:h-auto sm:min-h-[260px]">
         <ChartContainer
           className="!block h-full w-full min-w-0 aspect-auto"
           config={{
@@ -512,6 +512,8 @@ function DistributionChart({
             <CartesianGrid stroke="rgba(255,255,255,0.08)" vertical={false} />
             <XAxis
               dataKey="label"
+              interval="preserveStartEnd"
+              minTickGap={18}
               tickLine={false}
               axisLine={false}
               tick={{ fill: "#8f88a9", fontSize: 11 }}
@@ -559,6 +561,7 @@ function DistributionChart({
                 dataKey="usdValue"
                 name="USD Value"
                 fill="rgba(134,239,172,0.72)"
+                maxBarSize={42}
                 radius={[6, 6, 0, 0]}
               />
             ) : null}
@@ -568,6 +571,7 @@ function DistributionChart({
                 dataKey="tokenAmount"
                 name="PYTH Amount"
                 fill="rgba(103,232,249,0.72)"
+                maxBarSize={42}
                 radius={[6, 6, 0, 0]}
               />
             ) : null}
@@ -583,59 +587,116 @@ function DistributionTable({
 }: {
   data: ReturnType<typeof buildDouroDistributionSeries>;
 }) {
+  const formatPaymentAmount = (
+    point: ReturnType<typeof buildDouroDistributionSeries>[number]
+  ) => {
+    if (point.tokenSymbol === "PYTH" && point.tokenAmount) {
+      return `${formatPythAmount(point.tokenAmount)} PYTH`;
+    }
+
+    if (point.tokenSymbol === "USDC") {
+      return compactUsd(point.usdValue);
+    }
+
+    return "-";
+  };
+
+  const rows = [...data].reverse();
+
   return (
-    <div className="overflow-hidden rounded-[26px] border border-white/10 bg-[#2b223d]/70">
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[760px] text-left text-sm">
-          <thead className="border-b border-white/10 text-[11px] uppercase tracking-[0.18em] text-cyan-300/60">
-            <tr>
-              <th className="px-4 py-3 font-medium">Month</th>
-              <th className="px-4 py-3 font-medium">Payment Token</th>
-              <th className="px-4 py-3 font-medium">Amount</th>
-              <th className="px-4 py-3 font-medium">USD value</th>
-              <th className="px-4 py-3 font-medium">TWAP</th>
-              <th className="px-4 py-3 font-medium">Source</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-white/8">
-            {[...data].reverse().map((point) => (
-              <tr key={`${point.timestampMs}-${point.tokenSymbol}`}>
-                <td className="px-4 py-3 font-medium text-white">
+    <>
+      <div className="grid gap-3 sm:hidden">
+        {rows.map((point) => (
+          <a
+            key={`${point.timestampMs}-${point.tokenSymbol}-mobile`}
+            href={point.reportUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded-[22px] border border-white/10 bg-[#2b223d]/70 p-4 transition-colors hover:border-cyan-300/35"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="font-display text-lg text-white">
                   {point.label}
-                </td>
-                <td className="font-data px-4 py-3 text-[#d8d1ea]">
-                  {point.tokenSymbol}
-                </td>
-                <td className="font-data px-4 py-3 tabular-nums text-[#d8d1ea]">
-                  {point.tokenSymbol === "PYTH" && point.tokenAmount
-                    ? `${formatPythAmount(point.tokenAmount)} PYTH`
-                    : point.tokenSymbol === "USDC"
-                      ? compactUsd(point.usdValue)
-                      : "-"}
-                </td>
-                <td className="font-data px-4 py-3 tabular-nums text-[#d8d1ea]">
+                </p>
+                <p className="mt-1 text-xs uppercase tracking-[0.18em] text-cyan-300/60">
+                  {point.tokenSymbol} payment
+                </p>
+              </div>
+              <ArrowUpRight className="mt-1 h-4 w-4 shrink-0 text-[#8f88a9]" />
+            </div>
+            <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <p className="text-xs text-[#8f88a9]">Amount</p>
+                <p className="font-data mt-1 tabular-nums text-white">
+                  {formatPaymentAmount(point)}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-[#8f88a9]">USD value</p>
+                <p className="font-data mt-1 tabular-nums text-white">
                   {compactUsd(point.usdValue)}
-                </td>
-                <td className="font-data px-4 py-3 tabular-nums text-cyan-300/70">
+                </p>
+              </div>
+              <div className="col-span-2">
+                <p className="text-xs text-[#8f88a9]">TWAP</p>
+                <p className="font-data mt-1 tabular-nums text-cyan-300/70">
                   {point.twapUsd ? formatUsdPerPyth(point.twapUsd) : "-"}
-                </td>
-                <td className="px-4 py-3">
-                  <a
-                    href={point.reportUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-[#d8d1ea] transition-colors hover:text-white"
-                  >
-                    Report
-                    <ArrowUpRight className="h-3.5 w-3.5" />
-                  </a>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                </p>
+              </div>
+            </div>
+          </a>
+        ))}
       </div>
-    </div>
+      <div className="hidden overflow-hidden rounded-[26px] border border-white/10 bg-[#2b223d]/70 sm:block">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[760px] text-left text-sm">
+            <thead className="border-b border-white/10 text-[11px] uppercase tracking-[0.18em] text-cyan-300/60">
+              <tr>
+                <th className="px-4 py-3 font-medium">Month</th>
+                <th className="px-4 py-3 font-medium">Payment Token</th>
+                <th className="px-4 py-3 font-medium">Amount</th>
+                <th className="px-4 py-3 font-medium">USD value</th>
+                <th className="px-4 py-3 font-medium">TWAP</th>
+                <th className="px-4 py-3 font-medium">Source</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/8">
+              {rows.map((point) => (
+                <tr key={`${point.timestampMs}-${point.tokenSymbol}`}>
+                  <td className="px-4 py-3 font-medium text-white">
+                    {point.label}
+                  </td>
+                  <td className="font-data px-4 py-3 text-[#d8d1ea]">
+                    {point.tokenSymbol}
+                  </td>
+                  <td className="font-data px-4 py-3 tabular-nums text-[#d8d1ea]">
+                    {formatPaymentAmount(point)}
+                  </td>
+                  <td className="font-data px-4 py-3 tabular-nums text-[#d8d1ea]">
+                    {compactUsd(point.usdValue)}
+                  </td>
+                  <td className="font-data px-4 py-3 tabular-nums text-cyan-300/70">
+                    {point.twapUsd ? formatUsdPerPyth(point.twapUsd) : "-"}
+                  </td>
+                  <td className="px-4 py-3">
+                    <a
+                      href={point.reportUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-[#d8d1ea] transition-colors hover:text-white"
+                    >
+                      Report
+                      <ArrowUpRight className="h-3.5 w-3.5" />
+                    </a>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </>
   );
 }
 
