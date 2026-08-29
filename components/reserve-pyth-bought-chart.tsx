@@ -104,7 +104,7 @@ export function ReservePythBoughtChart() {
         <h3
           className={`font-display mt-1 text-xl text-white sm:text-2xl`}
         >
-          PYTH Buybacks over time
+          On-chain PYTH Buybacks over time
         </h3>
         <p
           className={`font-data mt-1 text-[11px] text-[#8f88a9]`}
