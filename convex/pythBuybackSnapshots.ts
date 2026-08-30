@@ -6,6 +6,11 @@ import {
   mutation,
   query,
 } from "./_generated/server";
+import {
+  getJupiterRetryDelayMs,
+  reconcileBuybackSourceTotals,
+  shouldFetchNextRecurringPage,
+} from "./buybackMetrics";
 
 const PYTHIAN_COUNCIL_OPS_MULTISIG_ADDRESS =
   "GAdn7TZhszf5KTfwNRx3A2nP6KCRFEWucZubgdEqbJA2";
@@ -33,6 +38,40 @@ const CONNECTION_CONFIG = {
   },
 };
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function fetchJupiter(url: string, context: string): Promise<Response> {
+  for (let attempt = 0; attempt <= 3; attempt += 1) {
+    const response = await fetch(url, {
+      headers: {
+        "User-Agent": "PythBoard/1.0",
+      },
+    });
+
+    if (response.ok) {
+      return response;
+    }
+
+    const retryDelayMs = getJupiterRetryDelayMs({
+      attempt,
+      status: response.status,
+      retryAfterHeader: response.headers.get("retry-after"),
+    });
+
+    if (retryDelayMs === null) {
+      throw new Error(
+        `${context}: ${response.status} ${response.statusText}`
+      );
+    }
+
+    await sleep(retryDelayMs);
+  }
+
+  throw new Error(`${context}: retries exhausted`);
+}
+
 type JupiterRecurringOrder = {
   orderKey: string;
   inputMint: string;
@@ -44,6 +83,7 @@ type JupiterRecurringOrder = {
 type JupiterRecurringResponse = {
   time?: JupiterRecurringOrder[];
   hasMoreData?: boolean;
+  totalPages?: number;
 };
 
 type JupiterTriggerOrder = {
@@ -221,23 +261,23 @@ async function fetchJupiterRecurringOrders(
     url.searchParams.set("orderStatus", orderStatus);
     url.searchParams.set("page", String(page));
 
-    const response = await fetch(url.toString(), {
-      headers: {
-        "User-Agent": "PythBoard/1.0",
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(
-        `Jupiter recurring API failed (${orderStatus} page ${page}): ${response.status} ${response.statusText}`
-      );
-    }
+    const response = await fetchJupiter(
+      url.toString(),
+      `Jupiter recurring API failed (${orderStatus} page ${page})`
+    );
 
     const data = (await response.json()) as JupiterRecurringResponse;
     const timeOrders = data.time ?? [];
     orders.push(...timeOrders);
 
-    if (!data.hasMoreData || timeOrders.length === 0) {
+    if (
+      !shouldFetchNextRecurringPage({
+        currentPage: page,
+        returnedOrderCount: timeOrders.length,
+        hasMoreData: data.hasMoreData,
+        totalPages: data.totalPages,
+      })
+    ) {
       break;
     }
 
@@ -251,10 +291,8 @@ async function fetchDcaBuybackTotals(): Promise<{
   totalUsdcSpentDca: number;
   totalPythBoughtDca: number;
 }> {
-  const [activeOrders, historyOrders] = await Promise.all([
-    fetchJupiterRecurringOrders("active"),
-    fetchJupiterRecurringOrders("history"),
-  ]);
+  const activeOrders = await fetchJupiterRecurringOrders("active");
+  const historyOrders = await fetchJupiterRecurringOrders("history");
 
   const orderTotals = new Map<
     string,
@@ -301,15 +339,10 @@ async function fetchLimitOrderTotals(): Promise<{
       url.searchParams.set("cursor", cursor);
     }
 
-    const response = await fetch(url.toString(), {
-      headers: { "User-Agent": "PythBoard/1.0" },
-    });
-
-    if (!response.ok) {
-      throw new Error(
-        `Jupiter trigger API failed: ${response.status} ${response.statusText}`
-      );
-    }
+    const response = await fetchJupiter(
+      url.toString(),
+      "Jupiter trigger API failed"
+    );
 
     const data = (await response.json()) as JupiterTriggerResponse;
     const orders = data.orders ?? [];
@@ -454,6 +487,20 @@ export const runPythBuybackSnapshotJob = internalAction({
             console.warn("Failed to initialize limit order buyback totals:", error);
           }
 
+          const externalTotals = reconcileBuybackSourceTotals({
+            previous: state,
+            next: {
+              totalUsdcSpentDca,
+              totalPythBoughtDca,
+              totalUsdcSpentLimitOrders,
+              totalPythBoughtLimitOrders,
+            },
+          });
+          totalUsdcSpentDca = externalTotals.totalUsdcSpentDca;
+          totalPythBoughtDca = externalTotals.totalPythBoughtDca;
+          totalUsdcSpentLimitOrders = externalTotals.totalUsdcSpentLimitOrders;
+          totalPythBoughtLimitOrders = externalTotals.totalPythBoughtLimitOrders;
+
           const totalUsdcSpentDirect = state?.totalUsdcSpentDirect ?? 0;
           const totalPythBoughtDirect = state?.totalPythBoughtDirect ?? 0;
           const totalUsdcSpent = totalUsdcSpentDirect + totalUsdcSpentDca + totalUsdcSpentLimitOrders;
@@ -558,6 +605,20 @@ export const runPythBuybackSnapshotJob = internalAction({
         } catch (error) {
           console.warn("Failed to refresh limit order buyback totals:", error);
         }
+
+        const externalTotals = reconcileBuybackSourceTotals({
+          previous: state,
+          next: {
+            totalUsdcSpentDca,
+            totalPythBoughtDca,
+            totalUsdcSpentLimitOrders,
+            totalPythBoughtLimitOrders,
+          },
+        });
+        totalUsdcSpentDca = externalTotals.totalUsdcSpentDca;
+        totalPythBoughtDca = externalTotals.totalPythBoughtDca;
+        totalUsdcSpentLimitOrders = externalTotals.totalUsdcSpentLimitOrders;
+        totalPythBoughtLimitOrders = externalTotals.totalPythBoughtLimitOrders;
 
         const totalUsdcSpent = totalUsdcSpentDirect + totalUsdcSpentDca + totalUsdcSpentLimitOrders;
         const totalPythBought = totalPythBoughtDirect + totalPythBoughtDca + totalPythBoughtLimitOrders;

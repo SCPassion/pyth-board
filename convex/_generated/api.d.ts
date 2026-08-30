@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as buybackMetrics from "../buybackMetrics.js";
 import type * as crons from "../crons.js";
 import type * as news from "../news.js";
 import type * as pythBuybackSnapshots from "../pythBuybackSnapshots.js";
@@ -21,6 +22,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  buybackMetrics: typeof buybackMetrics;
   crons: typeof crons;
   news: typeof news;
   pythBuybackSnapshots: typeof pythBuybackSnapshots;
