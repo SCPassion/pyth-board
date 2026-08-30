@@ -3,6 +3,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { usePythPriceHistory } from "@/hooks/use-pyth-price-history";
+import { formatUsdPriceTick } from "@/lib/price-format";
 import { useWalletInfosStore } from "@/store/store";
 import { TrendingUp, PieChart as PieChartIcon } from "lucide-react";
 import {
@@ -125,7 +126,9 @@ export function MetricCards({
                         tickLine={false}
                         width={60}
                         tick={{ fill: "#8f88a9", fontSize: 10 }}
-                        tickFormatter={(value: number) => `$${value.toFixed(2)}`}
+                        tickFormatter={(value: number) =>
+                          formatUsdPriceTick(value)
+                        }
                       />
                       <Tooltip
                         cursor={false}
