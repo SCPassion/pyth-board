@@ -1,8 +1,10 @@
 # Pyth Board
 
-Pyth Board is a Next.js dashboard for tracking Pyth staking positions and monitoring the Pyth Strategic Reserve.
+Pyth Board is an independent dashboard built and maintained by a member of the Pyth community. It is a personal, unofficial project.
 
-Current stage: **v0.3.6 (beta)**.
+It is not affiliated with, sponsored by, or endorsed by the Pyth Data Association, Douro Labs, the Pythian Council, or any institution that publishes data to the Pyth Network. 
+None of those parties develops, operates, reviews, or verifies this site, and none of them is responsible for its content, availability, or accuracy.
+Figures shown here are derived from public on-chain data and third-party price sources, and may be incomplete, delayed, or wrong. Nothing on this site is financial advice. Always verify against official sources before acting on anything you see here.
 
 ## What is live right now
 
