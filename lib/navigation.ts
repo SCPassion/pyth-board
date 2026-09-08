@@ -2,6 +2,7 @@ import {
   BriefcaseBusiness,
   Building2,
   Image as ImageIcon,
+  Info,
   LayoutDashboard,
   Newspaper,
   Wallet,
@@ -14,4 +15,5 @@ export const navItems = [
   { href: "/reserve", label: "DAO Reserve", icon: Building2 },
   { href: "/revenue", label: "Protocol Revenue", icon: BriefcaseBusiness },
   { href: "/news", label: "News", icon: Newspaper },
+  { href: "/about", label: "About", icon: Info },
 ];

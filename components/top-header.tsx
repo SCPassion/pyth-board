@@ -44,6 +44,8 @@ export function TopHeader({
               ? "Protocol Revenue"
               : pathname.startsWith("/news")
                 ? "News"
+                : pathname.startsWith("/about")
+                  ? "About"
             : "Pyth Dashboard";
 
   useEffect(() => {
