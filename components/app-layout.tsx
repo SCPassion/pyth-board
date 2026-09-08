@@ -7,6 +7,7 @@ import {
 } from "react";
 import { Sidebar } from "@/components/sidebar";
 import { TopHeader } from "@/components/top-header";
+import { AppFooter } from "@/components/app-footer";
 import { useWalletInfosStore } from "@/store/store";
 import { refreshOISStakingInfo } from "@/action/pythActions";
 import { usePythPrice } from "@/hooks/use-pyth-price";
@@ -190,14 +191,19 @@ export function AppLayout({ children }: AppLayoutProps) {
             onMobileMenuToggle={toggleMobileMenu}
           />
 
-          <main className="flex-1 overflow-auto overflow-x-hidden bg-[radial-gradient(circle_at_top_right,rgba(135,80,255,0.12),transparent_22%),linear-gradient(180deg,#261e35_0%,#251c34_100%)] p-4 sm:p-8 lg:p-12 min-w-0">
+          <main className="min-w-0 flex-1 overflow-auto overflow-x-hidden bg-[radial-gradient(circle_at_top_right,rgba(135,80,255,0.12),transparent_22%),linear-gradient(180deg,#261e35_0%,#251c34_100%)] p-4 sm:p-8 lg:p-12">
             {isLoading && (
               <div className="fixed right-4 top-4 z-50 rounded-2xl bg-[#6f4bd8] px-4 py-2 text-white shadow-lg">
                 Loading wallet data...
               </div>
             )}
-            <div className="mx-auto max-w-[1360px]">{children}</div>
+            <div className="mx-auto max-w-[1360px]">
+              {children}
+              <AppFooter className="-mx-4 mt-12 shadow-none sm:hidden" />
+            </div>
           </main>
+
+          <AppFooter className="hidden md:block" />
         </div>
       </div>
     </AppLoadingContext.Provider>
