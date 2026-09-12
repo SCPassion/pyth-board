@@ -31,4 +31,6 @@ crons.daily(
   {}
 );
 
+crons.daily("collect native PYTH holders", { hourUTC: 3, minuteUTC: 0 }, internal.pythHolderCollection.collect, {});
+
 export default crons;
