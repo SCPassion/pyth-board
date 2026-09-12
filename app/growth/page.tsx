@@ -1,65 +1,45 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import { usePaginatedQuery, useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
+import { GovernanceStakersPanel } from "@/components/governance-stakers-panel";
+import { PythHoldersPanel } from "@/components/pyth-holders-panel";
 import { PageMasthead } from "@/components/page-masthead";
-import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
-import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 
-const DAY = 86_400_000;
-const number = new Intl.NumberFormat("en-US");
 export default function GrowthPage() {
-  const [period, setPeriod] = useState<"30D" | "90D" | "ALL">("30D");
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => { const timer = setInterval(() => setNow(Date.now()),60_000); return () => clearInterval(timer); },[]);
-  const since = period === "ALL" ? "0000-01-01" : new Date(now - (period === "30D" ? 29 : 89) * DAY).toISOString().slice(0,10);
-  const latest = useQuery(api.pythHolders.latest, {});
-  const { results, status, loadMore } = usePaginatedQuery(api.pythHolders.history, {since}, {initialNumItems:366});
-  useEffect(() => { if (status === "CanLoadMore") loadMore(366); },[status,loadMore]);
-  const ready = status === "Exhausted";
-  const first = results[0];
-  const last = results.at(-1);
-  const change = ready && results.length >= 2 && last && first ? last.holders-first.holders : null;
-  const chart = results.flatMap((row,i) => {
-    const time = Date.parse(`${row.date}T00:00:00Z`);
-    const point = {time,holders:row.holders};
-    // Break the line at missed days without inventing holder values.
-    return i > 0 && time-Date.parse(`${results[i-1].date}T00:00:00Z`) > DAY
-      ? [{time:time-DAY,holders:null},point] : [point];
-  });
-  const stale = latest && now-latest.collectedAt > 36*60*60*1000;
-  return <div className="mx-auto w-full max-w-7xl space-y-8 px-4 py-8 sm:px-6 lg:px-8">
-    <PageMasthead eyebrow="Network / Growth" title="PYTH ownership, over time." description="A daily view of native PYTH holders on Solana." right={<span className="text-xs text-white/70">Collected daily · 03:00 UTC</span>} />
-    <section className="rounded-2xl border border-white/10 bg-white/[0.025] p-5 sm:p-8" aria-labelledby="holder-title">
-      <div className="flex flex-wrap items-start justify-between gap-6">
-        <div>
-          <h2 id="holder-title" className="text-sm font-medium text-white/80">PYTH Holders</h2>
-          <p className="mt-3 text-5xl font-medium tracking-tight text-white sm:text-6xl">{latest ? number.format(latest.holders) : "—"}</p>
-          <p className="mt-3 text-xs text-white/70">{latest === undefined ? "Loading collection status…" : latest ? `Last collected ${new Date(latest.collectedAt).toLocaleString("en-GB",{timeZone:"UTC"})} UTC` : "Awaiting the first daily collection"}</p>
-          {stale && <p role="status" className="mt-2 text-sm text-amber-300">Collection is overdue. Showing the last successful snapshot.</p>}
-        </div>
-        <div className="flex gap-1 rounded-xl border border-white/15 p-1" aria-label="History period">
-          {(["30D","90D","ALL"] as const).map(value=><button key={value} type="button" aria-pressed={period===value} onClick={()=>setPeriod(value)} className={`rounded-lg px-4 py-2 text-xs font-medium transition-colors focus-visible:outline-2 focus-visible:outline-cyan-300 ${period===value ? "bg-white/15 text-white" : "text-white/70 hover:bg-white/5"}`}>{value}</button>)}
-        </div>
+  return (
+    <div className="mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+      <PageMasthead
+        eyebrow="Network / Growth"
+        title="PYTH ownership, over time."
+        description="Native holders and governance participation, at a glance."
+        right={<span className="text-xs text-white/70">Daily snapshots · UTC</span>}
+      />
+      <div className="grid grid-cols-1 items-stretch gap-5 lg:grid-cols-2">
+        <PythHoldersPanel />
+        <GovernanceStakersPanel />
       </div>
-      <p className="mt-6 text-sm text-white/80">{change !== null && first ? <><span className={change>=0 ? "text-cyan-300" : "text-rose-300"}>{change>0?"+":""}{number.format(change)} holders ({change>0?"+":""}{(100*change/first.holders).toFixed(2)}%)</span> · across available {period === "ALL" ? "history" : period+" history"}</> : ready ? "Period change will appear after two daily collections." : "Loading history…"}</p>
-      {ready && chart.length === 0 ? <div className="flex min-h-72 items-center justify-center text-center text-sm text-white/65">{latest ? "No snapshots in this period." : "Your history starts with the first successful collection. No earlier data is backfilled."}</div> :
-        <ChartContainer config={{holders:{label:"PYTH Holders",color:"#67e8f9"}}} className="mt-8 h-80 w-full">
-          <LineChart accessibilityLayer data={chart} margin={{left:12,right:16,top:16,bottom:8}}>
-            <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.1)" />
-            <XAxis dataKey="time" type="number" domain={["dataMin","dataMax"]} scale="time" tickFormatter={t=>new Date(t).toLocaleDateString("en-GB",{timeZone:"UTC",day:"numeric",month:"short"})} tickLine={false} axisLine={false} minTickGap={35} />
-            <YAxis domain={["auto","auto"]} allowDecimals={false} tickFormatter={n=>number.format(n)} tickLine={false} axisLine={false} width={75} />
-            <ChartTooltip content={({active,payload,label})=>active && payload?.[0]?.value != null ? <div className="rounded-xl border border-white/20 bg-[#241b35] p-3 text-sm text-white"><p>{new Date(Number(label)).toLocaleDateString("en-GB",{timeZone:"UTC",year:"numeric",month:"short",day:"numeric"})} UTC</p><p className="mt-1 text-cyan-300">{number.format(Number(payload[0].value))} holders</p></div> : null} />
-            <Line type="linear" dataKey="holders" stroke="#67e8f9" strokeWidth={2} dot={{r:3}} connectNulls={false} isAnimationActive={false} />
-          </LineChart>
-        </ChartContainer>}
-    </section>
-    <section className="w-full space-y-3 pb-8 text-sm leading-relaxed text-white/70">
-      <h2 className="text-base font-medium text-white">What we count</h2>
-      <p>PYTH Holders counts unique Solana owners with a positive native PYTH SPL token balance. Zero-balance accounts are excluded, and multiple PYTH token accounts belonging to the same owner are deduplicated. Data is collected daily using Solana RPC through Helius.</p>
-      <p>Historical tracking begins when this feature is deployed. Earlier holder counts are not backfilled. Missing collection days remain gaps in the chart.</p>
-      <p>This does not represent every beneficial PYTH owner: exchanges, custodians, staking systems, and other contracts may hold tokens for multiple people. Each daily value is collected across a short paginated scan, rather than a single fixed Solana slot.</p>
-    </section>
-  </div>;
+      <p className="text-sm leading-relaxed text-white/70">
+        Governance stakers counts voting-eligible stake owners: each owner with a positive LOCKED or PREUNLOCKING governance position counts once. UNLOCKING and UNLOCKED positions do not count because they no longer carry governance voting power.
+      </p>
+      <details open className="group rounded-2xl border border-white/10 bg-white/[0.025]">
+        <summary className="cursor-pointer rounded-2xl px-5 py-4 text-sm font-medium text-white/85 focus-visible:outline-2 focus-visible:outline-cyan-300 sm:px-6">
+          How these metrics are counted
+          <span className="ml-3 hidden text-xs font-normal text-white/55 sm:inline">Definitions, collection times &amp; limitations</span>
+        </summary>
+        <div className="space-y-5 border-t border-white/10 px-5 py-5 text-sm leading-relaxed text-white/70 sm:px-6">
+          <div className="grid gap-6 lg:grid-cols-2">
+            <section className="space-y-2" aria-labelledby="holder-methodology">
+              <h2 id="holder-methodology" className="font-medium text-cyan-200">Native PYTH holders · 03:00 UTC</h2>
+              <p>Unique Solana owners with a positive native PYTH SPL token balance. Zero-balance accounts are excluded, and multiple token accounts belonging to one owner count once.</p>
+              <p>Exchanges, custodians, and staking contracts may hold tokens for multiple people, so this does not count every individual beneficial owner.</p>
+            </section>
+            <section className="space-y-2" aria-labelledby="governance-methodology">
+              <h2 id="governance-methodology" className="font-medium text-violet-200">Governance stakers · 15:00 UTC</h2>
+              <p>We scan current Pyth staking positions through Helius RPC and apply the staking SDK’s voting-token eligibility rules. Any positive governance amount qualifies; there is no 1 PYTH minimum.</p>
+              <p>LOCKED positions are active, and PREUNLOCKING positions are awaiting the start of cooldown; both carry voting power. LOCKING (pending activation), UNLOCKING (in cooldown), and UNLOCKED positions are excluded. Depositing PYTH without a qualifying governance position does not count.</p>
+              <p>Each owner address counts once across all qualifying positions, staking accounts, and scan pages. This counts addresses, not individual people, transaction signers, delegates, or actual voters. Owners using OIS count only if they also have qualifying governance stake.</p>
+            </section>
+          </div>
+          <p className="border-t border-white/10 pt-4 text-xs leading-relaxed">Both metrics are collected independently through Helius RPC and displayed from stored daily snapshots. History starts with the first successful collection; earlier dates are not backfilled, and missed days remain gaps. Each scan spans a short collection window, not a single fixed Solana slot. Governance scans crossing a Pyth epoch or UTC day are rejected. Period changes compare available snapshots, and each chart uses its own count scale.</p>
+        </div>
+      </details>
+    </div>
+  );
 }

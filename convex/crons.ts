@@ -33,4 +33,6 @@ crons.daily(
 
 crons.daily("collect native PYTH holders", { hourUTC: 3, minuteUTC: 0 }, internal.pythHolderCollection.collect, {});
 
+crons.daily("collect PYTH governance stakers", { hourUTC: 15, minuteUTC: 0 }, internal.pythGovernanceStakerCollection.collect, {});
+
 export default crons;

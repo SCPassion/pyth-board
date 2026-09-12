@@ -12,6 +12,8 @@ import type * as buybackMetrics from "../buybackMetrics.js";
 import type * as crons from "../crons.js";
 import type * as news from "../news.js";
 import type * as pythBuybackSnapshots from "../pythBuybackSnapshots.js";
+import type * as pythGovernanceStakerCollection from "../pythGovernanceStakerCollection.js";
+import type * as pythGovernanceStakers from "../pythGovernanceStakers.js";
 import type * as pythHolderCollection from "../pythHolderCollection.js";
 import type * as pythHolders from "../pythHolders.js";
 import type * as pythPro from "../pythPro.js";
@@ -28,6 +30,8 @@ declare const fullApi: ApiFromModules<{
   crons: typeof crons;
   news: typeof news;
   pythBuybackSnapshots: typeof pythBuybackSnapshots;
+  pythGovernanceStakerCollection: typeof pythGovernanceStakerCollection;
+  pythGovernanceStakers: typeof pythGovernanceStakers;
   pythHolderCollection: typeof pythHolderCollection;
   pythHolders: typeof pythHolders;
   pythPro: typeof pythPro;
