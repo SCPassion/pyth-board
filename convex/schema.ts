@@ -2,6 +2,14 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export default defineSchema({
+  pythGovernanceStakerSnapshots: defineTable({
+    date: v.string(), stakers: v.number(), collectedAt: v.number(), epoch: v.string(),
+    totalStakeAccounts: v.number(), eligibleStakeAccounts: v.number(),
+  }).index("by_date", ["date"]),
+  pythHolderSnapshots: defineTable({
+    date: v.string(), holders: v.number(), collectedAt: v.number(),
+    totalTokenAccounts: v.number(), positiveTokenAccounts: v.number(),
+  }).index("by_date", ["date"]),
   pythHoldingSnapshots: defineTable({
     timestampMs: v.number(),
     minuteBucketMs: v.number(),
