@@ -18,7 +18,9 @@ const TOKEN_PROGRAM_ID = new PublicKey(
 );
 
 const RPC_ENDPOINTS = [
-  "https://solana-mainnet.g.alchemy.com/v2/VAWGO1qOMcxkm0B9H0xUPzpNMzBnIvo8",
+  ...(process.env.PRIMARY_SOLANA_RPC_URL
+    ? [process.env.PRIMARY_SOLANA_RPC_URL]
+    : []),
   "https://api.mainnet-beta.solana.com",
   "https://rpc.ankr.com/solana",
   "https://solana-api.projectserum.com",
