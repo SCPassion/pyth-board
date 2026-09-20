@@ -15,7 +15,9 @@ import { getCurrentMarketPrices } from "@/lib/market-prices";
 
 // RPC endpoints with fallback support
 const RPC_ENDPOINTS = [
-  "https://solana-mainnet.g.alchemy.com/v2/VAWGO1qOMcxkm0B9H0xUPzpNMzBnIvo8",
+  ...(process.env.SWAP_SOLANA_RPC_URL
+    ? [process.env.SWAP_SOLANA_RPC_URL]
+    : []),
   "https://api.mainnet-beta.solana.com",
   "https://rpc.ankr.com/solana",
   "https://solana-api.projectserum.com",
