@@ -319,6 +319,15 @@ describe("public query boundaries", () => {
       to,
     });
     expect(rankings.buyers[0].buyCount).toBe(2);
+    const ownerOverview = await t.query(api.trackerQueries.ownerOverview, {
+      owner: base.owner!, window: "1h", to,
+    });
+    expect(ownerOverview.complete).toBe(true);
+    expect(ownerOverview.summary.buyCount).toBe(2);
+    expect(ownerOverview.series.reduce((sum, point) => sum + point.buyCount, 0)).toBe(2);
+    expect((await t.query(api.trackerQueries.rankings, {
+      window: "1h", to, excludeOwner: base.owner!,
+    })).buyers).toHaveLength(0);
   });
   it("includes the full collected history beyond 30 days in the since-start view", async () => {
     const t = await setup();
@@ -353,6 +362,12 @@ describe("public query boundaries", () => {
     expect((await t.query(api.trackerQueries.overview, { window: "30d", to })).summary.buyCount).toBe(1);
     const rankings = await t.query(api.trackerQueries.rankings, { window: "since", to });
     expect(rankings.buyers[0].buyCount).toBe(2);
+    const ownerOverview = await t.query(api.trackerQueries.ownerOverview, {
+      owner: base.owner!, window: "since", to,
+    });
+    expect(ownerOverview.summary.buyCount).toBe(2);
+    expect(ownerOverview.series).toHaveLength(2);
+    expect(ownerOverview.series.every((point) => point.time % day === 0)).toBe(true);
     const recent = await t.query(api.trackerQueries.recent, {
       from: activationTime,
       to,

@@ -20,7 +20,7 @@ The header also shows SOL and PYTH prices and 24-hour changes. The layout suppor
 
 ### Trading Activity status
 
-Trading Activity is a **Beta** page backed by a separate webhook indexer. As of 24 September 2026, continuous collection is off in the development deployment and has not been launched as a continuous production feed. The page can show retained trade history while collection is off. Its period selector includes **Since start** for all stored trades from the collection start; chart points switch from hourly to daily for histories longer than 30 days.
+Trading Activity is a **Beta** page backed by a separate webhook indexer. As of 24 September 2026, webhook-only collection is active in production; continuous collection remains off in development. Production records verified trades from webhook deliveries without automatic backfill or reconciliation, so totals have partial coverage. Its period selector includes **Since start** for all stored trades from the collection start; chart points switch from hourly to daily for histories longer than 30 days. The page can show all observed trades or an adjusted view that excludes one [Solscan-labeled liquidity bot](https://solscan.io/account/MfDuWeqSHEqTFVYZ7LoexgAK9dxk7cy4DFJWjWMGVWa) from totals, chart, and rankings. Recent trades remain visible in both views.
 
 The most recent bounded development run received 113 unique signatures: all 113 were processed, producing 104 PYTH trade rows (73 buys and 31 sells), 7 no-trade classifications, and 2 parser reviews, with no processing failures. It observed Jupiter and OKX routes as well as direct Orca and Raydium executions; that run did not provide a live Titan sample. These figures measure processing of **received** signatures, not webhook delivery completeness. Earlier checks found PYTH trades that the subscription missed.
 
@@ -28,7 +28,7 @@ Published trade totals therefore have **partial coverage**. Automatic historical
 
 ### PYTH trade parser coverage
 
-The development deployment now runs **parser v19**. The versions below refer to router programs or swap instructions, not the parser version. A mapped name alone does not establish a trade: the parser requires verified execution and amount evidence. Unresolved beneficial owners are excluded from wallet rankings; unsupported or ambiguous executions can remain for review.
+Production runs **parser v19**. The versions below refer to router programs or swap instructions, not the parser version. A mapped name alone does not establish a trade: the parser requires verified execution and amount evidence. Unresolved beneficial owners are excluded from wallet rankings; unsupported or ambiguous executions can remain for review.
 
 | Router or product | Currently recognized execution | Limit |
 | --- | --- | --- |
@@ -70,14 +70,14 @@ An order deposit, cancellation, vault withdrawal, or DCA claim is not itself a t
 - Staking positions come from the Pyth staking SDK and Solana RPC through server actions. Tracked wallet addresses are stored in browser `localStorage`; the site does not request wallet signing or store private keys.
 - Reserve balances and swaps come from tracked Solana accounts. Convex jobs maintain reserve holdings and hourly buyback snapshots.
 - Revenue reports come from the Pyth forum and are synced to Convex. A scheduled job generates the weekly news digest.
-- Growth uses scheduled holder and governance staker collections. Trading Activity reads retained indexer records from Convex; its continuous webhook input remains paused.
+- Growth uses scheduled holder and governance staker collections. Trading Activity reads retained indexer records from Convex; production webhook-only collection is active.
 - The SOL/PYTH header ticker uses DefiLlama current and historical prices. Other market views may use separate price sources.
 
 Third-party APIs, RPC availability, collection schedules, and supported asset lists can affect freshness and coverage. Reserve valuation focuses on tracked assets such as SOL, PYTH, USDC, and USDT. Wallet onboarding requires both a Solana wallet address and a staking account address.
 
 ## Convex integration
 
-The existing scheduled jobs for reserve holdings, buyback snapshots, news, reports, native holders, and governance stakers are unchanged. Trading Activity adds a separate HTTP webhook and worker; it adds no cron job. The Convex schema **is extended** with tracker-specific tables and indexes. Existing table definitions and their collection functions are unchanged. Deploying this branch will apply those additive schema changes even if trading collection remains off.
+The existing scheduled jobs for reserve holdings, buyback snapshots, news, reports, native holders, and governance stakers are unchanged. Trading Activity uses a separate HTTP webhook and worker; it adds no cron job. The Convex schema **is extended** with tracker-specific tables and indexes. Existing table definitions and their collection functions are unchanged.
 
 ## Run locally
 

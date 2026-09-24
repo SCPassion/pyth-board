@@ -266,8 +266,67 @@ export const overview = query({
     };
   },
 });
+export const ownerOverview = query({
+  args: { owner: v.string(), window: windowValidator, to: v.number() },
+  returns: v.object({
+    summary: totals,
+    series: v.array(v.object({ time: v.number(), ...totals.fields })),
+    complete: v.boolean(),
+  }),
+  handler: async (ctx, args) => {
+    if (!Number.isFinite(args.to)) throw new Error("Invalid window end");
+    const from = await rangeStart(ctx, args.window, args.to),
+      start = bucketStart(from) + HOUR,
+      end = bucketStart(args.to);
+    const daily = args.window === "since" && args.to - from > WINDOWS["30d"];
+    const chartBucket = (time: number) =>
+      daily ? Math.floor(time / WINDOWS["24h"]) * WINDOWS["24h"] : bucketStart(time);
+    const buckets =
+      end > start
+        ? await ctx.db
+            .query("tradeOwnerBuckets")
+            .withIndex("by_owner_and_bucketStart", (q) =>
+              q.eq("owner", args.owner).gte("bucketStart", start).lt("bucketStart", end),
+            )
+            .take(8001)
+        : [];
+    const first = await ctx.db
+      .query("pythTrades")
+      .withIndex("by_owner_and_blockTime", (q) =>
+        q.eq("owner", args.owner).gte("blockTime", from).lt("blockTime", Math.min(start, args.to)),
+      )
+      .take(2001);
+    const last =
+      end >= start && end < args.to
+        ? await ctx.db
+            .query("pythTrades")
+            .withIndex("by_owner_and_blockTime", (q) =>
+              q.eq("owner", args.owner).gte("blockTime", end).lt("blockTime", args.to),
+            )
+            .take(2001)
+        : [];
+    if (buckets.length > 8000 || first.length > 2000 || last.length > 2000)
+      return { summary: emptyTotals(), series: [], complete: false };
+    let summary = emptyTotals();
+    const series = new Map<number, ReturnType<typeof emptyTotals>>();
+    const add = (time: number, value: ReturnType<typeof emptyTotals>) => {
+      summary = addTotals(summary, value);
+      series.set(time, addTotals(series.get(time) ?? emptyTotals(), value));
+    };
+    for (const bucket of buckets) add(chartBucket(bucket.bucketStart), bucket);
+    for (const trade of [...first, ...last])
+      if (eligibleOwner(trade)) add(chartBucket(trade.blockTime), contribution(trade));
+    return {
+      summary,
+      series: [...series]
+        .sort((a, b) => a[0] - b[0])
+        .map(([time, value]) => ({ time, ...value })),
+      complete: true,
+    };
+  },
+});
 export const rankings = query({
-  args: { window: windowValidator, to: v.number() },
+  args: { window: windowValidator, to: v.number(), excludeOwner: v.optional(v.string()) },
   returns: v.object({
     buyers: v.array(v.object({ owner: v.string(), ...totals.fields })),
     sellers: v.array(v.object({ owner: v.string(), ...totals.fields })),
@@ -313,7 +372,9 @@ export const rankings = query({
           t.owner!,
           addTotals(owners.get(t.owner!) ?? emptyTotals(), contribution(t)),
         );
-    const rows = [...owners].map(([owner, t]) => ({ owner, ...t }));
+    const rows = [...owners]
+      .filter(([owner]) => owner !== args.excludeOwner)
+      .map(([owner, t]) => ({ owner, ...t }));
     const net = (t: (typeof rows)[number]) =>
       BigInt(t.buyRaw) - BigInt(t.sellRaw);
     rows.sort((a, b) =>

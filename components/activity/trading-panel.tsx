@@ -33,7 +33,7 @@ import {
   tokenName,
   type Window,
 } from "@/lib/tracker/config";
-import { units, type Totals } from "@/lib/tracker/analytics";
+import { addTotals, emptyTotals, units, type Totals } from "@/lib/tracker/analytics";
 import type { Trade, Product } from "@/lib/tracker/types";
 import { TradingMethodology } from "./trading-methodology";
 const format = new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 });
@@ -58,6 +58,7 @@ const dayDate = (t: number) =>
     year: "numeric",
   });
 const panel = "rounded-2xl border border-white/10 bg-white/[0.025] p-5 sm:p-6";
+const LIQUIDITY_BOT = "MfDuWeqSHEqTFVYZ7LoexgAK9dxk7cy4DFJWjWMGVWa";
 const productLabel = (p: Product) =>
   p === "UNKNOWN_JUPITER"
     ? "Unclassified Jupiter"
@@ -67,6 +68,7 @@ export function TradingPanel() {
   const [to, setTo] = useState(() => Math.floor(Date.now() / 60000) * 60000);
   const [side, setSide] = useState<"BUY" | "SELL" | "">("");
   const [product, setProduct] = useState<Product | "">("");
+  const [tradeView, setTradeView] = useState<"all" | "withoutBot">("all");
   const [selected, setSelected] = useState<Trade | null>(null);
   useEffect(() => {
     const timer = setInterval(
@@ -77,7 +79,15 @@ export function TradingPanel() {
   }, []);
   const health = useQuery(api.trackerQueries.health, {});
   const overview = useQuery(api.trackerQueries.overview, { window, to });
-  const rankings = useQuery(api.trackerQueries.rankings, { window, to });
+  const botOverview = useQuery(
+    api.trackerQueries.ownerOverview,
+    tradeView === "withoutBot" ? { owner: LIQUIDITY_BOT, window, to } : "skip",
+  );
+  const rankings = useQuery(api.trackerQueries.rankings, {
+    window,
+    to,
+    ...(tradeView === "withoutBot" ? { excludeOwner: LIQUIDITY_BOT } : {}),
+  });
   const from = window === "since"
     ? (health?.activationTime ?? to - WINDOWS["24h"])
     : to - WINDOWS[window];
@@ -87,7 +97,12 @@ export function TradingPanel() {
     { initialNumItems: 20 },
   );
   const active = health?.activationTime != null;
-  const summary = overview?.summary;
+  const adjusted = tradeView === "withoutBot";
+  const summary = overview && (!adjusted || botOverview?.complete)
+    ? adjusted
+      ? addTotals(overview.summary, botOverview!.summary, -1)
+      : overview.summary
+    : undefined;
   const count = summary ? summary.buyCount + summary.sellCount : 0;
   const delayed = !!(
     health?.enabled &&
@@ -98,13 +113,15 @@ export function TradingPanel() {
     health?.enabled &&
     (!health.lastWebhookAt || to - health.lastWebhookAt > 600000)
   );
-  const showNumbers = active && overview?.complete;
+  const showNumbers = active && overview?.complete && (!adjusted || botOverview?.complete);
   const chartDaily = window === "since" && to - (overview?.from ?? from) > WINDOWS["30d"];
-  const chartData = overview?.series.map((point) => ({
-    time: point.time,
-    buy: units(point.buyRaw),
-    sell: -units(point.sellRaw),
-  })) ?? [];
+  const botSeries = new Map(botOverview?.series.map((point) => [point.time, point]));
+  const chartData = (overview && (!adjusted || botOverview?.complete) ? overview.series : []).map((point) => {
+    const totals = adjusted
+      ? addTotals(point, botSeries.get(point.time) ?? emptyTotals(), -1)
+      : point;
+    return { time: point.time, buy: units(totals.buyRaw), sell: -units(totals.sellRaw) };
+  }) ?? [];
   const chartExtent = Math.max(
     1,
     ...chartData.flatMap((point) => [point.buy, -point.sell]),
@@ -226,10 +243,35 @@ export function TradingPanel() {
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
           <p className="font-data text-[10px] uppercase tracking-[0.22em] text-white/45">Selected period</p>
-          <h3 className="mt-1 text-sm font-medium text-white/85">Observed totals</h3>
+          <h3 className="mt-1 text-sm font-medium text-white/85">
+            {adjusted ? "Excluding identified liquidity bot" : "All observed trades"}
+          </h3>
         </div>
-        <p className="text-xs text-white/50">Verified trade rows only</p>
+        <div className="flex gap-1 rounded-xl border border-white/20 p-1" role="group" aria-label="Trade totals view">
+          {([ ["all", "All trades"], ["withoutBot", "Excluding bot"] ] as const).map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setTradeView(value)}
+              aria-pressed={tradeView === value}
+              className={`rounded-lg px-3 py-2 text-xs font-medium focus-visible:outline-2 focus-visible:outline-cyan-300 ${tradeView === value ? "bg-cyan-300/20 text-cyan-100" : "text-white/65 hover:bg-white/5"}`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
+      <p className="-mt-4 text-xs leading-relaxed text-white/55">
+        {adjusted ? "Totals, chart, and rankings omit one attributed wallet. Recent trades still show every recorded execution." : "Totals, chart, and rankings include every recorded execution."}{" "}
+        <a href={`https://solscan.io/account/${LIQUIDITY_BOT}`} target="_blank" rel="noreferrer" className="text-cyan-200 underline underline-offset-2">
+          Solscan labels the wallet as Wintermute Automated Liquidity Bot.
+        </a>
+      </p>
+      {adjusted && botOverview && !botOverview.complete && (
+        <p role="status" className="text-sm text-amber-200">
+          The adjusted view exceeds the current summary processing limit.
+        </p>
+      )}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {metrics.map((m) => (
           <div className="rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-5 sm:px-5" key={m.label}>
@@ -248,8 +290,9 @@ export function TradingPanel() {
       <p className="-mt-3 text-xs leading-relaxed text-white/55">
         Net flow is bought PYTH minus sold PYTH in observed swap executions.
         It does not measure total market demand or changes in all holders’
-        balances.{" "}
-        {count > 0 &&
+        balances. The adjusted view excludes only the wallet linked above; it may
+        still include other liquidity providers.{" "}
+        {showNumbers && count > 0 &&
           `USD valuation available for ${summary!.valuedCount} of ${count} trades.`}
       </p>
       <section className={panel}>
@@ -263,7 +306,7 @@ export function TradingPanel() {
             <span className="text-rose-300">● Sells</span>
           </p>
         </div>
-        {chartData.length && overview?.complete ? (
+        {chartData.length && showNumbers ? (
           <div className="h-64 sm:h-72">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart
@@ -334,7 +377,9 @@ export function TradingPanel() {
             text={
               overview
                 ? overview.complete
-                  ? "Executed trading volume will appear here as trades are collected."
+                  ? adjusted && botOverview === undefined
+                    ? "Loading adjusted trading volume…"
+                    : "Executed trading volume will appear here as trades are collected."
                   : "This period exceeds the current summary processing limit."
                 : "Loading trading volume…"
             }
@@ -421,14 +466,21 @@ export function TradingPanel() {
                     </td>
                     <td className="px-3 py-4">
                       {t.owner ? (
-                        <a
-                          href={`https://solscan.io/account/${t.owner}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-cyan-200"
-                        >
-                          {short(t.owner)}
-                        </a>
+                        <div className="flex items-center gap-2">
+                          <a
+                            href={`https://solscan.io/account/${t.owner}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-cyan-200"
+                          >
+                            {short(t.owner)}
+                          </a>
+                          {t.owner === LIQUIDITY_BOT && (
+                            <span className="rounded border border-cyan-200/30 px-1.5 py-0.5 text-[10px] text-cyan-100" title="Solscan-labeled Wintermute Automated Liquidity Bot">
+                              Bot
+                            </span>
+                          )}
+                        </div>
                       ) : (
                         "Unresolved"
                       )}
