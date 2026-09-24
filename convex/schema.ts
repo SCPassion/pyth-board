@@ -1,7 +1,9 @@
+import { trackerTables } from "./trackerModel";
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export default defineSchema({
+  ...trackerTables,
   pythGovernanceStakerSnapshots: defineTable({
     date: v.string(), stakers: v.number(), collectedAt: v.number(), epoch: v.string(),
     totalStakeAccounts: v.number(), eligibleStakeAccounts: v.number(),

@@ -1,95 +1,111 @@
 # Pyth Board
 
-Pyth Board is an independent dashboard built and maintained by a member of the Pyth community. It is a personal, unofficial project.
+Pyth Board is an independent, read-only community dashboard for PYTH staking, token activity, DAO reserves, protocol revenue, and news. It is a personal, unofficial project and is not affiliated with or endorsed by the Pyth Data Association, Douro Labs, the Pythian Council, or Pyth Network data publishers. Figures can be incomplete, delayed, or incorrect and are not financial advice. Verify important information with official sources.
 
-It is not affiliated with, sponsored by, or endorsed by the Pyth Data Association, Douro Labs, the Pythian Council, or any institution that publishes data to the Pyth Network. 
-None of those parties develops, operates, reviews, or verifies this site, and none of them is responsible for its content, availability, or accuracy.
-Figures shown here are derived from public on-chain data and third-party price sources, and may be incomplete, delayed, or wrong. Nothing on this site is financial advice. Always verify against official sources before acting on anything you see here.
+## Site pages
 
-## What is live right now
+| Route | What it shows |
+| --- | --- |
+| `/` | Portfolio summary, staking balances and rewards, validators, and market metrics for tracked wallets. |
+| `/wallets` | Per-wallet staking accounts, validator positions, APY, and rewards. Wallets are saved in the browser. |
+| `/pythenians` | Pythenians NFT role and partner directory. |
+| `/reserve` | DAO Treasury and Pythian Council Ops balances, tracked asset valuations, PYTH swaps, buyback metrics, and reserve history. |
+| `/revenue` | Douro Labs reports from the Pyth forum: DAO distributions, revenue trends, product breakdowns, and a report archive. |
+| `/growth` | Native PYTH holders and governance staker history, using daily snapshots. |
+| `/activity` | Beta: observed PYTH trades across supported routes, with aggregate volumes and execution details. |
+| `/news` | Weekly Pyth digest and archive when digests are available. |
+| `/about` | Project disclosures and data limitations. |
 
-- Multi-wallet staking tracking for Pyth OIS positions
-- Portfolio and wallet-level staking summaries
-- Live PYTH price usage in dashboard metrics
-- Header price ticker for **SOL** and **PYTH** with 24h change
-- Pythenians NFT role directory page
-- Strategic Reserve page (`/reserve`) with:
-  - DAO Treasury + Pythian Council Ops balances
-  - USD valuation for tracked assets
-  - Recent swaps into PYTH (paginated)
-  - Buyback metrics for Council Ops USDC -> PYTH execution:
-    - Total USDC spent
-    - Total PYTH bought
-    - Weighted average buy price over time (hourly snapshots)
-- Mobile-responsive layout with persistent sidebar/top header
-- Local wallet persistence (`localStorage`)
-- Installable PWA prompt + web manifest support
+The header also shows SOL and PYTH prices and 24-hour changes. The layout supports mobile screens, and the site includes a web manifest and install prompt.
 
-## App routes
+### Trading Activity status
 
-- `/` - Portfolio dashboard (summary cards + general protocol metrics)
-- `/wallets` - Connected wallet list and per-wallet staking details
-- `/pythenians` - NFT role/partner showcase
-- `/reserve` - Strategic reserve balances and PYTH swap activity (**beta**)
+Trading Activity is a **Beta** page backed by a separate webhook indexer. As of 24 September 2026, continuous collection is off in the development deployment and has not been launched as a continuous production feed. The page can show retained trade history while collection is off. Its period selector includes **Since start** for all stored trades from the collection start; chart points switch from hourly to daily for histories longer than 30 days.
 
-## Tech stack
+The most recent bounded development run received 113 unique signatures: all 113 were processed, producing 104 PYTH trade rows (73 buys and 31 sells), 7 no-trade classifications, and 2 parser reviews, with no processing failures. It observed Jupiter and OKX routes as well as direct Orca and Raydium executions; that run did not provide a live Titan sample. These figures measure processing of **received** signatures, not webhook delivery completeness. Earlier checks found PYTH trades that the subscription missed.
 
-- Next.js `16.1.1` (App Router)
-- React `19`
-- TypeScript
-- Tailwind CSS v4 + shadcn/ui + Radix UI
-- Zustand for client state
-- Solana Web3.js + `@pythnetwork/staking-sdk`
-- Recharts (dashboard visualizations)
+Published trade totals therefore have **partial coverage**. Automatic historical ingestion, missed-webhook backfill, and tracker reconciliation are disabled. The Helius webhook alone does not start collection: the indexer's own collection switch must also be enabled. See [CHANGES.md](CHANGES.md) for the release scope.
 
-## Getting started
+### PYTH trade parser coverage
 
-### Prerequisites
+The development deployment now runs **parser v19**. The versions below refer to router programs or swap instructions, not the parser version. A mapped name alone does not establish a trade: the parser requires verified execution and amount evidence. Unresolved beneficial owners are excluded from wallet rankings; unsupported or ambiguous executions can remain for review.
 
-- Node.js 18+
-- npm
+| Router or product | Currently recognized execution | Limit |
+| --- | --- | --- |
+| Jupiter Swap | Route, shared-account, exact-out, token-ledger, and named `route_v2` variants. | Only verified PYTH endpoint trades are counted; PYTH used solely between route legs is excluded. |
+| Jupiter Recurring (original DCA program) | Verified flash-fill executions and order attribution. | Does not establish coverage of the current private or shared Trigger V2/DCA order system. |
+| Jupiter Trigger (legacy `j1o2…` program) | Verified `fill_order` executions, maker attribution, and partial fills. | Trigger V2 (`jupo…`) remains unverified. |
+| Jupiter RFQ | Verified top-level RFQ V1 PYTH-to-native-SOL `fill`. | Other RFQ layouts, nested fills, and automated-order attribution are unverified. |
+| Titan | Verified swap routes, including split fills. | Unknown execution branches remain in review. |
+| DFlow | V4 decoding and fixtures are retained. | **Review-only for the initial scope:** new DFlow endpoint trades are held from published totals. A real PYTH sell has not been verified. |
+| OKX DEX | Legacy and V3 router program mappings. V3 token-to-token and PYTH-to-native-SOL settlements verify customer transfers, output fees, and the completion event without requiring a particular inner pool program. | Other settlement shapes, including unverified native-SOL buys, remain in review. |
+| Raydium Router and Whirlpool wrapper | Verified routed executions; the wrapper is identified by program ID, without assigning an app name. | Unknown branches or unresolved beneficial ownership are not inferred. |
 
-### Install and run
+| DEX or pool program | Verified swap instruction shapes | Limit |
+| --- | --- | --- |
+| Orca Whirlpool | `swap` and `swap_v2`. | Other Whirlpool instructions, including unverified two-hop layouts, are outside this scope. |
+| Raydium CLMM | `swap` and `swap_v2`. | Direct venue parsing is mapped for `swap_v2`; raw pool evidence also supports narrowly verified classic `swap` executions. |
+| Raydium LaunchLab | Exact-in buy and sell. | Other launch or swap layouts need evidence. |
+| Raydium CPMM | Base-input swap. | Other instruction variants need evidence. |
+| Meteora DLMM | Classic swap. | Other DLMM variants need evidence. |
+| Meteora DAMM v2 | Verified `swap` pool execution, including a Jupiter CPI wrapper case. | Only the attested account, transfer, and ownership shape is promoted. |
+
+These are **parser capabilities on retained evidence**, not a promise that the webhook discovers every transaction from these programs. The PYTH-mint/SWAP subscription missed verified trades in bounded trials; broader CPI/vault-only delivery and Trigger V2 coverage also remain unproven. See [CHANGES.md](CHANGES.md) for the release scope.
+
+For Jupiter, Titan, and OKX, the inner pool name is not a trade eligibility list. A complete router execution summary or independently verified customer settlement establishes the PYTH buy or sell. If neither is available and an inner execution cannot be decoded, the transaction stays in review; an unknown pool is not silently counted or discarded. A Jupiter execution can still use DFlow as an inner venue; the review-only rule applies to DFlow as the outer router.
+
+### Execution types checked with real PYTH transactions
+
+| Execution | Verified buys | Verified sells | Remaining gap |
+| --- | --- | --- | --- |
+| Router swaps in the initial scope | Jupiter, Titan, OKX | Jupiter, Titan, OKX | PYTH used only as an intermediate route asset is excluded. Webhook delivery is partial. |
+| DFlow outer-router swaps | Decoded buy evidence, held for review | — | Review-only in v19; no new DFlow trade rows enter published totals. A real sell has not been verified. |
+| Jupiter legacy Trigger V1 limit fills | Buy | — | No retained PYTH sell fill; Trigger V2 has not been verified. |
+| Jupiter original Recurring/DCA fills | Buy, including a team buyback fill through unnamed USDC → USDT → SOL → PYTH inner pools and an output-denominated PYTH fee | — | No retained PYTH sell fill; current Trigger V2 DCA attribution is unverified. |
+
+An order deposit, cancellation, vault withdrawal, or DCA claim is not itself a trade. A router execution alone can establish the PYTH swap, but identifying the user's order type requires separate, verified order-program evidence. A limit or DCA fill routed through Titan or OKX may be recorded as a swap without a verified automated-order label. [Jupiter describes](https://developers.jup.ag/blog/lov2-correctness-under-failure) current Limit Order V2 order details as off-chain, so the swap alone cannot establish the order type.
+
+## Data sources
+
+- Staking positions come from the Pyth staking SDK and Solana RPC through server actions. Tracked wallet addresses are stored in browser `localStorage`; the site does not request wallet signing or store private keys.
+- Reserve balances and swaps come from tracked Solana accounts. Convex jobs maintain reserve holdings and hourly buyback snapshots.
+- Revenue reports come from the Pyth forum and are synced to Convex. A scheduled job generates the weekly news digest.
+- Growth uses scheduled holder and governance staker collections. Trading Activity reads retained indexer records from Convex; its continuous webhook input remains paused.
+- The SOL/PYTH header ticker uses DefiLlama current and historical prices. Other market views may use separate price sources.
+
+Third-party APIs, RPC availability, collection schedules, and supported asset lists can affect freshness and coverage. Reserve valuation focuses on tracked assets such as SOL, PYTH, USDC, and USDT. Wallet onboarding requires both a Solana wallet address and a staking account address.
+
+## Convex integration
+
+The existing scheduled jobs for reserve holdings, buyback snapshots, news, reports, native holders, and governance stakers are unchanged. Trading Activity adds a separate HTTP webhook and worker; it adds no cron job. The Convex schema **is extended** with tracker-specific tables and indexes. Existing table definitions and their collection functions are unchanged. Deploying this branch will apply those additive schema changes even if trading collection remains off.
+
+## Run locally
+
+Use a Node.js version compatible with Next.js 16 and npm. Install dependencies, then copy `.env.local.example` to `.env.local` and fill in the values needed for your development deployment. Set Convex environment variables in Convex rather than exposing provider keys as `NEXT_PUBLIC_*` values. In particular, keep `HELIUS_API_KEY` private; it is also used to authorize the Helius webhook endpoint.
 
 ```bash
 npm install
-npm run dev
+cp .env.local.example .env.local
+npm run dev:all
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+`dev:all` starts Next.js and Convex development together. Open [http://localhost:3000](http://localhost:3000). If Convex is already running, use `npm run dev` for the site alone. Local development does not require enabling the Trading Activity webhook collector.
 
-## Available scripts
+## Commands
 
-```bash
-npm run dev          # Next dev (Turbopack)
-npm run dev:webpack  # Next dev (Webpack)
-npm run build        # Production build
-npm run start        # Run production build
-npm run lint         # ESLint
-npm run rebuild      # npm rebuild
-```
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Start the Next.js development server. |
+| `npm run dev:convex` | Start Convex development. |
+| `npm run dev:all` | Start Next.js and Convex development together. |
+| `npm run dev:webpack` | Start Next.js development without the explicit Turbopack flag. |
+| `npm run build` | Create a production build. |
+| `npm run start` | Serve the production build. |
+| `npm test` | Run the Vitest suite once. |
+| `npm run test:watch` | Run Vitest in watch mode. |
+| `npm run lint` | Run the repository's lint script. |
+| `npm run rebuild` | Rebuild installed npm packages. |
 
-## How data is fetched
+## Stack
 
-- Wallet staking data is fetched via server actions using Pyth staking SDK + Solana RPC.
-- Reserve balances are fetched from Solana RPC for tracked reserve addresses.
-- Reserve buyback metrics are tracked in Convex via an hourly snapshot job that
-  incrementally processes new Council Ops swaps.
-- Token prices are fetched from Pyth Hermes; ticker 24h change uses CoinGecko.
-- Wallets are stored locally in browser `localStorage`.
-
-## Current limitations
-
-- Wallet onboarding currently requires both:
-  - Solana wallet address
-  - Staking account address
-- Reserve valuation currently focuses on tracked assets (SOL, PYTH, USDC, USDT).
-- No dedicated automated test suite is included yet.
-- Network/RPC reliability can affect freshness; fallback endpoints are used when possible.
-
-## Notes
-
-- This app is read-only and does not request wallet signing.
-- No private keys are stored by the app.
-
-ttß
+Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4, Radix UI primitives, Zustand, Convex, Solana Web3.js, the Pyth staking SDK, Recharts, and Vitest.

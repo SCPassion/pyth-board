@@ -10,6 +10,8 @@
 
 import type * as buybackMetrics from "../buybackMetrics.js";
 import type * as crons from "../crons.js";
+import type * as heliusClient from "../heliusClient.js";
+import type * as http from "../http.js";
 import type * as news from "../news.js";
 import type * as pythBuybackSnapshots from "../pythBuybackSnapshots.js";
 import type * as pythGovernanceStakerCollection from "../pythGovernanceStakerCollection.js";
@@ -18,6 +20,10 @@ import type * as pythHolderCollection from "../pythHolderCollection.js";
 import type * as pythHolders from "../pythHolders.js";
 import type * as pythPro from "../pythPro.js";
 import type * as reserveSnapshots from "../reserveSnapshots.js";
+import type * as trackerActions from "../trackerActions.js";
+import type * as trackerModel from "../trackerModel.js";
+import type * as trackerQueries from "../trackerQueries.js";
+import type * as trackerStore from "../trackerStore.js";
 
 import type {
   ApiFromModules,
@@ -28,6 +34,8 @@ import type {
 declare const fullApi: ApiFromModules<{
   buybackMetrics: typeof buybackMetrics;
   crons: typeof crons;
+  heliusClient: typeof heliusClient;
+  http: typeof http;
   news: typeof news;
   pythBuybackSnapshots: typeof pythBuybackSnapshots;
   pythGovernanceStakerCollection: typeof pythGovernanceStakerCollection;
@@ -36,6 +44,10 @@ declare const fullApi: ApiFromModules<{
   pythHolders: typeof pythHolders;
   pythPro: typeof pythPro;
   reserveSnapshots: typeof reserveSnapshots;
+  trackerActions: typeof trackerActions;
+  trackerModel: typeof trackerModel;
+  trackerQueries: typeof trackerQueries;
+  trackerStore: typeof trackerStore;
 }>;
 
 /**
