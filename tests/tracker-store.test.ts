@@ -329,6 +329,36 @@ describe("public query boundaries", () => {
       window: "1h", to, excludeOwner: base.owner!,
     })).buyers).toHaveLength(0);
   });
+  it("combines distinct excluded wallets once and keeps other wallets ranked", async () => {
+    const t = await setup();
+    const base = parseTransaction(decodeHelius(fixture), DISCOVERED_PROGRAMS).trades[0];
+    const to = Math.floor(Date.now() / 3600000) * 3600000 + 1800000;
+    const owners = [base.owner!, "SecondWallet", "OtherWallet"];
+    for (const [i, owner] of owners.entries()) {
+      const signature = String.fromCharCode(80 + i).repeat(88);
+      await t.mutation(internal.trackerStore.enqueue, { signatures: [signature], source: "WEBHOOK" });
+      const job = (await t.mutation(internal.trackerStore.claim, {}))[0];
+      const rawStorageId = await t.run((ctx) => ctx.storage.store(new Blob(["{}"])));
+      await t.mutation(internal.trackerStore.finish, {
+        id: job.id,
+        lease: job.lease,
+        trades: [{
+          ...base, signature, tradeId: `${signature}:1`, owner,
+          ownerConfidence: "HIGH", blockTime: to - (i + 1) * 60000,
+        }],
+        orders: [], review: [], rawStorageId,
+      });
+    }
+    const excluded = await t.query(api.trackerQueries.ownerOverview, {
+      owners: [owners[0], owners[1], owners[0]], window: "1h", to,
+    });
+    expect(excluded.complete).toBe(true);
+    expect(excluded.summary.buyCount).toBe(2);
+    const rankings = await t.query(api.trackerQueries.rankings, {
+      window: "1h", to, excludeOwners: [owners[0], owners[1]],
+    });
+    expect(rankings.buyers.map((row) => row.owner)).toEqual([owners[2]]);
+  });
   it("includes the full collected history beyond 30 days in the since-start view", async () => {
     const t = await setup();
     const to = Math.floor(Date.now() / 60000) * 60000;

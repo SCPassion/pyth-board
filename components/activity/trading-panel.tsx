@@ -34,6 +34,10 @@ import {
   type Window,
 } from "@/lib/tracker/config";
 import { addTotals, emptyTotals, units, type Totals } from "@/lib/tracker/analytics";
+import {
+  IDENTIFIED_LIQUIDITY_BOTS,
+  IDENTIFIED_LIQUIDITY_BOT_ADDRESSES,
+} from "@/lib/tracker/identified-liquidity-bots";
 import type { Trade, Product } from "@/lib/tracker/types";
 import { TradingMethodology } from "./trading-methodology";
 const format = new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 });
@@ -58,7 +62,9 @@ const dayDate = (t: number) =>
     year: "numeric",
   });
 const panel = "rounded-2xl border border-white/10 bg-white/[0.025] p-5 sm:p-6";
-const LIQUIDITY_BOT = "MfDuWeqSHEqTFVYZ7LoexgAK9dxk7cy4DFJWjWMGVWa";
+const botByAddress = new Map<string, (typeof IDENTIFIED_LIQUIDITY_BOTS)[number]>(
+  IDENTIFIED_LIQUIDITY_BOTS.map((bot) => [bot.address, bot]),
+);
 const productLabel = (p: Product) =>
   p === "UNKNOWN_JUPITER"
     ? "Unclassified Jupiter"
@@ -81,12 +87,16 @@ export function TradingPanel() {
   const overview = useQuery(api.trackerQueries.overview, { window, to });
   const botOverview = useQuery(
     api.trackerQueries.ownerOverview,
-    tradeView === "withoutBot" ? { owner: LIQUIDITY_BOT, window, to } : "skip",
+    tradeView === "withoutBot"
+      ? { owners: IDENTIFIED_LIQUIDITY_BOT_ADDRESSES, window, to }
+      : "skip",
   );
   const rankings = useQuery(api.trackerQueries.rankings, {
     window,
     to,
-    ...(tradeView === "withoutBot" ? { excludeOwner: LIQUIDITY_BOT } : {}),
+    ...(tradeView === "withoutBot"
+      ? { excludeOwners: IDENTIFIED_LIQUIDITY_BOT_ADDRESSES }
+      : {}),
   });
   const from = window === "since"
     ? (health?.activationTime ?? to - WINDOWS["24h"])
@@ -244,11 +254,11 @@ export function TradingPanel() {
         <div>
           <p className="font-data text-[10px] uppercase tracking-[0.22em] text-white/45">Selected period</p>
           <h3 className="mt-1 text-sm font-medium text-white/85">
-            {adjusted ? "Excluding identified liquidity bot" : "All observed trades"}
+            {adjusted ? "Excluding identified liquidity bots" : "All observed trades"}
           </h3>
         </div>
         <div className="flex gap-1 rounded-xl border border-white/20 p-1" role="group" aria-label="Trade totals view">
-          {([ ["all", "All trades"], ["withoutBot", "Excluding bot"] ] as const).map(([value, label]) => (
+          {([ ["all", "All trades"], ["withoutBot", "Excluding bots"] ] as const).map(([value, label]) => (
             <button
               key={value}
               type="button"
@@ -262,10 +272,15 @@ export function TradingPanel() {
         </div>
       </div>
       <p className="-mt-4 text-xs leading-relaxed text-white/55">
-        {adjusted ? "Totals, chart, and rankings omit one attributed wallet. Recent trades still show every recorded execution." : "Totals, chart, and rankings include every recorded execution."}{" "}
-        <a href={`https://solscan.io/account/${LIQUIDITY_BOT}`} target="_blank" rel="noreferrer" className="text-cyan-200 underline underline-offset-2">
-          Solscan labels the wallet as Wintermute Automated Liquidity Bot.
-        </a>
+        {adjusted ? "Totals, chart, and rankings omit the identified wallets below. Recent trades still show every recorded execution." : "Totals, chart, and rankings include every recorded execution."}{" "}
+        Identified liquidity bots: {IDENTIFIED_LIQUIDITY_BOTS.map((bot, index) => (
+          <span key={bot.address}>
+            {index > 0 ? ", " : ""}
+            <a href={bot.sourceUrl} target="_blank" rel="noreferrer" className="text-cyan-200 underline underline-offset-2">
+              {bot.label} ({bot.source})
+            </a>
+          </span>
+        ))}.
       </p>
       {adjusted && botOverview && !botOverview.complete && (
         <p role="status" className="text-sm text-amber-200">
@@ -290,7 +305,7 @@ export function TradingPanel() {
       <p className="-mt-3 text-xs leading-relaxed text-white/55">
         Net flow is bought PYTH minus sold PYTH in observed swap executions.
         It does not measure total market demand or changes in all holders’
-        balances. The adjusted view excludes only the wallet linked above; it may
+        balances. The adjusted view excludes only the wallets linked above; it may
         still include other liquidity providers.{" "}
         {showNumbers && count > 0 &&
           `USD valuation available for ${summary!.valuedCount} of ${count} trades.`}
@@ -475,8 +490,8 @@ export function TradingPanel() {
                           >
                             {short(t.owner)}
                           </a>
-                          {t.owner === LIQUIDITY_BOT && (
-                            <span className="rounded border border-cyan-200/30 px-1.5 py-0.5 text-[10px] text-cyan-100" title="Solscan-labeled Wintermute Automated Liquidity Bot">
+                          {botByAddress.has(t.owner) && (
+                            <span className="rounded border border-cyan-200/30 px-1.5 py-0.5 text-[10px] text-cyan-100" title={`${botByAddress.get(t.owner)!.source}-labeled ${botByAddress.get(t.owner)!.label}`}>
                               Bot
                             </span>
                           )}
