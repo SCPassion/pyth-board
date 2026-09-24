@@ -12,7 +12,7 @@ Pyth Board is an independent, read-only community dashboard for PYTH staking, to
 | `/reserve` | DAO Treasury and Pythian Council Ops balances, tracked asset valuations, PYTH swaps, buyback metrics, and reserve history. |
 | `/revenue` | Douro Labs reports from the Pyth forum: DAO distributions, revenue trends, product breakdowns, and a report archive. |
 | `/growth` | Native PYTH holders and governance staker history, using daily snapshots. |
-| `/activity` | Beta: observed PYTH trades across supported routes, with aggregate volumes and execution details. |
+| `/activity` | Beta: observed PYTH trades across supported routes, with aggregate volumes and execution details. Currently hidden from navigation while collection is paused. |
 | `/news` | Weekly Pyth digest and archive when digests are available. |
 | `/about` | Project disclosures and data limitations. |
 
@@ -20,7 +20,7 @@ The header also shows SOL and PYTH prices and 24-hour changes. The layout suppor
 
 ### Trading Activity status
 
-Trading Activity is a **Beta** page backed by a separate webhook indexer. As of 24 September 2026, webhook-only collection is active in production; continuous collection remains off in development. Production records verified trades from webhook deliveries without automatic backfill or reconciliation, so totals have partial coverage. Its period selector includes **Since start** for all stored trades from the collection start; chart points switch from hourly to daily for histories longer than 30 days. The page can show all observed trades or an adjusted view that excludes the sourced addresses in [`lib/tracker/identified-liquidity-bots.ts`](lib/tracker/identified-liquidity-bots.ts) from totals, chart, and rankings. The list currently contains one [Solscan-labeled liquidity bot](https://solscan.io/account/MfDuWeqSHEqTFVYZ7LoexgAK9dxk7cy4DFJWjWMGVWa); add further sourced addresses there. Recent trades remain visible in both views.
+Trading Activity is a **Beta** page backed by a separate webhook indexer. As of 24 September 2026, production and development collection are paused, and the page is hidden from navigation. Previously stored trades remain available at `/activity`. The production run recorded verified trades from webhook deliveries without automatic backfill or reconciliation, so its totals have partial coverage. Its period selector includes **Since start** for all stored trades from the collection start; chart points switch from hourly to daily for histories longer than 30 days. The page can show all observed trades or an adjusted view that excludes the sourced addresses in [`lib/tracker/identified-liquidity-bots.ts`](lib/tracker/identified-liquidity-bots.ts) from totals, chart, and rankings. The list currently contains one [Solscan-labeled liquidity bot](https://solscan.io/account/MfDuWeqSHEqTFVYZ7LoexgAK9dxk7cy4DFJWjWMGVWa); add further sourced addresses there. Recent trades remain visible in both views.
 
 The most recent bounded development run received 113 unique signatures: all 113 were processed, producing 104 PYTH trade rows (73 buys and 31 sells), 7 no-trade classifications, and 2 parser reviews, with no processing failures. It observed Jupiter and OKX routes as well as direct Orca and Raydium executions; that run did not provide a live Titan sample. These figures measure processing of **received** signatures, not webhook delivery completeness. Earlier checks found PYTH trades that the subscription missed.
 
@@ -70,7 +70,7 @@ An order deposit, cancellation, vault withdrawal, or DCA claim is not itself a t
 - Staking positions come from the Pyth staking SDK and Solana RPC through server actions. Tracked wallet addresses are stored in browser `localStorage`; the site does not request wallet signing or store private keys.
 - Reserve balances and swaps come from tracked Solana accounts. Convex jobs maintain reserve holdings and hourly buyback snapshots.
 - Revenue reports come from the Pyth forum and are synced to Convex. A scheduled job generates the weekly news digest.
-- Growth uses scheduled holder and governance staker collections. Trading Activity reads retained indexer records from Convex; production webhook-only collection is active.
+- Growth uses scheduled holder and governance staker collections. Trading Activity reads retained indexer records from Convex; tracker collection is currently paused.
 - The SOL/PYTH header ticker uses DefiLlama current and historical prices. Other market views may use separate price sources.
 
 Third-party APIs, RPC availability, collection schedules, and supported asset lists can affect freshness and coverage. Reserve valuation focuses on tracked assets such as SOL, PYTH, USDC, and USDT. Wallet onboarding requires both a Solana wallet address and a staking account address.
