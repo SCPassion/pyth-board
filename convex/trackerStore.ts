@@ -548,6 +548,14 @@ export const finish = internalMutation({
       parserVersion,
     });
     await metric(ctx, { processed: 1, reviews: args.review.length ? 1 : 0 });
+    if (
+      row.source === "WEBHOOK" &&
+      args.review.length === 1 &&
+      args.review[0] === "Provider could not decode transaction"
+    )
+      await ctx.scheduler.runAfter(120000, internal.trackerStore.retryProviderDecode, {
+        id: row._id,
+      });
     if (state) await ctx.db.patch(state._id, { lastProcessedAt: Date.now() });
     return null;
   },
@@ -602,6 +610,30 @@ export const replay = internalMutation({
       leaseUntil: null,
       leaseWakeupId: undefined,
       source: "REPROCESS",
+    });
+    await ctx.scheduler.runAfter(0, internal.trackerActions.drain, {});
+    return null;
+  },
+});
+export const retryProviderDecode = internalMutation({
+  args: { id: v.id("chainTransactions") },
+  returns: v.null(),
+  handler: async (ctx, { id }) => {
+    const row = await ctx.db.get(id);
+    if (
+      row?.status !== "PARSE_REVIEW" ||
+      row.source !== "WEBHOOK" ||
+      row.error !== "Provider could not decode transaction" ||
+      !row.rawStorageId
+    )
+      return null;
+    await ctx.db.patch(id, {
+      status: "RETRY",
+      source: "REPROCESS",
+      attempts: 0,
+      nextAttemptAt: Date.now(),
+      lease: null,
+      leaseUntil: null,
     });
     await ctx.scheduler.runAfter(0, internal.trackerActions.drain, {});
     return null;

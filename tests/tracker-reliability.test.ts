@@ -73,6 +73,66 @@ it("recovers after repeated provider outages without duplicate trades or volume"
   expect(metrics.reduce((n, m) => n + m.failures, 0)).toBe(0);
 });
 
+it("stores a delayed provider decode for review, then refreshes it on retry", async () => {
+  const t = await setup();
+  const signature = tradeEvidence.signature;
+  const rawTransaction = {
+    slot: tradeEvidence.rawTransaction.slot,
+    blockTime: tradeEvidence.rawTransaction.blockTime,
+    transaction: { signatures: [signature], message: { accountKeys: [], instructions: [] } },
+    meta: { err: null, preTokenBalances: [], postTokenBalances: [], innerInstructions: [] },
+  };
+  await t.mutation(internal.trackerStore.enqueue, { signatures: [signature], source: "WEBHOOK" });
+  let parsedAvailable = false;
+  const fetch = vi.fn(async (url: string, init?: RequestInit) => {
+    if (url.includes("parsed-events"))
+      return Response.json([parsedAvailable
+        ? {
+            signature,
+            parserStatus: "OK",
+            parsed: {
+              slot: tradeEvidence.rawTransaction.slot,
+              blockTime: tradeEvidence.rawTransaction.blockTime,
+              transactionStatus: "OK",
+              tokenTransfers: [],
+              instructions: [],
+            },
+          }
+        : { signature, parserStatus: "UNAVAILABLE" }]);
+    const method = JSON.parse(String(init?.body)).method;
+    if (method === "getSignatureStatuses")
+      return Response.json({ result: { value: [{ confirmationStatus: "finalized", err: null }] } });
+    if (method === "getTransaction")
+      return Response.json({ result: rawTransaction });
+    throw Error(`Unexpected RPC method ${method}`);
+  });
+  vi.stubGlobal("fetch", fetch);
+  await t.action(internal.trackerActions.drain, {});
+  const reviewed = await t.run((ctx) => ctx.db.query("chainTransactions").first());
+  expect(reviewed).toMatchObject({ status: "PARSE_REVIEW", attempts: 1 });
+  expect(reviewed?.error).toBe("Provider could not decode transaction");
+  expect(reviewed?.rawStorageId).toBeTruthy();
+
+  parsedAvailable = true;
+  vi.setSystemTime(Date.now() + 120000);
+  await t.mutation(internal.trackerStore.retryProviderDecode, { id: reviewed!._id });
+  await t.action(internal.trackerActions.drain, {});
+  const processed = await t.run((ctx) => ctx.db.get(reviewed!._id));
+  expect(processed?.status).not.toBe("PARSE_REVIEW");
+  expect(processed?.rawStorageId).toBeTruthy();
+
+  const staleStorageId = await t.run((ctx) => ctx.storage.store(new Blob([JSON.stringify({
+    payload: { signature, parserStatus: "UNAVAILABLE", rawTransaction },
+    finalizedSuccess: true,
+  })])));
+  await t.run((ctx) => ctx.db.patch(reviewed!._id, { rawStorageId: staleStorageId }));
+  await t.mutation(internal.trackerStore.replay, { signature });
+  const priorDecodes = fetch.mock.calls.filter(([url]) => url.includes("parsed-events")).length;
+  await t.action(internal.trackerActions.drain, {});
+  expect(fetch.mock.calls.filter(([url]) => url.includes("parsed-events")).length).toBe(priorDecodes + 1);
+  expect((await t.run((ctx) => ctx.db.get(reviewed!._id)))?.status).not.toBe("PARSE_REVIEW");
+});
+
 it("stops retrying a persistent provider outage at the eighth attempt", async () => {
   const t = await setup();
   await t.mutation(internal.trackerStore.enqueue, {

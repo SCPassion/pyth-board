@@ -43,8 +43,23 @@ export const drain = internalAction({
           typeof cached?.finalizedSuccess === "boolean"
             ? cached.finalizedSuccess
             : await client.finalized(job.signature);
-        const payload =
-          cached?.payload ?? (await client.evidence(job.signature));
+        // A cached raw transaction remains authoritative. On replay, refresh
+        // only the optional decode after Helius has had time to index it.
+        let payload = cached?.payload ?? (await client.evidence(job.signature));
+        if (cached?.payload && record(cached.payload).parserStatus !== "OK") {
+          try {
+            const parsed = record(await client.parsed(job.signature));
+            const rawTransaction = record(cached.payload).rawTransaction;
+            if (
+              parsed.signature === job.signature &&
+              parsed.parserStatus === "OK" &&
+              rawTransaction
+            )
+              payload = { ...parsed, rawTransaction };
+          } catch {
+            // Keep the retained raw evidence if enhanced decoding is still unavailable.
+          }
+        }
         const stateAnalysis = analyzeRawEvidence(
           payload,
           job.signature,
