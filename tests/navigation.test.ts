@@ -3,9 +3,9 @@ import { describe, expect, it } from "vitest";
 import { navItems } from "@/lib/navigation";
 
 describe("sidebar navigation", () => {
-  it("keeps Growth and links to Trading Activity", () => {
+  it("keeps Growth and hides Trading Activity while collection is paused", () => {
     expect(navItems.find(item => item.label === "Growth")?.href).toBe("/growth");
-    expect(navItems.find(item => item.label === "Trading Activity")?.href).toBe("/activity");
+    expect(navItems.some(item => item.href === "/activity")).toBe(false);
   });
   it("routes the Protocol Revenue item to the Revenue page", () => {
     expect(
