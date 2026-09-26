@@ -731,12 +731,49 @@ export const getPythBuybackSummary = query({
 
 export const getPythBuybackHistory = query({
   args: {},
+  returns: v.array(v.object({
+    id: v.id("pythBuybackSnapshots"),
+    timestampMs: v.number(),
+    minuteBucketMs: v.number(),
+    totalUsdcSpent: v.number(),
+    totalPythBought: v.number(),
+    avgBuyPriceUsd: v.number(),
+  })),
   handler: async (ctx) => {
-    const snapshots = await ctx.db
-      .query("pythBuybackSnapshots")
-      .withIndex("by_timestampMs", (q) => q.gte("timestampMs", 0))
-      .order("asc")
-      .collect();
+    const [first, latest] = await Promise.all([
+      ctx.db.query("pythBuybackSnapshots")
+        .withIndex("by_timestampMs", (q) => q.gte("timestampMs", 0))
+        .order("asc").first(),
+      ctx.db.query("pythBuybackSnapshots")
+        .withIndex("by_timestampMs", (q) => q.gte("timestampMs", 0))
+        .order("desc").first(),
+    ]);
+    if (!first || !latest) return [];
+
+    const dayMs = 86_400_000;
+    const firstDay = Math.floor(first.timestampMs / dayMs) * dayMs;
+    const latestDay = Math.floor(latest.timestampMs / dayMs) * dayMs;
+    const days = (latestDay - firstDay) / dayMs;
+    // Bound the indexed lookups without silently truncating older history.
+    if (days > 3660) throw new Error("Buyback history exceeds the daily query range; paginate history");
+    const snapshots = [first];
+    // The first snapshot preserves the original Since Tracking baseline.
+    // Read at most one closing snapshot per completed UTC day. Empty days
+    // stay empty; today's exact latest point was already read above.
+    for (let offset = 0; offset < days; offset += 32) {
+      const closes = await Promise.all(
+        Array.from({ length: Math.min(32, days - offset) }, (_, index) => {
+          const start = firstDay + (offset + index) * dayMs;
+          return ctx.db.query("pythBuybackSnapshots")
+            .withIndex("by_timestampMs", (q) =>
+              q.gte("timestampMs", start).lt("timestampMs", start + dayMs))
+            .order("desc").first();
+        }),
+      );
+      for (const close of closes)
+        if (close && close._id !== first._id) snapshots.push(close);
+    }
+    if (latest._id !== first._id) snapshots.push(latest);
 
     return snapshots.map((snapshot) => ({
       id: snapshot._id,
