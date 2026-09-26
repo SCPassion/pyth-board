@@ -2,6 +2,7 @@ import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { internalMutation, internalQuery } from "./_generated/server";
 import type { MutationCtx } from "./_generated/server";
+import type { Doc } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import {
   program,
@@ -20,7 +21,33 @@ import {
 } from "../lib/tracker/analytics";
 import { rawAmount } from "../lib/tracker/helius-format";
 import { PARSER_VERSION } from "../lib/tracker/config";
+import { PARSED_BATCH_SIZE, PARSED_COALESCE_MS } from "./heliusClient";
 import type { Trade } from "../lib/tracker/types";
+async function scheduleDrain(ctx: MutationCtx, state: Doc<"trackerState">, delay: number) {
+  const dueAt = Date.now() + delay;
+  if (state.drainDueAt !== undefined && state.drainDueAt <= dueAt) return;
+  if (state.drainWakeupId) await ctx.scheduler.cancel(state.drainWakeupId);
+  const generation = (state.drainGeneration ?? 0) + 1;
+  const token = String(generation);
+  const drainWakeupId = await ctx.scheduler.runAfter(
+    delay, internal.trackerStore.startScheduledDrain, { token },
+  );
+  await ctx.db.patch(state._id, { drainWakeupId, drainDueAt: dueAt, drainToken: token, drainGeneration: generation });
+}
+async function readyCount(ctx: MutationCtx) {
+  let count = 0;
+  for (const status of ["FETCHING", "RETRY", "DISCOVERED"] as const) {
+    const rows = await ctx.db
+      .query("chainTransactions")
+      .withIndex("by_status_and_nextAttemptAt", (q) =>
+        q.eq("status", status).lte("nextAttemptAt", Date.now()),
+      )
+      .take(PARSED_BATCH_SIZE - count);
+    count += rows.length;
+    if (count === PARSED_BATCH_SIZE) break;
+  }
+  return count;
+}
 async function metric(
   ctx: MutationCtx,
   delta: Partial<{
@@ -144,9 +171,12 @@ export const setEnabled = internalMutation({
       )
         throw new Error("Finalized activation slot required");
     }
+    if (!args.enabled && state?.drainWakeupId)
+      await ctx.scheduler.cancel(state.drainWakeupId);
     const value = {
       key: "main",
       enabled: args.enabled,
+      drainGeneration: state?.drainGeneration,
       activationTime:
         state?.activationTime ?? (args.enabled ? Date.now() : null),
       activationSlot: state?.activationSlot ?? args.activationSlot ?? null,
@@ -205,9 +235,42 @@ export const enqueue = internalMutation({
       });
     if (args.source === "WEBHOOK")
       await ctx.db.patch(state._id, { lastWebhookAt: Date.now() });
-    if (added)
-      await ctx.scheduler.runAfter(0, internal.trackerActions.drain, {});
+    // Maintain one queue timer; a full batch can drain immediately.
+    if (added) {
+      await scheduleDrain(ctx, state, await readyCount(ctx) === PARSED_BATCH_SIZE ? 0 : PARSED_COALESCE_MS);
+    }
     return added;
+  },
+});
+export const ensureDrainScheduled = internalMutation({
+  args: { delay: v.number() },
+  returns: v.null(),
+  handler: async (ctx, { delay }) => {
+    if (delay !== 0 && delay !== PARSED_COALESCE_MS) throw new Error("Invalid drain delay");
+    const state = await ctx.db
+      .query("trackerState")
+      .withIndex("by_key", (q) => q.eq("key", "main"))
+      .unique();
+    if (state && (state.enabled || state.webhookEnabled))
+      await scheduleDrain(ctx, state, delay);
+    return null;
+  },
+});
+export const startScheduledDrain = internalMutation({
+  args: { token: v.string() },
+  returns: v.null(),
+  handler: async (ctx, { token }) => {
+    const state = await ctx.db
+      .query("trackerState")
+      .withIndex("by_key", (q) => q.eq("key", "main"))
+      .unique();
+    if (!state || state.drainToken !== token) return null;
+    await ctx.db.patch(state._id, {
+      drainWakeupId: undefined, drainDueAt: undefined, drainToken: undefined,
+    });
+    if (state.enabled || state.webhookEnabled)
+      await ctx.scheduler.runAfter(0, internal.trackerActions.drain, {});
+    return null;
   },
 });
 export const claim = internalMutation({
@@ -269,9 +332,9 @@ export const claim = internalMutation({
           lease,
           replayStorageId: row.source === "REPROCESS" ? row.rawStorageId : null,
         });
-        if (result.length === 5) break;
+        if (result.length === PARSED_BATCH_SIZE) break;
       }
-      if (result.length === 5) break;
+      if (result.length === PARSED_BATCH_SIZE) break;
     }
     if (exhausted) await metric(ctx, { failures: exhausted });
     // More exhausted rows may be behind this bounded scan. Continue without
@@ -279,6 +342,25 @@ export const claim = internalMutation({
     if (exhausted >= 50 && result.length < 5)
       await ctx.scheduler.runAfter(0, internal.trackerActions.drain, {});
     return result;
+  },
+});
+/** Bounded queue depth for choosing an immediate full batch or a short tail wait. */
+export const pendingCount = internalQuery({
+  args: {},
+  returns: v.number(),
+  handler: async (ctx) => {
+    let count = 0;
+    for (const status of ["FETCHING", "RETRY", "DISCOVERED"] as const) {
+      const rows = await ctx.db
+        .query("chainTransactions")
+        .withIndex("by_status_and_nextAttemptAt", (q) =>
+          q.eq("status", status).lte("nextAttemptAt", Date.now()),
+        )
+        .take(PARSED_BATCH_SIZE - count);
+      count += rows.length;
+      if (count === PARSED_BATCH_SIZE) break;
+    }
+    return count;
   },
 });
 async function adjust(ctx: MutationCtx, t: Trade, factor: number) {
@@ -572,11 +654,11 @@ export const fail = internalMutation({
     const row = await ctx.db.get(args.id);
     if (!row || row.lease !== args.lease) return null;
     if (row.leaseWakeupId) await ctx.scheduler.cancel(row.leaseWakeupId);
+    const delay = retryDelay(row.attempts);
+    const nextAttemptAt = Date.now() + delay;
     if (args.transient && row.attempts < 8)
       await ctx.scheduler.runAfter(
-        retryDelay(row.attempts),
-        internal.trackerActions.drain,
-        {},
+        delay, internal.trackerStore.wakeRetry, { id: row._id, nextAttemptAt },
       );
     await metric(
       ctx,
@@ -584,11 +666,33 @@ export const fail = internalMutation({
     );
     await ctx.db.patch(row._id, {
       status: args.transient && row.attempts < 8 ? "RETRY" : "FAILED",
-      nextAttemptAt: Date.now() + retryDelay(row.attempts),
+      nextAttemptAt,
       error: args.reason.slice(0, 1000),
       lease: null,
       leaseUntil: null,
     });
+    return null;
+  },
+});
+/** Retry wakeups coalesce into the same bounded queue as webhook arrivals. */
+export const wakeRetry = internalMutation({
+  args: { id: v.id("chainTransactions"), nextAttemptAt: v.number() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const row = await ctx.db.get(args.id);
+    if (row?.status !== "RETRY" || row.nextAttemptAt !== args.nextAttemptAt) return null;
+    if (row.nextAttemptAt > Date.now()) {
+      await ctx.scheduler.runAfter(
+        row.nextAttemptAt - Date.now(), internal.trackerStore.wakeRetry, args,
+      );
+      return null;
+    }
+    const state = await ctx.db
+      .query("trackerState")
+      .withIndex("by_key", (q) => q.eq("key", "main"))
+      .unique();
+    if (state && (state.enabled || state.webhookEnabled))
+      await scheduleDrain(ctx, state, await readyCount(ctx) === PARSED_BATCH_SIZE ? 0 : PARSED_COALESCE_MS);
     return null;
   },
 });
@@ -635,7 +739,12 @@ export const retryProviderDecode = internalMutation({
       lease: null,
       leaseUntil: null,
     });
-    await ctx.scheduler.runAfter(0, internal.trackerActions.drain, {});
+    const state = await ctx.db
+      .query("trackerState")
+      .withIndex("by_key", (q) => q.eq("key", "main"))
+      .unique();
+    if (state && (state.enabled || state.webhookEnabled))
+      await scheduleDrain(ctx, state, await readyCount(ctx) === PARSED_BATCH_SIZE ? 0 : PARSED_COALESCE_MS);
     return null;
   },
 });
@@ -740,8 +849,14 @@ export const wakeExpiredLease = internalMutation({
       row?.status === "FETCHING" &&
       row.lease === args.lease &&
       (row.leaseUntil ?? Infinity) <= Date.now()
-    )
-      await ctx.scheduler.runAfter(0, internal.trackerActions.drain, {});
+    ) {
+      const state = await ctx.db
+        .query("trackerState")
+        .withIndex("by_key", (q) => q.eq("key", "main"))
+        .unique();
+      if (state && (state.enabled || state.webhookEnabled))
+        await scheduleDrain(ctx, state, await readyCount(ctx) === PARSED_BATCH_SIZE ? 0 : PARSED_COALESCE_MS);
+    }
     return null;
   },
 });

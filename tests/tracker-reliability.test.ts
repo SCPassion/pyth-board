@@ -5,6 +5,10 @@ import schema from "../convex/schema";
 import { internal } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
 import corpus from "./fixtures/positions/review-corpus.json";
+import normalBuy from "./fixtures/jupiter/normal-buy.json";
+import normalSell from "./fixtures/jupiter/normal-sell.json";
+import { DISCOVERED_PROGRAMS } from "../lib/tracker/registry";
+import { PARSED_BATCH_SIZE } from "../convex/heliusClient";
 
 const modules = import.meta.glob("../convex/**/*.ts");
 const tradeEvidence = corpus.find((p) => p.signature.startsWith("5hL7"))!;
@@ -26,6 +30,168 @@ async function setup() {
   );
   return t;
 }
+
+it.each([false, true])("batches independent decodes and preserves per-signature fallback (batch fails: %s)", async (batchFails) => {
+  const t = await setup();
+  const fixtures = [normalBuy, normalSell];
+  await t.run(async (ctx) => {
+    for (const program of DISCOVERED_PROGRAMS)
+      await ctx.db.insert("jupiterPrograms", { ...program, source: "batch regression", updatedAt: Date.now() });
+  });
+  await t.mutation(internal.trackerStore.enqueue, {
+    signatures: fixtures.map((fixture) => fixture.signature), source: "WEBHOOK",
+  });
+  const parseRequests: string[][] = [];
+  vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => {
+    const body = JSON.parse(String(init?.body));
+    if (url.includes("parsed-events")) {
+      parseRequests.push(body.transactions);
+      if (batchFails && body.transactions.length > 1)
+        return Response.json({ malformed: true });
+      return Response.json(body.transactions.map((signature: string) => {
+        const fixture = fixtures.find((item) => item.signature === signature);
+        if (!fixture) throw new Error("Unexpected signature");
+        return fixture;
+      }).reverse());
+    }
+    const signature = body.params[0] as string;
+    if (body.method === "getSignatureStatuses")
+      throw new Error("The finalized raw transaction makes a status RPC redundant");
+    if (body.method === "getTransaction")
+      return Response.json({ result: {
+        slot: 1, blockTime: 1, transaction: { signatures: [signature], message: { accountKeys: [], instructions: [] } },
+        meta: { err: null, preTokenBalances: [], postTokenBalances: [], innerInstructions: [] },
+      } });
+    throw new Error(`Unexpected RPC ${body.method}`);
+  }));
+  await t.action(internal.trackerActions.drain, {});
+  const rows = await t.run((ctx) => ctx.db.query("chainTransactions").take(3));
+  expect(rows).toHaveLength(2);
+  expect(rows.every((row) => row.status !== "RETRY" && row.status !== "FAILED")).toBe(true);
+  expect(await t.run((ctx) => ctx.db.query("pythTrades").take(3))).toHaveLength(2);
+  expect(parseRequests).toEqual(batchFails
+    ? [[normalBuy.signature, normalSell.signature], [normalBuy.signature], [normalSell.signature]]
+    : [[normalBuy.signature, normalSell.signature]]);
+});
+
+it("keeps a full batch in one Parsed Events request", async () => {
+  const t = await setup();
+  for (const program of DISCOVERED_PROGRAMS)
+    await t.run((ctx) => ctx.db.insert("jupiterPrograms", { ...program, source: "batch regression", updatedAt: Date.now() }));
+  const alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+  const signatures = [...alphabet].slice(0, PARSED_BATCH_SIZE).map((character) => character + normalBuy.signature.slice(1));
+  await t.mutation(internal.trackerStore.enqueue, { signatures, source: "WEBHOOK" });
+  const parseRequests: string[][] = [];
+  vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => {
+    const body = JSON.parse(String(init?.body));
+    if (url.includes("parsed-events")) {
+      parseRequests.push(body.transactions);
+      return Response.json(body.transactions.map((signature: string) => ({ ...normalBuy, signature })));
+    }
+    if (body.method === "getSignatureStatuses")
+      return Response.json({ result: { value: [{ confirmationStatus: "finalized", err: null }] } });
+    if (body.method === "getTransaction") return Response.json({ result: {
+      slot: 1, blockTime: 1, transaction: { signatures: [body.params[0]], message: { accountKeys: [], instructions: [] } },
+      meta: { err: null, preTokenBalances: [], postTokenBalances: [], innerInstructions: [] },
+    } });
+    return new Response("", { status: 503 });
+  }));
+  await t.action(internal.trackerActions.drain, {});
+  expect(parseRequests).toEqual([signatures]);
+  expect(await t.run((ctx) => ctx.db.query("pythTrades").take(PARSED_BATCH_SIZE + 1))).toHaveLength(PARSED_BATCH_SIZE);
+});
+
+it("caps paid fallback requests when every parsed batch is malformed", async () => {
+  const t = await setup();
+  const alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+  const signatures = [...alphabet].slice(0, PARSED_BATCH_SIZE).map((character) => character + normalBuy.signature.slice(1));
+  await t.mutation(internal.trackerStore.enqueue, { signatures, source: "WEBHOOK" });
+  let parsedRequests = 0;
+  vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => {
+    if (url.includes("parsed-events")) {
+      parsedRequests++;
+      return Response.json({ malformed: true });
+    }
+    const body = JSON.parse(String(init?.body));
+    if (body.method === "getTransaction") return Response.json({ result: {
+      slot: 1, blockTime: 1,
+      transaction: { signatures: [body.params[0]], message: { accountKeys: [], instructions: [] } },
+      meta: { err: null, preTokenBalances: [], postTokenBalances: [], innerInstructions: [] },
+    } });
+    throw new Error(`Unexpected RPC ${body.method}`);
+  }));
+  await t.action(internal.trackerActions.drain, {});
+  expect(parsedRequests).toBe(8);
+  const rows = await t.run((ctx) => ctx.db.query("chainTransactions").take(PARSED_BATCH_SIZE + 1));
+  expect(rows).toHaveLength(PARSED_BATCH_SIZE);
+  expect(rows.every((row) => row.status === "PARSE_REVIEW")).toBe(true);
+});
+
+it("batches signatures again after a shared transient retry", async () => {
+  const t = await setup();
+  const fixtures = [normalBuy, normalSell];
+  for (const program of DISCOVERED_PROGRAMS)
+    await t.run((ctx) => ctx.db.insert("jupiterPrograms", { ...program, source: "retry regression", updatedAt: Date.now() }));
+  await t.mutation(internal.trackerStore.enqueue, {
+    signatures: fixtures.map((fixture) => fixture.signature), source: "WEBHOOK",
+  });
+  const initial = await t.run((ctx) => ctx.db.query("trackerState").first());
+  await t.mutation(internal.trackerStore.startScheduledDrain, { token: initial!.drainToken! });
+  let unavailable = true;
+  const parseRequests: string[][] = [];
+  vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => {
+    if (unavailable) return new Response("", { status: 503 });
+    const body = JSON.parse(String(init?.body));
+    if (url.includes("parsed-events")) {
+      parseRequests.push(body.transactions);
+      return Response.json(body.transactions.map((signature: string) => fixtures.find((fixture) => fixture.signature === signature)));
+    }
+    if (body.method === "getSignatureStatuses")
+      return Response.json({ result: { value: [{ confirmationStatus: "finalized", err: null }] } });
+    if (body.method === "getTransaction") return Response.json({ result: {
+      slot: 1, blockTime: 1, transaction: { signatures: [body.params[0]], message: { accountKeys: [], instructions: [] } },
+      meta: { err: null, preTokenBalances: [], postTokenBalances: [], innerInstructions: [] },
+    } });
+    throw new Error(`Unexpected RPC ${body.method}`);
+  }));
+  await t.action(internal.trackerActions.drain, {});
+  const rows = await t.run((ctx) => ctx.db.query("chainTransactions").take(3));
+  expect(rows.every((row) => row.status === "RETRY")).toBe(true);
+  vi.setSystemTime(rows[0].nextAttemptAt);
+  for (const row of rows)
+    await t.mutation(internal.trackerStore.wakeRetry, { id: row._id, nextAttemptAt: row.nextAttemptAt });
+  const scheduled = await t.run((ctx) => ctx.db.query("trackerState").first());
+  vi.setSystemTime(scheduled!.drainDueAt!);
+  await t.mutation(internal.trackerStore.startScheduledDrain, { token: scheduled!.drainToken! });
+  unavailable = false;
+  await t.action(internal.trackerActions.drain, {});
+  expect(parseRequests).toEqual([fixtures.map((fixture) => fixture.signature)]);
+  expect(await t.run((ctx) => ctx.db.query("pythTrades").take(3))).toHaveLength(2);
+});
+
+it("does not fan out paid requests during a transient batch outage", async () => {
+  const t = await setup();
+  const signatures = [normalBuy.signature, normalSell.signature];
+  await t.mutation(internal.trackerStore.enqueue, { signatures, source: "WEBHOOK" });
+  const parseRequests: string[][] = [];
+  vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => {
+    const body = JSON.parse(String(init?.body));
+    if (url.includes("parsed-events")) {
+      parseRequests.push(body.transactions);
+      return new Response("", { status: 503 });
+    }
+    if (body.method === "getSignatureStatuses")
+      return Response.json({ result: { value: [{ confirmationStatus: "finalized", err: null }] } });
+    if (body.method === "getTransaction") return Response.json({ result: {
+      slot: 1, blockTime: 1, transaction: { signatures: [body.params[0]], message: { accountKeys: [], instructions: [] } },
+      meta: { err: null, preTokenBalances: [], postTokenBalances: [], innerInstructions: [] },
+    } });
+    throw new Error(`Unexpected RPC ${body.method}`);
+  }));
+  await t.action(internal.trackerActions.drain, {});
+  expect(parseRequests).toEqual([signatures]);
+  expect((await t.run((ctx) => ctx.db.query("chainTransactions").take(3))).every((row) => row.status === "PARSE_REVIEW")).toBe(true);
+});
 
 it("recovers after repeated provider outages without duplicate trades or volume", async () => {
   const t = await setup();
@@ -258,7 +424,6 @@ it("retains valid volume on reviewed replay and removes it on verified empty cor
         tokenTransfers: [], instructions: [],
       },
     },
-    finalizedSuccess: false,
   })])));
   await t.run((ctx) => ctx.db.patch(first.id, { rawStorageId: verifiedEmpty }));
   await t.mutation(internal.trackerStore.replay, { signature });

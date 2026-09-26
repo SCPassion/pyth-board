@@ -1,4 +1,7 @@
 /** Server-only provider boundary. Never import this module into client components. */
+import { PARSED_COALESCE_MS } from "../lib/tracker/config";
+export const PARSED_BATCH_SIZE = 50;
+export { PARSED_COALESCE_MS };
 export class ProviderError extends Error {
   constructor(
     message: string,
@@ -9,6 +12,11 @@ export class ProviderError extends Error {
 }
 export class HeliusClient {
   private key: string;
+  readonly usage = {
+    parsedRequests: 0, parsedSignatures: 0,
+    primaryParsedRequests: 0, attributionParsedRequests: 0,
+    statusRequests: 0, rawRequests: 0, historyRequests: 0,
+  };
   constructor() {
     this.key = process.env.HELIUS_API_KEY ?? "";
     if (!this.key)
@@ -62,16 +70,35 @@ export class HeliusClient {
       throw new ProviderError("Missing Helius RPC result", true);
     return j.result;
   }
-  async parsed(signature: string): Promise<unknown> {
+  async parsed(signature: string, purpose: "PRIMARY" | "ATTRIBUTION" = "PRIMARY"): Promise<unknown> {
+    return (await this.parsedMany([signature], purpose)).get(signature);
+  }
+  async parsedMany(signatures: string[], purpose: "PRIMARY" | "ATTRIBUTION" = "PRIMARY"): Promise<Map<string, unknown>> {
+    if (!signatures.length || signatures.length > PARSED_BATCH_SIZE || new Set(signatures).size !== signatures.length)
+      throw new ProviderError("Invalid Parsed Events batch", false);
+    this.usage.parsedRequests++;
+    this.usage.parsedSignatures += signatures.length;
+    if (purpose === "ATTRIBUTION") this.usage.attributionParsedRequests++;
+    else this.usage.primaryParsedRequests++;
     const j = await this.request("/v1/parsed-events/transactions", {
-      transactions: [signature],
+      transactions: signatures,
       includeRawTransaction: true,
     });
-    if (!Array.isArray(j) || j.length !== 1)
+    if (!Array.isArray(j) || j.length !== signatures.length)
       throw new ProviderError("Unexpected Parsed Events envelope", false);
-    return j[0];
+    const requested = new Set(signatures);
+    const result = new Map<string, unknown>();
+    for (const item of j) {
+      const signature = item && typeof item === "object" && !Array.isArray(item)
+        ? (item as { signature?: unknown }).signature : null;
+      if (typeof signature !== "string" || !requested.has(signature) || result.has(signature))
+        throw new ProviderError("Unexpected Parsed Events identity", false);
+      result.set(signature, item);
+    }
+    return result;
   }
   async raw(signature: string) {
+    this.usage.rawRequests++;
     return this.rpc<unknown>("getTransaction", [
       signature,
       {
@@ -82,6 +109,7 @@ export class HeliusClient {
     ]);
   }
   async finalized(signature: string) {
+    this.usage.statusRequests++;
     const r = await this.rpc<{
       value: ({ confirmationStatus: string; err: unknown } | null)[];
     }>("getSignatureStatuses", [
@@ -98,6 +126,7 @@ export class HeliusClient {
     return s.err === null;
   }
   async history(address: string, before: string | null) {
+    this.usage.historyRequests++;
     return this.rpc<
       {
         signature: string;
@@ -112,6 +141,15 @@ export class HeliusClient {
   }
   /** Raw RPC is authoritative; enhanced parsing is optional enrichment. */
   async evidence(signature: string): Promise<unknown> {
+    const rawTransaction = await this.rawEvidence(signature);
+    try {
+      const parsed = await this.parsed(signature);
+      return this.combineEvidence(signature, rawTransaction, parsed);
+    } catch {
+      return { signature, rawTransaction, parserStatus: "UNAVAILABLE" };
+    }
+  }
+  async rawEvidence(signature: string): Promise<unknown> {
     const rawTransaction = await this.raw(signature);
     if (!rawTransaction)
       throw new ProviderError("Finalized raw transaction unavailable", true);
@@ -125,17 +163,19 @@ export class HeliusClient {
       !Object.prototype.hasOwnProperty.call(raw.meta, "err")
     )
       throw new ProviderError("Invalid raw transaction identity or status", true);
-    try {
-      const parsed = await this.parsed(signature);
-      if (
-        !parsed ||
-        typeof parsed !== "object" ||
-        (parsed as { signature?: string }).signature !== signature
-      )
-        throw new Error("Enhanced identity mismatch");
-      return { ...parsed, rawTransaction };
-    } catch {
+    return rawTransaction;
+  }
+  /** A transaction returned at finalized commitment already carries its execution result. */
+  succeeded(rawTransaction: unknown): boolean {
+    const meta = (rawTransaction as { meta?: { err?: unknown } } | null)?.meta;
+    if (!meta || !Object.prototype.hasOwnProperty.call(meta, "err"))
+      throw new ProviderError("Missing finalized raw execution status", true);
+    return meta.err === null;
+  }
+  combineEvidence(signature: string, rawTransaction: unknown, parsed: unknown): unknown {
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed) ||
+        (parsed as { signature?: string }).signature !== signature)
       return { signature, rawTransaction, parserStatus: "UNAVAILABLE" };
-    }
+    return { ...parsed, rawTransaction };
   }
 }

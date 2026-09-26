@@ -30,6 +30,7 @@ import {
 import {
   WINDOWS,
   PRODUCTS,
+  PARSED_COALESCE_MS,
   tokenName,
   type Window,
 } from "@/lib/tracker/config";
@@ -117,7 +118,7 @@ export function TradingPanel() {
   const delayed = !!(
     health?.enabled &&
     health.oldestPendingAt &&
-    to - health.oldestPendingAt > 180000
+    to - health.oldestPendingAt > PARSED_COALESCE_MS + 180000
   );
   const webhookSilent = !!(
     health?.enabled &&
@@ -230,7 +231,7 @@ export function TradingPanel() {
                 : !health.enabled
                   ? "Stored trades only."
                   : delayed
-                    ? "Queue over three minutes behind."
+                    ? "Processing is taking longer than expected."
                     : webhookSilent
                       ? "No webhook in 10 minutes."
                       : "Processing new deliveries."}

@@ -8,6 +8,7 @@ import { decodeHelius } from "../lib/tracker/helius-format";
 import { DISCOVERED_PROGRAMS } from "../lib/tracker/registry";
 import fixture from "./fixtures/jupiter/recurring-buy-1.json";
 import { PARSER_VERSION } from "../lib/tracker/config";
+import { PARSED_BATCH_SIZE, PARSED_COALESCE_MS } from "../convex/heliusClient";
 const modules = import.meta.glob("../convex/**/*.ts");
 afterEach(() => vi.useRealTimers());
 async function setup() {
@@ -28,6 +29,100 @@ async function setup() {
   return t;
 }
 describe("tracker persistence", () => {
+  it("keeps one coalescing timer and replaces it only for a full batch", async () => {
+    const t = await setup();
+    const alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+    const signatures = [...alphabet].slice(0, PARSED_BATCH_SIZE).map((character) => character + fixture.signature.slice(1));
+    await t.mutation(internal.trackerStore.enqueue, { signatures: signatures.slice(0, 1), source: "WEBHOOK" });
+    const first = await t.run((ctx) => ctx.db.query("trackerState").first());
+    expect(first?.drainWakeupId).toBeTruthy();
+    expect(first?.drainDueAt).toBe(Date.now() + PARSED_COALESCE_MS);
+    await t.mutation(internal.trackerStore.enqueue, { signatures: signatures.slice(1, 2), source: "WEBHOOK" });
+    const second = await t.run((ctx) => ctx.db.query("trackerState").first());
+    expect(second?.drainWakeupId).toBe(first?.drainWakeupId);
+    await t.mutation(internal.trackerStore.enqueue, { signatures: signatures.slice(2), source: "WEBHOOK" });
+    const full = await t.run((ctx) => ctx.db.query("trackerState").first());
+    expect(full?.drainWakeupId).not.toBe(first?.drainWakeupId);
+    expect(full?.drainDueAt).toBe(Date.now());
+    await t.mutation(internal.trackerStore.startScheduledDrain, { token: first!.drainToken! });
+    expect((await t.run((ctx) => ctx.db.query("trackerState").first()))?.drainToken).toBe(full?.drainToken);
+  });
+  it("claims at most one full batch and leaves a measurable tail", async () => {
+    const t = await setup();
+    const alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+    const signatures = [...alphabet].slice(0, PARSED_BATCH_SIZE + 1).map((character) => character + fixture.signature.slice(1));
+    expect(await t.mutation(internal.trackerStore.enqueue, { signatures, source: "WEBHOOK" })).toBe(PARSED_BATCH_SIZE + 1);
+    expect(await t.mutation(internal.trackerStore.claim, {})).toHaveLength(PARSED_BATCH_SIZE);
+    expect(await t.query(internal.trackerStore.pendingCount, {})).toBe(1);
+    expect(await t.mutation(internal.trackerStore.claim, {})).toHaveLength(1);
+  });
+  it("coalesces transient retries without advancing their backoff", async () => {
+    const t = await setup();
+    const signatures = [fixture.signature, "2" + fixture.signature.slice(1)];
+    await t.mutation(internal.trackerStore.enqueue, { signatures, source: "WEBHOOK" });
+    const initial = await t.run((ctx) => ctx.db.query("trackerState").first());
+    await t.mutation(internal.trackerStore.startScheduledDrain, { token: initial!.drainToken! });
+    const jobs = await t.mutation(internal.trackerStore.claim, {});
+    expect(jobs).toHaveLength(2);
+    for (const job of jobs)
+      await t.mutation(internal.trackerStore.fail, {
+        id: job.id, lease: job.lease, reason: "Provider unavailable", transient: true,
+      });
+    const retryAt = (await t.run((ctx) => ctx.db.get(jobs[0].id)))!.nextAttemptAt;
+    vi.setSystemTime(retryAt - 1);
+    await t.mutation(internal.trackerStore.wakeRetry, { id: jobs[0].id, nextAttemptAt: retryAt });
+    expect((await t.run((ctx) => ctx.db.query("trackerState").first()))?.drainWakeupId).toBeUndefined();
+    vi.setSystemTime(retryAt);
+    await t.mutation(internal.trackerStore.wakeRetry, { id: jobs[0].id, nextAttemptAt: retryAt });
+    const first = await t.run((ctx) => ctx.db.query("trackerState").first());
+    await t.mutation(internal.trackerStore.wakeRetry, { id: jobs[1].id, nextAttemptAt: retryAt });
+    const second = await t.run((ctx) => ctx.db.query("trackerState").first());
+    expect(second?.drainWakeupId).toBe(first?.drainWakeupId);
+    expect(second?.drainDueAt).toBe(retryAt + PARSED_COALESCE_MS);
+    vi.setSystemTime(second!.drainDueAt!);
+    await t.mutation(internal.trackerStore.startScheduledDrain, { token: second!.drainToken! });
+    expect(await t.mutation(internal.trackerStore.claim, {})).toHaveLength(2);
+  });
+  it("recovers delayed provider reviews in one batch with retained evidence", async () => {
+    const t = await setup();
+    const signatures = [fixture.signature, "2" + fixture.signature.slice(1)];
+    await t.mutation(internal.trackerStore.enqueue, { signatures, source: "WEBHOOK" });
+    const initial = await t.run((ctx) => ctx.db.query("trackerState").first());
+    await t.mutation(internal.trackerStore.startScheduledDrain, { token: initial!.drainToken! });
+    const jobs = await t.mutation(internal.trackerStore.claim, {});
+    for (const job of jobs) {
+      const rawStorageId = await t.run((ctx) => ctx.storage.store(new Blob(["{}"])));
+      await t.run((ctx) => ctx.db.patch(job.id, {
+        status: "PARSE_REVIEW", source: "WEBHOOK", error: "Provider could not decode transaction",
+        rawStorageId, lease: null, leaseUntil: null,
+      }));
+      await t.mutation(internal.trackerStore.retryProviderDecode, { id: job.id });
+    }
+    const scheduled = await t.run((ctx) => ctx.db.query("trackerState").first());
+    expect(scheduled?.drainWakeupId).toBeTruthy();
+    vi.setSystemTime(scheduled!.drainDueAt!);
+    await t.mutation(internal.trackerStore.startScheduledDrain, { token: scheduled!.drainToken! });
+    const retried = await t.mutation(internal.trackerStore.claim, {});
+    expect(retried).toHaveLength(2);
+    expect(retried.every((job) => job.replayStorageId)).toBe(true);
+  });
+  it("coalesces expired leases and still reclaims every job", async () => {
+    const t = await setup();
+    const signatures = [fixture.signature, "2" + fixture.signature.slice(1)];
+    await t.mutation(internal.trackerStore.enqueue, { signatures, source: "WEBHOOK" });
+    const initial = await t.run((ctx) => ctx.db.query("trackerState").first());
+    await t.mutation(internal.trackerStore.startScheduledDrain, { token: initial!.drainToken! });
+    const jobs = await t.mutation(internal.trackerStore.claim, {});
+    const leaseUntil = (await t.run((ctx) => ctx.db.get(jobs[0].id)))!.leaseUntil!;
+    vi.setSystemTime(leaseUntil);
+    for (const job of jobs)
+      await t.mutation(internal.trackerStore.wakeExpiredLease, { id: job.id, lease: job.lease });
+    const scheduled = await t.run((ctx) => ctx.db.query("trackerState").first());
+    expect(scheduled?.drainDueAt).toBe(leaseUntil + PARSED_COALESCE_MS);
+    vi.setSystemTime(scheduled!.drainDueAt!);
+    await t.mutation(internal.trackerStore.startScheduledDrain, { token: scheduled!.drainToken! });
+    expect(await t.mutation(internal.trackerStore.claim, {})).toHaveLength(2);
+  });
   it.each(["legacy-trade", "legacy-empty", "current-empty"])(
     "records the worker version and selects upgrades for replay: %s", async (mode) => {
       const t = await setup();

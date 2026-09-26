@@ -10,6 +10,8 @@ const {
   MockPythStakingClient,
 } =
   vi.hoisted(() => {
+    // Build both configured RPC endpoints before the server action is imported.
+    process.env.PRIMARY_SOLANA_RPC_URL = "https://mock-primary.example";
     const createMockClient = () => ({
       getMainStakeAccount: vi.fn(),
       getClaimableRewards: vi.fn(),
@@ -154,7 +156,7 @@ describe("getOISStakingInfo", () => {
 
   it("queries each RPC endpoint at most once during stake account discovery", async () => {
     const stakingPubkey = new PublicKey(STAKING_ADDRESS);
-    const clients = Array.from({ length: 4 }, () => ({
+    const clients = Array.from({ length: 2 }, () => ({
       getMainStakeAccount: vi.fn().mockResolvedValue({
         stakeAccountPosition: stakingPubkey,
       }),

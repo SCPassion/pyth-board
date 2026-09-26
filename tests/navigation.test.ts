@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { navItems } from "@/lib/navigation";
 
 describe("sidebar navigation", () => {
-  it("keeps Growth and adds a separate Trading Activity page", () => {
+  it("keeps Growth and links to Trading Activity", () => {
     expect(navItems.find(item => item.label === "Growth")?.href).toBe("/growth");
     expect(navItems.find(item => item.label === "Trading Activity")?.href).toBe("/activity");
   });

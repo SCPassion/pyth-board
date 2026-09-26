@@ -4,12 +4,14 @@ import { PARSER_VERSION } from "../lib/tracker/config";
 import { v } from "convex/values";
 import { internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
-import { HeliusClient, ProviderError } from "./heliusClient";
+import { HeliusClient, PARSED_BATCH_SIZE, PARSED_COALESCE_MS, ProviderError } from "./heliusClient";
 import { decodeHelius, record } from "../lib/tracker/helius-format";
 import { completeEvidence, parseTransaction } from "../lib/tracker/parsers";
+import { rawDirectVenueTrade } from "../lib/tracker/venues/raw-direct";
 import { getDefiLlamaHistoricalPriceUrl } from "../lib/market-prices";
 import { applyHistoricalValuation } from "../lib/tracker/valuation";
 import type { Trade, ParseResult } from "../lib/tracker/types";
+import type { StateAnalysis } from "../lib/tracker/state-analysis";
 async function valueTrades(trades: Trade[]): Promise<Trade[]> {
   if (!trades.length) return trades;
   try {
@@ -23,6 +25,25 @@ async function valueTrades(trades: Trade[]): Promise<Trade[]> {
     return trades;
   }
 }
+/** Bound paid isolation of malformed responses; unresolved signatures stay in review. */
+async function loadParsed(
+  client: HeliusClient,
+  signatures: string[],
+  budget = { remaining: 8 },
+): Promise<Map<string, unknown>> {
+  if (!budget.remaining) return new Map();
+  budget.remaining--;
+  try {
+    return await client.parsedMany(signatures);
+  } catch (e) {
+    if (e instanceof ProviderError && e.transient) throw e;
+    if (signatures.length === 1) return new Map();
+    const middle = Math.floor(signatures.length / 2);
+    const left = await loadParsed(client, signatures.slice(0, middle), budget);
+    const right = await loadParsed(client, signatures.slice(middle), budget);
+    return new Map([...left, ...right]);
+  }
+}
 export const drain = internalAction({
   args: {},
   returns: v.null(),
@@ -31,6 +52,14 @@ export const drain = internalAction({
     if (!config.enabled) return null;
     const jobs = await ctx.runMutation(internal.trackerStore.claim, {});
     const client = new HeliusClient();
+    const ready: {
+      job: (typeof jobs)[number];
+      cached: Record<string, unknown> | null;
+      success: boolean;
+      rawTransaction: unknown;
+      stateAnalysis: StateAnalysis;
+      shortcut: Trade | null;
+    }[] = [];
     for (const job of jobs) {
       try {
         const evidence = job.replayStorageId
@@ -39,34 +68,55 @@ export const drain = internalAction({
         const cached = evidence
           ? record(JSON.parse(await evidence.text()))
           : null;
-        const success =
-          typeof cached?.finalizedSuccess === "boolean"
-            ? cached.finalizedSuccess
-            : await client.finalized(job.signature);
-        // A cached raw transaction remains authoritative. On replay, refresh
-        // only the optional decode after Helius has had time to index it.
-        let payload = cached?.payload ?? (await client.evidence(job.signature));
-        if (cached?.payload && record(cached.payload).parserStatus !== "OK") {
-          try {
-            const parsed = record(await client.parsed(job.signature));
-            const rawTransaction = record(cached.payload).rawTransaction;
-            if (
-              parsed.signature === job.signature &&
-              parsed.parserStatus === "OK" &&
-              rawTransaction
-            )
-              payload = { ...parsed, rawTransaction };
-          } catch {
-            // Keep the retained raw evidence if enhanced decoding is still unavailable.
-          }
-        }
+        const rawTransaction = cached?.payload
+          ? record(cached.payload).rawTransaction
+          : await client.rawEvidence(job.signature);
+        const success = typeof cached?.finalizedSuccess === "boolean"
+          ? cached.finalizedSuccess
+          : client.succeeded(rawTransaction);
         const stateAnalysis = analyzeRawEvidence(
-          payload,
-          job.signature,
-          success,
+          { signature: job.signature, rawTransaction }, job.signature, success,
         );
-        let result: ParseResult;
-        try {
+        const shortcut = (!cached?.payload || record(cached.payload).parserStatus === "RAW_VERIFIED")
+          ? rawDirectVenueTrade(rawTransaction, stateAnalysis, config.programs)
+          : null;
+        ready.push({ job, cached, success, rawTransaction, stateAnalysis, shortcut });
+      } catch (e) {
+        await ctx.runMutation(internal.trackerStore.fail, {
+          id: job.id,
+          lease: job.lease,
+          reason: e instanceof ProviderError ? e.message : "Processing failed; inspect retained signature",
+          transient: e instanceof ProviderError && e.transient,
+        });
+      }
+    }
+    const toDecode = ready.filter(({ cached, shortcut }) =>
+      !shortcut && (!cached?.payload || record(cached.payload).parserStatus !== "OK"),
+    );
+    const decoded = new Map<string, unknown>();
+    if (toDecode.length) {
+      try {
+        for (const [signature, value] of await loadParsed(client, toDecode.map(({ job }) => job.signature)))
+          decoded.set(signature, value);
+      } catch {
+        // Retain raw evidence and schedule provider-decode review without a
+        // paid per-signature fanout during a temporary outage.
+      }
+    }
+    for (const { job, cached, success, rawTransaction, stateAnalysis, shortcut } of ready) {
+      try {
+        // A cached raw transaction remains authoritative on replay.
+        const parsed = decoded.get(job.signature);
+        let payload = cached?.payload ?? (shortcut
+          ? { signature: job.signature, rawTransaction, parserStatus: "RAW_VERIFIED" }
+          : client.combineEvidence(job.signature, rawTransaction, parsed));
+        if (cached?.payload && record(cached.payload).parserStatus !== "OK" &&
+            record(parsed).parserStatus === "OK" && rawTransaction)
+          payload = client.combineEvidence(job.signature, rawTransaction, parsed);
+        let result: ParseResult = shortcut
+          ? { trades: [shortcut], orders: [], review: [] }
+          : { trades: [], orders: [], review: [] };
+        if (!shortcut) try {
           const tx = decodeHelius(payload);
           if (tx.signature !== job.signature)
             throw new Error("Provider returned a different signature");
@@ -96,12 +146,18 @@ export const drain = internalAction({
           for (const key of missing) {
             try {
               const history = await client.history(key, null);
-              for (const signature of history
+              const signatures = history
                 .filter((r) => r.err === null)
                 .slice(0, 5)
-                .map((r) => r.signature)) {
+                .map((r) => r.signature);
+              let historicalBatch: Map<string, unknown> | null = null;
+              if (signatures.length > 1) {
+                try { historicalBatch = await client.parsedMany(signatures, "ATTRIBUTION"); }
+                catch { /* Fall back to the original per-signature lookup. */ }
+              }
+              for (const signature of signatures) {
                 const historical = parseTransaction(
-                  decodeHelius(await client.parsed(signature)),
+                  decodeHelius(historicalBatch?.get(signature) ?? await client.parsed(signature, "ATTRIBUTION")),
                   config.programs,
                   known,
                 );
@@ -171,8 +227,20 @@ export const drain = internalAction({
         });
       }
     }
-    if (jobs.length === 5)
-      await ctx.scheduler.runAfter(1000, internal.trackerActions.drain, {});
+    if (jobs.length) {
+      const pending = await ctx.runQuery(internal.trackerStore.pendingCount, {});
+      if (pending)
+        await ctx.runMutation(internal.trackerStore.ensureDrainScheduled, {
+          delay: pending === PARSED_BATCH_SIZE ? 0 : PARSED_COALESCE_MS,
+        });
+    }
+    if (jobs.length)
+      console.info("PYTH tracker Helius requests", {
+        jobs: jobs.length,
+        replayJobs: jobs.filter((job) => job.replayStorageId).length,
+        rawShortcutJobs: ready.filter((item) => item.shortcut).length,
+        ...client.usage,
+      });
     return null;
   },
 });

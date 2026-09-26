@@ -82,9 +82,9 @@ export function TradingMethodology() {
             verified; a qualifying swap can still appear as a swap.
           </p>
           <p>
-            Coverage is partial: Helius missed PYTH trades in live checks, and
-            there is no automatic backfill. Totals include only verified trades
-            delivered to this indexer.
+            Coverage is partial: Helius missed PYTH trades in live checks,
+            collection has been paused, and there is no automatic backfill.
+            Totals include only verified trades delivered while collection ran.
           </p>
         </div>
       </div>

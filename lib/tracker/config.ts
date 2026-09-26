@@ -1,6 +1,7 @@
 export const PYTH_MINT = "HZ1JovNiVvGrGNiiYvEozEVgZ58xaU3RKwX8eACQBCt3";
 export const PYTH_DECIMALS = 6;
 export const PARSER_VERSION = 19;
+export const PARSED_COALESCE_MS = 600000;
 export const WINDOWS = {
   "1h": 3600000,
   "6h": 21600000,
