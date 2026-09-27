@@ -1,4 +1,5 @@
 import { decodeStakeEntry, PYTH_EPOCH_SECONDS, STAKING_PROGRAM, STAKING_ENCODING } from "./governanceStakers";
+import { PublicKey } from "@solana/web3.js";
 
 export function requireHeliusEndpoint(endpoint: string | undefined): string {
   if (!endpoint) throw new Error("Missing PRIMARY_SOLANA_RPC_URL");
@@ -67,6 +68,7 @@ export async function collectGovernanceStakers(endpoint: string | undefined, opt
   }
   const startClock = await chainEpoch();
   const owners = new Set<string>(), cursors = new Set<string>();
+  const balances = new Map<string, { voting: bigint; unstaking: bigint; cooldowns: Map<bigint, bigint> }>();
   let cursor: string | undefined;
   do {
     const result = await rpc("getProgramAccountsV2", [STAKING_PROGRAM, {
@@ -83,6 +85,15 @@ export async function collectGovernanceStakers(endpoint: string | undefined, opt
       onAccount?.(decoded.data, startClock.epoch, decoded.votingAmount);
       totalStakeAccounts++;
       if (decoded.votingAmount > 0n) { owners.add(decoded.owner); eligibleStakeAccounts++; }
+      if (decoded.votingAmount > 0n || decoded.unstakingAmount > 0n) {
+        const previous = balances.get(decoded.owner) ?? { voting: 0n, unstaking: 0n, cooldowns: new Map<bigint, bigint>() };
+        previous.voting += decoded.votingAmount;
+        previous.unstaking += decoded.unstakingAmount;
+        for (const period of decoded.cooldowns) {
+          previous.cooldowns.set(period.startEpoch, (previous.cooldowns.get(period.startEpoch) ?? 0n) + period.amount);
+        }
+        balances.set(decoded.owner, previous);
+      }
     }
     checkDeadline();
     pages++;
@@ -97,6 +108,23 @@ export async function collectGovernanceStakers(endpoint: string | undefined, opt
   if (endClock.epoch !== startClock.epoch) throw new Error("Governance scan crossed Pyth epoch");
   if (endClock.day !== startClock.day || new Date(collectedAt).toISOString().slice(0, 10) !== date) throw new Error("Governance scan crossed UTC midnight");
   if (owners.size === 0) throw new Error("Governance collection has zero stakers");
+  const top = (field: "voting" | "unstaking") => [...balances.entries()]
+    .filter(([, amounts]) => amounts[field] > 0n)
+    .sort(([ownerA, a], [ownerB, b]) => a[field] === b[field]
+      ? ownerA.localeCompare(ownerB) : a[field] > b[field] ? -1 : 1)
+    .slice(0, 10)
+    .map(([owner, amounts]) => ({
+      owner: new PublicKey(Buffer.from(owner, "hex")).toBase58(), amount: amounts[field].toString(),
+      ...(field === "unstaking" ? { cooldowns: [...amounts.cooldowns.entries()]
+        .sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)
+        .map(([startEpoch, amount]) => {
+          const startAt = Number(startEpoch * PYTH_EPOCH_SECONDS * 1000n);
+          const endAt = Number((startEpoch + 1n) * PYTH_EPOCH_SECONDS * 1000n);
+          if (!Number.isSafeInteger(endAt) || endAt > 8.64e15) throw new Error("Invalid cooldown date");
+          return { amount: amount.toString(), startAt, endAt };
+        }) } : {}),
+    }));
   return { stakers: owners.size, epoch: startClock.epoch.toString(), totalStakeAccounts, eligibleStakeAccounts,
+    topStakers: top("voting"), topUnstaking: top("unstaking"),
     encoding, pageSize, pages, requests, responseBytes, startedAt, collectedAt };
 }

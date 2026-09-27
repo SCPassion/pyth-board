@@ -18,6 +18,7 @@ export const collect = internalAction({
     await ctx.runMutation(internal.pythGovernanceStakers.store, {
       stakers: result.stakers, collectedAt: result.collectedAt, epoch: result.epoch,
       totalStakeAccounts: result.totalStakeAccounts, eligibleStakeAccounts: result.eligibleStakeAccounts,
+      topStakers: result.topStakers, topUnstaking: result.topUnstaking,
     });
     return null;
   },

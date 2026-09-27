@@ -13,7 +13,8 @@ try {
   for (const name of ["governanceStakers", "governanceCollector"]) {
     const source = await readFile(new URL(`../lib/growth/${name}.ts`, import.meta.url), "utf8");
     const output = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 } }).outputText
-      .replace('"./governanceStakers"', '"./governanceStakers.mjs"');
+      .replace('"./governanceStakers"', '"./governanceStakers.mjs"')
+      .replace('"@solana/web3.js"', JSON.stringify(pathToFileURL(createRequire(import.meta.url).resolve("@solana/web3.js")).href));
     await writeFile(join(temp, `${name}.mjs`), output);
   }
   const { collectGovernanceStakers, requireHeliusEndpoint } = await import(pathToFileURL(join(temp, "governanceCollector.mjs")));

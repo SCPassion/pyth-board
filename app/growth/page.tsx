@@ -1,4 +1,5 @@
 import { GovernanceStakersPanel } from "@/components/governance-stakers-panel";
+import { GovernanceLeaderboards } from "@/components/governance-leaderboards";
 import { PythHoldersPanel } from "@/components/pyth-holders-panel";
 import { PageMasthead } from "@/components/page-masthead";
 
@@ -18,6 +19,7 @@ export default function GrowthPage() {
       <p className="text-sm leading-relaxed text-white/70">
         Governance stakers counts voting-eligible stake owners: each owner with a positive LOCKED or PREUNLOCKING governance position counts once. UNLOCKING and UNLOCKED positions do not count because they no longer carry governance voting power.
       </p>
+      <GovernanceLeaderboards />
       <details open className="group rounded-2xl border border-white/10 bg-white/[0.025]">
         <summary className="cursor-pointer rounded-2xl px-5 py-4 text-sm font-medium text-white/85 focus-visible:outline-2 focus-visible:outline-cyan-300 sm:px-6">
           How these metrics are counted

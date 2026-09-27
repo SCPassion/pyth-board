@@ -18,7 +18,8 @@ export function decodeGovernanceStake(data: Buffer, epoch: bigint) {
   // an incomplete occupied position must still fail the entire collection.
   const end = 40 + Math.floor((data.length - 40) / 200) * 200;
   if (data.subarray(end).some(byte => byte !== 0)) throw new Error("Truncated staking position");
-  let votingAmount = 0n;
+  let votingAmount = 0n, unstakingAmount = 0n;
+  const cooldowns: { startEpoch: bigint; amount: bigint }[] = [];
   for (let offset = 40; offset < end; offset += 200) {
     const occupied = data[offset];
     if (occupied === 0) continue;
@@ -34,9 +35,14 @@ export function decodeGovernanceStake(data: Buffer, epoch: bigint) {
     if (target === 0 && activation <= epoch && (unlocking === null || epoch < unlocking)) {
       votingAmount += amount;
     }
+    // SDK states: PREUNLOCKING or UNLOCKING; cooldown ends one epoch after its start.
+    if (target === 0 && activation <= epoch && unlocking !== null && epoch < unlocking + 1n) {
+      unstakingAmount += amount;
+      if (amount > 0n) cooldowns.push({ startEpoch: unlocking, amount });
+    }
   }
   // Fixed-length hex avoids retained base58 string ropes and needs no SDK at runtime.
-  return { owner: data.subarray(8, 40).toString("hex"), votingAmount };
+  return { owner: data.subarray(8, 40).toString("hex"), votingAmount, unstakingAmount, cooldowns };
 }
 
 export function decodeStakeEntry(entry: unknown, epoch: bigint) {

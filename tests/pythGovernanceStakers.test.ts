@@ -3,6 +3,16 @@ import { decodeGovernanceStake, decodeStakeEntry } from "../lib/growth/governanc
 import { stakeData, entry } from "./governanceFixtures";
 
 describe("governance positions", () => {
+  it("counts pending and active cooldown only, excluding OIS and pending activation", () => {
+    for (const [unlocking, expected] of [[11n, 7n], [10n, 7n], [9n, 0n], [0n, 0n]] as const) {
+      expect(decodeGovernanceStake(stakeData(1, [{ amount: 7n, unlocking }]), 10n).unstakingAmount).toBe(expected);
+    }
+    expect(decodeGovernanceStake(stakeData(1, [
+      { amount: 3n, unlocking: 11n }, { amount: 5n, unlocking: 10n },
+      { amount: 100n, unlocking: 9n }, { ois: true, unlocking: 10n },
+      { activation: 11n, unlocking: 11n }, {}, null,
+    ]), 10n).unstakingAmount).toBe(8n);
+  });
   it.each([
     [{ activation: 11n }, 0n], [{ activation: 10n }, 1n],
     [{ unlocking: 11n }, 1n], [{ unlocking: 10n }, 0n], [{ unlocking: 9n }, 0n],

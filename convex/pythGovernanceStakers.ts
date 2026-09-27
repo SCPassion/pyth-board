@@ -3,10 +3,15 @@ import { paginationOptsValidator } from "convex/server";
 import { internalMutation, internalQuery, query } from "./_generated/server";
 
 const snapshot = v.object({ date: v.string(), stakers: v.number(), collectedAt: v.number() });
+const ranking = v.array(v.object({ owner: v.string(), amount: v.string() }));
+const unstakingRanking = v.array(v.object({ owner: v.string(), amount: v.string(),
+  cooldowns: v.optional(v.array(v.object({ amount: v.string(), startAt: v.number(), endAt: v.number() }))),
+}));
 export const store = internalMutation({
   args: {
     stakers: v.number(), collectedAt: v.number(), epoch: v.string(),
     totalStakeAccounts: v.number(), eligibleStakeAccounts: v.number(),
+    topStakers: ranking, topUnstaking: unstakingRanking,
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -18,18 +23,59 @@ export const store = internalMutation({
       throw new Error("Invalid governance staker snapshot");
     }
     const date = new Date(args.collectedAt).toISOString().slice(0, 10);
+    for (const list of [args.topStakers, args.topUnstaking]) {
+      if (list.length > 10 || new Set(list.map(row => row.owner)).size !== list.length ||
+          list.some((row, i) => !/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(row.owner) ||
+            !/^[1-9]\d{0,39}$/.test(row.amount) || (i > 0 && BigInt(list[i - 1].amount) < BigInt(row.amount)))) {
+        throw new Error("Invalid governance leaderboard");
+      }
+    }
+    const { topStakers, topUnstaking, ...counts } = args;
+    for (const row of topUnstaking) {
+      if (row.cooldowns !== undefined && (
+        row.cooldowns.length === 0 || row.cooldowns.some((period, i) =>
+          !/^[1-9]\d{0,39}$/.test(period.amount) ||
+          !Number.isSafeInteger(period.startAt) || period.startAt < 0 || period.startAt % 604800000 !== 0 ||
+          !Number.isSafeInteger(period.endAt) || period.endAt > 8.64e15 || period.endAt - period.startAt !== 604800000 ||
+          (i > 0 && row.cooldowns![i - 1].startAt >= period.startAt)) ||
+        row.cooldowns.reduce((sum, period) => sum + BigInt(period.amount), 0n) !== BigInt(row.amount)
+      )) throw new Error("Invalid governance cooldowns");
+    }
     // The indexed read and insert are one Convex transaction. OCC protects concurrent runs.
     const existing = await ctx.db.query("pythGovernanceStakerSnapshots")
       .withIndex("by_date", q => q.eq("date", date)).unique();
-    if (!existing) await ctx.db.insert("pythGovernanceStakerSnapshots", { date, ...args });
+    if (!existing) await ctx.db.insert("pythGovernanceStakerSnapshots", { date, ...counts });
+    const leaderboard = await ctx.db.query("pythGovernanceLeaderboard")
+      .withIndex("by_key", q => q.eq("key", "latest")).unique();
+    const values = { key: "latest" as const, collectedAt: args.collectedAt, epoch: args.epoch, topStakers, topUnstaking };
+    if (!leaderboard) await ctx.db.insert("pythGovernanceLeaderboard", values);
+    else if (leaderboard.collectedAt < args.collectedAt) await ctx.db.replace(leaderboard._id, values);
     return null;
+  },
+});
+
+export const leaderboard = query({
+  args: {},
+  returns: v.union(v.object({ collectedAt: v.number(), epoch: v.string(), topStakers: ranking, topUnstaking: unstakingRanking }), v.null()),
+  handler: async ctx => {
+    const row = await ctx.db.query("pythGovernanceLeaderboard")
+      .withIndex("by_key", q => q.eq("key", "latest")).unique();
+    return row ? { collectedAt: row.collectedAt, epoch: row.epoch, topStakers: row.topStakers, topUnstaking: row.topUnstaking } : null;
   },
 });
 
 export const hasDate = internalQuery({
   args: { date: v.string() }, returns: v.boolean(),
-  handler: async (ctx, { date }) => !!await ctx.db.query("pythGovernanceStakerSnapshots")
-    .withIndex("by_date", q => q.eq("date", date)).unique(),
+  handler: async (ctx, { date }) => {
+    const count = await ctx.db.query("pythGovernanceStakerSnapshots")
+      .withIndex("by_date", q => q.eq("date", date)).unique();
+    if (!count) return false;
+    // Existing count history predates rankings. Allow one scan to seed the leaderboard.
+    const ranking = await ctx.db.query("pythGovernanceLeaderboard")
+      .withIndex("by_key", q => q.eq("key", "latest")).unique();
+    return !!ranking && ranking.topUnstaking.every(row => row.cooldowns !== undefined) &&
+      new Date(ranking.collectedAt).toISOString().slice(0, 10) >= date;
+  },
 });
 
 export const latest = query({

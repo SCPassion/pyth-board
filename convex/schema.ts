@@ -4,6 +4,13 @@ import { v } from "convex/values";
 
 export default defineSchema({
   ...trackerTables,
+  pythGovernanceLeaderboard: defineTable({
+    key: v.literal("latest"), collectedAt: v.number(), epoch: v.string(),
+    topStakers: v.array(v.object({ owner: v.string(), amount: v.string() })),
+    topUnstaking: v.array(v.object({ owner: v.string(), amount: v.string(),
+      cooldowns: v.optional(v.array(v.object({ amount: v.string(), startAt: v.number(), endAt: v.number() }))),
+    })),
+  }).index("by_key", ["key"]),
   pythGovernanceStakerSnapshots: defineTable({
     date: v.string(), stakers: v.number(), collectedAt: v.number(), epoch: v.string(),
     totalStakeAccounts: v.number(), eligibleStakeAccounts: v.number(),

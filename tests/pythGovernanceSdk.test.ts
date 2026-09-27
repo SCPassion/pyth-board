@@ -3,7 +3,7 @@ import { Connection, PublicKey } from "@solana/web3.js";
 import { expect, it } from "vitest";
 import { decodeGovernanceStake, POSITION_DISCRIMINATOR } from "../lib/growth/governanceStakers";
 import { stakeData, type Position } from "./governanceFixtures";
-const { PythStakingClient, deserializeStakeAccountPositions, getVotingTokenAmount } = createRequire(import.meta.url)("@pythnetwork/staking-sdk") as typeof import("@pythnetwork/staking-sdk");
+const { PythStakingClient, deserializeStakeAccountPositions, getVotingTokenAmount, summarizeAccountPositions, PositionState } = createRequire(import.meta.url)("@pythnetwork/staking-sdk") as typeof import("@pythnetwork/staking-sdk");
 
 it("matches the installed SDK discriminator, owners, and voting amounts without RPC calls", () => {
   const client = new PythStakingClient({ connection: new Connection("https://mainnet.helius-rpc.com"), wallet: {
@@ -18,6 +18,8 @@ it("matches the installed SDK discriminator, owners, and voting amounts without 
       const sdk = deserializeStakeAccountPositions(PublicKey.default, data, client.stakingProgram.idl);
       expect(local.owner).toBe(sdk.data.owner.toBuffer().toString("hex"));
       expect(local.votingAmount).toBe(getVotingTokenAmount(sdk, epoch));
+      const summary = summarizeAccountPositions(sdk, epoch);
+      expect(local.unstakingAmount).toBe(summary.voting[PositionState.PREUNLOCKING] + summary.voting[PositionState.UNLOCKING]);
     }
   }
 });
