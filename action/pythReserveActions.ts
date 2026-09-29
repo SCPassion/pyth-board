@@ -19,8 +19,6 @@ const RPC_ENDPOINTS = [
     ? [process.env.SWAP_SOLANA_RPC_URL]
     : []),
   "https://api.mainnet-beta.solana.com",
-  "https://rpc.ankr.com/solana",
-  "https://solana-api.projectserum.com",
 ];
 
 // Connection configuration for better performance

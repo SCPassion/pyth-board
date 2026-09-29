@@ -1,7 +1,7 @@
 import { PublicKey } from "@solana/web3.js";
 
 /** Decode only the owner/u64 slice; fail the whole collection on malformed data. */
-export function countPythHolders(accounts: unknown, owners = new Set<string>()) {
+export function countPythHolders(accounts: unknown, owners: Set<string> | Map<string, bigint> = new Set<string>()) {
   if (!Array.isArray(accounts)) throw new Error("Missing token account array");
   let positiveTokenAccounts = 0;
   for (const entry of accounts) {
@@ -16,7 +16,9 @@ export function countPythHolders(accounts: unknown, owners = new Set<string>()) 
     const amount = data.readBigUInt64LE(32);
     if (amount === 0n) continue;
     // Flatten base58 string ropes before retaining hundreds of thousands of keys.
-    owners.add(Buffer.from(new PublicKey(data.subarray(0, 32)).toBase58(), "ascii").toString("ascii"));
+    const owner = Buffer.from(new PublicKey(data.subarray(0, 32)).toBase58(), "ascii").toString("ascii");
+    if (owners instanceof Map) owners.set(owner, (owners.get(owner) ?? 0n) + amount);
+    else owners.add(owner);
     positiveTokenAccounts++;
   }
   return { holders: owners.size, totalTokenAccounts: accounts.length, positiveTokenAccounts };

@@ -19,8 +19,6 @@ afterEach(() => {
 
 const fallbacks = [
   "https://api.mainnet-beta.solana.com",
-  "https://rpc.ankr.com/solana",
-  "https://solana-api.projectserum.com",
 ];
 
 describe.each([

@@ -11,6 +11,8 @@ import {
   reconcileBuybackSourceTotals,
   shouldFetchNextRecurringPage,
 } from "./buybackMetrics";
+import { fetchBuybackTransactions } from "../lib/growth/buybackTransactions";
+import { fetchNewBuybackSignatures } from "../lib/growth/buybackSignatures";
 
 const PYTHIAN_COUNCIL_OPS_MULTISIG_ADDRESS =
   "GAdn7TZhszf5KTfwNRx3A2nP6KCRFEWucZubgdEqbJA2";
@@ -27,8 +29,6 @@ const RPC_ENDPOINTS = [
     ? [process.env.PRIMARY_SOLANA_RPC_URL]
     : []),
   "https://api.mainnet-beta.solana.com",
-  "https://rpc.ankr.com/solana",
-  "https://solana-api.projectserum.com",
 ];
 
 const CONNECTION_CONFIG = {
@@ -201,42 +201,6 @@ function getSwapDeltasForCouncilOps(
   }
 
   return { usdcSpent, pythReceived };
-}
-
-async function fetchNewSignaturesSinceCursor(
-  connection: Connection,
-  owner: PublicKey,
-  latestProcessedSignature?: string
-): Promise<string[]> {
-  const signatures: string[] = [];
-  let before: string | undefined;
-  const MAX_SIGNATURES_PER_RUN = 300;
-
-  while (true) {
-    if (signatures.length >= MAX_SIGNATURES_PER_RUN) {
-      break;
-    }
-
-    const page = await connection.getSignaturesForAddress(owner, {
-      limit: 100,
-      before,
-      until: latestProcessedSignature,
-    });
-
-    if (page.length === 0) {
-      break;
-    }
-
-    signatures.push(...page.map((entry) => entry.signature));
-
-    if (page.length < 100) {
-      break;
-    }
-
-    before = page[page.length - 1].signature;
-  }
-
-  return signatures;
 }
 
 async function fetchLatestSignature(
@@ -556,20 +520,17 @@ export const runPythBuybackSnapshotJob = internalAction({
           };
         }
 
-        const newSignatures = await fetchNewSignaturesSinceCursor(
+        const newSignatures = await fetchNewBuybackSignatures(
           connection,
           owner,
-          state?.latestProcessedSignature
+          state.latestProcessedSignature
         );
 
         let deltaUsdcSpent = 0;
         let deltaPythBought = 0;
 
         if (newSignatures.length > 0) {
-          const parsedTransactions = await connection.getParsedTransactions(
-            newSignatures,
-            { maxSupportedTransactionVersion: 0 }
-          );
+          const parsedTransactions = await fetchBuybackTransactions(connection, newSignatures);
 
           for (const tx of parsedTransactions) {
             const deltas = getSwapDeltasForCouncilOps(

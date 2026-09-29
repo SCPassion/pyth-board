@@ -1,6 +1,7 @@
 import { GovernanceStakersPanel } from "@/components/governance-stakers-panel";
 import { GovernanceLeaderboards } from "@/components/governance-leaderboards";
 import { PythHoldersPanel } from "@/components/pyth-holders-panel";
+import { PythHolderLeaderboard } from "@/components/pyth-holder-leaderboard";
 import { PageMasthead } from "@/components/page-masthead";
 
 export default function GrowthPage() {
@@ -19,6 +20,7 @@ export default function GrowthPage() {
       <p className="text-sm leading-relaxed text-white/70">
         Governance stakers counts voting-eligible stake owners: each owner with a positive LOCKED or PREUNLOCKING governance position counts once. UNLOCKING and UNLOCKED positions do not count because they no longer carry governance voting power.
       </p>
+      <PythHolderLeaderboard />
       <GovernanceLeaderboards />
       <details open className="group rounded-2xl border border-white/10 bg-white/[0.025]">
         <summary className="cursor-pointer rounded-2xl px-5 py-4 text-sm font-medium text-white/85 focus-visible:outline-2 focus-visible:outline-cyan-300 sm:px-6">
@@ -30,6 +32,7 @@ export default function GrowthPage() {
             <section className="space-y-2" aria-labelledby="holder-methodology">
               <h2 id="holder-methodology" className="font-medium text-cyan-200">Native PYTH holders · 03:00 UTC</h2>
               <p>Unique Solana owners with a positive native PYTH SPL token balance. Zero-balance accounts are excluded, and multiple token accounts belonging to one owner count once.</p>
+              <p>The top 100 eligible owners are ranked by their combined native token account balances during the same scan. We retain 35 days of rankings and compare the same owner across calendar dates; missing owners have no inferred previous balance. Entity labels and an optional pooled-custody filter apply within the tracked top 100. Filtering does not fetch replacement owners. Changing custody classifications starts a new comparison baseline. Staking positions are not attributed back to their beneficial owners.</p>
               <p>Exchanges, custodians, and staking contracts may hold tokens for multiple people, so this does not count every individual beneficial owner.</p>
             </section>
             <section className="space-y-2" aria-labelledby="governance-methodology">

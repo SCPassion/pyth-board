@@ -2,6 +2,8 @@
 
 Pyth Board is an independent, read-only community dashboard for PYTH staking, token activity, DAO reserves, protocol revenue, and news. It is a personal, unofficial project and is not affiliated with or endorsed by the Pyth Data Association, Douro Labs, the Pythian Council, or Pyth Network data publishers. Figures can be incomplete, delayed, or incorrect and are not financial advice. Verify important information with official sources.
 
+Current app version: **0.6.0**.
+
 ## Site pages
 
 | Route | What it shows |
@@ -11,12 +13,20 @@ Pyth Board is an independent, read-only community dashboard for PYTH staking, to
 | `/pythenians` | Pythenians NFT role and partner directory. |
 | `/reserve` | DAO Treasury and Pythian Council Ops balances, tracked asset valuations, PYTH swaps, buyback metrics, and reserve history. |
 | `/revenue` | Douro Labs reports from the Pyth forum: DAO distributions, revenue trends, product breakdowns, and a report archive. |
-| `/growth` | Native PYTH holders and governance staker history, using daily snapshots. |
+| `/growth` | Daily native PYTH holder counts and top-100 balance changes; governance staker counts, top stakes, and unstaking cooldowns. |
 | `/activity` | Beta: observed PYTH trades across supported routes, with aggregate volumes and execution details. Currently hidden from navigation while collection is paused. |
 | `/news` | Weekly Pyth digest and archive when digests are available. |
 | `/about` | Project disclosures and data limitations. |
 
 The header also shows SOL and PYTH prices and 24-hour changes. The layout supports mobile screens, and the site includes a web manifest and install prompt.
+
+### Growth tracking
+
+The **native PYTH holders** job runs daily at **03:00 UTC**. It groups positive native PYTH token-account balances by Solana owner, records the total holder count and top 100 owners in the same collection, and retains 35 calendar days of top-100 snapshots. The leaderboard shows the top 10, 50, or 100, with balance and rank changes against snapshots from 1, 7, or 30 calendar days earlier. These are daily comparisons, not rolling 24-hour measurements. An address absent from an earlier top 100 has an unknown earlier balance and is shown as new to the list; no previous balance is inferred.
+
+The holder view includes sourced entity labels and an optional **Exclude pooled custody** filter for labeled exchange, broker, custodian, and staking-custody wallets. Filtering applies within the recorded top 100; it does not fetch replacement owners below that rank. Labels are public explorer attributions, not proof of beneficial ownership. The bars show retained, added, or removed PYTH when comparison history exists. Staked PYTH is not attributed back to the original staking wallet in this leaderboard.
+
+The **governance stakers** job runs daily at **15:00 UTC**. It shows the top 10 voting-eligible governance stakes and the top 10 amounts in pending or active unstaking cooldown, grouped by owner. Expanding an unstaking row shows when its cooldown starts and when the PYTH becomes available to withdraw. Pending cooldown can still carry voting power, so an owner may appear in both lists. Oracle Integrity Staking and fully unlocked positions are outside these rankings.
 
 ### Trading Activity status
 
@@ -24,7 +34,7 @@ Trading Activity is a **Beta** page backed by a separate webhook indexer. As of 
 
 The most recent bounded development run received 170 unique signatures: all 170 were processed, producing 128 PYTH trade rows (61 buys and 67 sells), 23 no-trade classifications, and 19 parser reviews, with no processing failures. It observed Jupiter, Titan, and OKX routes as well as direct Orca and Raydium executions. These figures measure processing of **received** signatures, not webhook delivery completeness. Earlier checks found PYTH trades that the subscription missed. The [coverage report](reports/pyth-trade-indexer-coverage-2026-09-25.md) explains the reviews and Helius credit results.
 
-Published trade totals therefore have **partial coverage**. Automatic historical ingestion, missed-webhook backfill, and tracker reconciliation are disabled. The Helius webhook alone does not start collection: the indexer's own collection switch must also be enabled. See [CHANGES.md](CHANGES.md) for the release scope.
+Published trade totals therefore have **partial coverage**. Automatic historical ingestion, missed-webhook backfill, and tracker reconciliation are disabled. The Helius webhook alone does not start collection: the indexer's own collection switch must also be enabled. See [CHANGES.md](CHANGES.md) for the Trading Activity indexer's scope.
 
 ### PYTH trade parser coverage
 
@@ -50,7 +60,7 @@ Production runs **parser v19**. The versions below refer to router programs or s
 | Meteora DLMM | Classic swap. | Other DLMM variants need evidence. |
 | Meteora DAMM v2 | Verified `swap` pool execution, including a Jupiter CPI wrapper case. | Only the attested account, transfer, and ownership shape is promoted. |
 
-These are **parser capabilities on retained evidence**, not a promise that the webhook discovers every transaction from these programs. The PYTH-mint/SWAP subscription missed verified trades in bounded trials; broader CPI/vault-only delivery and Trigger V2 coverage also remain unproven. See [CHANGES.md](CHANGES.md) for the release scope.
+These are **parser capabilities on retained evidence**, not a promise that the webhook discovers every transaction from these programs. The PYTH-mint/SWAP subscription missed verified trades in bounded trials; broader CPI/vault-only delivery and Trigger V2 coverage also remain unproven. See [CHANGES.md](CHANGES.md) for the Trading Activity indexer's scope.
 
 For Jupiter, Titan, and OKX, the inner pool name is not a trade eligibility list. A complete router execution summary or independently verified customer settlement establishes the PYTH buy or sell. If neither is available and an inner execution cannot be decoded, the transaction stays in review; an unknown pool is not silently counted or discarded. A Jupiter execution can still use DFlow as an inner venue; the review-only rule applies to DFlow as the outer router.
 
@@ -77,7 +87,11 @@ Third-party APIs, RPC availability, collection schedules, and supported asset li
 
 ## Convex integration
 
-The existing scheduled jobs for reserve holdings, buyback snapshots, news, reports, native holders, and governance stakers are unchanged. Trading Activity uses a separate HTTP webhook and worker; it adds no cron job. The Convex schema **is extended** with tracker-specific tables and indexes. Existing table definitions and their collection functions are unchanged.
+The cron schedule is unchanged: native holder and governance collections run daily, while buyback metrics run hourly. The native-holder collector retries transient Solana RPC failures on the same page and writes no partial snapshot when a scan fails. Its top-100 ranking is stored with the daily holder count; separate indexed snapshot and latest-leaderboard tables serve comparisons without scanning the full holder population on every page load.
+
+The hourly buyback job fetches parsed transactions in paced batches of five and retries rate-limited batches. After an interruption, it scans back to its saved signature cursor and processes up to 300 of the **oldest unprocessed signatures** per run, continuing on later hourly runs without skipping the remainder. This limit counts all transactions on the tracked account, not only buybacks. If more than 10,000 unprocessed signatures cannot be scanned safely, the job fails without advancing the cursor. The RPC fallback list no longer includes the unavailable Project Serum or unauthenticated Ankr endpoints.
+
+Trading Activity uses a separate HTTP webhook and worker; it adds no cron job. Its tracker tables and indexes are also included in the Convex schema. See [CHANGES.md](CHANGES.md) for the Trading Activity indexer's scope and limitations.
 
 ## Run locally
 

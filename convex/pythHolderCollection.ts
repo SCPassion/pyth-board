@@ -12,10 +12,12 @@ export const collect = internalAction({
     // Collection failures propagate to Convex job logs; no partial snapshot is written.
     const result = await collectPythHolders(process.env.PRIMARY_SOLANA_RPC_URL);
     if (new Date(result.collectedAt).toISOString().slice(0,10) !== date) throw new Error("PYTH scan crossed UTC midnight; retry on the new day");
-    console.info("PYTH holder collection", result);
+    const { topHolders: _topHolders, ...diagnostics } = result;
+    console.info("PYTH holder collection", diagnostics);
     await ctx.runMutation(internal.pythHolders.store,{
       holders:result.holders,collectedAt:result.collectedAt,totalTokenAccounts:result.totalTokenAccounts,
       positiveTokenAccounts:result.positiveTokenAccounts,
+      topHolders:result.topHolders, eligibleHolders:result.eligibleHolders,
     });
     return null;
   },

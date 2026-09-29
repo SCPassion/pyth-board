@@ -1,9 +1,19 @@
 import { trackerTables } from "./trackerModel";
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { holderBalance, holderComparison, holderLeaderboardEntry } from "./holderRankingModel";
 
 export default defineSchema({
   ...trackerTables,
+  pythHolderRankingSnapshots: defineTable({
+    exclusionKey: v.optional(v.string()),
+    date: v.string(), collectedAt: v.number(), entries: v.array(holderBalance),
+  }).index("by_date", ["date"]),
+  pythHolderLeaderboard: defineTable({
+    exclusionKey: v.optional(v.string()),
+    key: v.literal("latest"), date: v.string(), collectedAt: v.number(), firstDate: v.string(),
+    periods: v.array(holderComparison), entries: v.array(holderLeaderboardEntry),
+  }).index("by_key", ["key"]),
   pythGovernanceLeaderboard: defineTable({
     key: v.literal("latest"), collectedAt: v.number(), epoch: v.string(),
     topStakers: v.array(v.object({ owner: v.string(), amount: v.string() })),
