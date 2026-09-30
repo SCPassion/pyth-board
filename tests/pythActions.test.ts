@@ -1,448 +1,172 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PublicKey } from "@solana/web3.js";
+import type { Position } from "@pythnetwork/staking-sdk";
 
-// ─── Hoisted mocks (available inside vi.mock factories) ──────────────────────
-
-const {
-  mockClient,
-  mockClients,
-  mockExtractPublisherData,
-  MockPythStakingClient,
-} =
-  vi.hoisted(() => {
-    // Build both configured RPC endpoints before the server action is imported.
-    process.env.PRIMARY_SOLANA_RPC_URL = "https://mock-primary.example";
-    const createMockClient = () => ({
-      getMainStakeAccount: vi.fn(),
-      getClaimableRewards: vi.fn(),
-      getStakeAccountPositions: vi.fn(),
-      getTargetAccount: vi.fn(),
-      getPoolDataAccount: vi.fn(),
-      getRewardCustodyAccount: vi.fn(),
-      wallet: { publicKey: null as unknown as PublicKey },
-      connection: {},
-    });
-
-    const mockClient = createMockClient();
-    const mockClients: ReturnType<typeof createMockClient>[] = [];
-
-    // Regular function so `new PythStakingClient(...)` works in production code
-    function MockPythStakingClient(this: unknown) {
-      return mockClients.shift() ?? mockClient;
-    }
-
-    return {
-      mockClient,
-      mockClients,
-      mockExtractPublisherData: vi.fn(),
-      MockPythStakingClient,
-    };
-  });
-
-vi.mock("@pythnetwork/staking-sdk", () => ({
-  PythStakingClient: MockPythStakingClient,
-  extractPublisherData: mockExtractPublisherData,
+const mocks = vi.hoisted(() => ({
+  accounts: vi.fn(), positions: vi.fn(), target: vi.fn(), clock: vi.fn(), constructor: vi.fn(),
 }));
-
-// Keep real PublicKey for address validation; only stub Connection
-vi.mock("@solana/web3.js", async (importOriginal) => {
+vi.mock("@pythnetwork/staking-sdk", async () => {
+  const { createRequire } = await import("node:module");
+  const actual = createRequire(import.meta.url)("@pythnetwork/staking-sdk") as typeof import("@pythnetwork/staking-sdk");
+  return { ...actual, PythStakingClient: function (config: { connection: unknown }) {
+    mocks.constructor(config);
+    return { connection: config.connection, getAllStakeAccountPositions: mocks.accounts,
+      getStakeAccountPositions: mocks.positions, getTargetAccount: mocks.target };
+  } };
+});
+vi.mock("@solana/web3.js", async importOriginal => {
   const actual = await importOriginal<typeof import("@solana/web3.js")>();
-  return { ...actual, Connection: class MockConnection {} };
+  return { ...actual, Connection: class {
+    constructor(public rpcEndpoint: string) {}
+    getAccountInfo = mocks.clock;
+  } };
 });
 
-// ─── Test fixtures ────────────────────────────────────────────────────────────
-
-const WALLET_ADDRESS = "11111111111111111111111111111111"; // system program — valid 32-byte key
-const STAKING_ADDRESS = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";
-
-function makePoolData() {
-  return {
-    delState: [{ totalDelegation: 500_000_000n, deltaDelegation: 0n }],
-    selfDelState: [{ totalDelegation: 100_000_000n, deltaDelegation: 0n }],
-    claimableRewards: 5_000_000n,
-    publishers: [],
-  };
+import { getGovernanceStakingInfo, refreshGovernanceStakingInfo, getGovernanceTotalStaked } from "@/action/pythActions";
+const OWNER = PublicKey.default;
+const ACCOUNT = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
+const SECOND_ACCOUNT = new PublicKey("So11111111111111111111111111111111111111112");
+const position = (amount: number, activationEpoch = 9n, unlockingStart: bigint | null = null, ois = false): Position => ({
+  amount: BigInt(amount) * 1_000_000n, activationEpoch, unlockingStart,
+  targetWithParameters: ois ? { integrityPool: { publisher: OWNER } } : { voting: {} },
+});
+const mixedPositions = () => [position(100), position(20, 11n), position(30, 9n, 11n),
+  position(40, 9n, 10n), position(90, 9n, 9n), position(500, 9n, null, true)];
+function setEpoch(epoch: bigint) {
+  const data = Buffer.alloc(40); data.writeBigInt64LE(epoch * 604800n, 32);
+  mocks.clock.mockResolvedValue({ data });
 }
 
-function setupHappyPath() {
-  const stakingPubkey = new PublicKey(STAKING_ADDRESS);
+beforeEach(() => {
+  vi.resetAllMocks();
+  vi.stubEnv("PRIMARY_SOLANA_RPC_URL", "https://mock-primary.example");
+  mocks.accounts.mockResolvedValue([ACCOUNT]);
+  mocks.positions.mockResolvedValue({ address: ACCOUNT, data: { owner: OWNER, positions: mixedPositions() } });
+  setEpoch(10n);
+});
+afterEach(() => { vi.useRealTimers(); vi.unstubAllEnvs(); });
 
-  mockClient.getMainStakeAccount.mockResolvedValue({
-    stakeAccountPosition: stakingPubkey,
+describe("governance wallet actions", () => {
+  it("counts governance states without OIS, unlocked balances, or reward reads", async () => {
+    const result = await getGovernanceStakingInfo(OWNER.toBase58());
+    expect(result.info).toMatchObject({ kind: "governance", totalStakedPyth: 190,
+      activePyth: 100, warmingUpPyth: 20, unstakingPyth: 70 });
+    expect(result.stakingAddress).toBe(ACCOUNT.toBase58());
+    expect(mocks.accounts).toHaveBeenCalledWith(OWNER);
+    // The SDK mock exposes only governance reads: any OIS/reward call would fail.
+    expect(result.info).not.toHaveProperty("claimableRewards");
+    expect(result.info).not.toHaveProperty("StakeForEachPublisher");
   });
 
-  mockClient.getClaimableRewards.mockResolvedValue({ totalRewards: 1_000_000n }); // 1 PYTH
-
-  mockClient.getStakeAccountPositions.mockResolvedValue({
-    address: stakingPubkey,
-    data: {
-      owner: new PublicKey(WALLET_ADDRESS),
-      positions: [
-        {
-          amount: 500_000_000n, // 500 PYTH
-          targetWithParameters: {
-            integrityPool: { publisher: new PublicKey(WALLET_ADDRESS) },
-          },
-        },
-      ],
-    },
+  it("adds all owned accounts without counting duplicate discovery results twice", async () => {
+    mocks.accounts.mockResolvedValue([ACCOUNT, SECOND_ACCOUNT, ACCOUNT]);
+    mocks.positions.mockImplementation(async (address: PublicKey) => ({ address, data: {
+      owner: OWNER, positions: address.equals(ACCOUNT) ? mixedPositions() : [position(11)],
+    } }));
+    const result = await getGovernanceStakingInfo(OWNER.toBase58());
+    expect(result.info.totalStakedPyth).toBe(201);
+    expect(result.info.activePyth).toBe(111);
+    expect(result.info.stakingAccounts).toHaveLength(2);
+    expect(mocks.positions).toHaveBeenCalledTimes(2);
   });
 
-  const poolData = makePoolData();
-  mockClient.getPoolDataAccount.mockResolvedValue(poolData);
-  mockClient.getTargetAccount.mockResolvedValue({
-    locked: 10_000_000_000n,
-    deltaLocked: 0n,
-  });
-  mockClient.getRewardCustodyAccount.mockResolvedValue({
-    amount: 55_000_000n,
-  });
-
-  mockExtractPublisherData.mockReturnValue([
-    {
-      totalDelegation: 500_000_000n,
-      totalDelegationDelta: 0n,
-      pubkey: new PublicKey(WALLET_ADDRESS),
-      apyHistory: [{ apy: 0.08 }],
-    },
-  ]);
-}
-
-// ─── Tests ───────────────────────────────────────────────────────────────────
-
-import { getOISStakingInfo, refreshOISStakingInfo } from "@/action/pythActions";
-
-describe("getOISStakingInfo", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockClients.length = 0;
-  });
-
-  // ── Input validation ────────────────────────────────────────────────────────
-
-  it("throws if wallet address is empty", async () => {
-    await expect(getOISStakingInfo("")).rejects.toThrow(
-      "Wallet address is required"
-    );
-  });
-
-  it("throws if wallet address format is invalid", async () => {
-    await expect(getOISStakingInfo("not-a-valid-solana-address")).rejects.toThrow(
-      "Invalid wallet address format"
-    );
-  });
-
-  // ── Account discovery ───────────────────────────────────────────────────────
-
-  it("throws a clear error when no staking account exists for the wallet", async () => {
-    mockClient.getMainStakeAccount.mockResolvedValue(undefined);
-
-    await expect(getOISStakingInfo(WALLET_ADDRESS)).rejects.toThrow(
-      "No staking account found for this wallet"
-    );
-  });
-
-  it("calls getMainStakeAccount with the wallet public key to discover the staking account", async () => {
-    setupHappyPath();
-
-    await getOISStakingInfo(WALLET_ADDRESS);
-
-    expect(mockClient.getMainStakeAccount).toHaveBeenCalledWith(
-      expect.objectContaining({ toBase58: expect.any(Function) })
-    );
-    const calledWith: PublicKey = mockClient.getMainStakeAccount.mock.calls[0][0];
-    expect(calledWith.toBase58()).toBe(WALLET_ADDRESS);
-  });
-
-  it("queries each RPC endpoint at most once during stake account discovery", async () => {
-    const stakingPubkey = new PublicKey(STAKING_ADDRESS);
-    const clients = Array.from({ length: 2 }, () => ({
-      getMainStakeAccount: vi.fn().mockResolvedValue({
-        stakeAccountPosition: stakingPubkey,
-      }),
-      getClaimableRewards: vi.fn().mockResolvedValue({ totalRewards: 1_000_000n }),
-      getStakeAccountPositions: vi.fn().mockResolvedValue({
-        address: stakingPubkey,
-        data: {
-          owner: new PublicKey(WALLET_ADDRESS),
-          positions: [],
-        },
-      }),
-      getTargetAccount: vi.fn().mockResolvedValue({
-        locked: 10_000_000_000n,
-        deltaLocked: 0n,
-      }),
-      getPoolDataAccount: vi.fn().mockResolvedValue(makePoolData()),
-      getRewardCustodyAccount: vi.fn().mockResolvedValue({
-        amount: 55_000_000n,
-      }),
-      wallet: { publicKey: null as unknown as PublicKey },
-      connection: {},
-    }));
-
-    mockExtractPublisherData.mockReturnValue([]);
-    mockClients.push(...clients);
-
-    await getOISStakingInfo(WALLET_ADDRESS);
-
-    clients.forEach((client) => {
-      expect(client.getMainStakeAccount).toHaveBeenCalledTimes(1);
+  it.each([[11n, 150, 120, 30], [12n, 120, 120, 0]])(
+    "updates warmup and cooldown at epoch %s", async (epoch, total, active, unstaking) => {
+      setEpoch(epoch);
+      const result = await getGovernanceStakingInfo(OWNER.toBase58());
+      expect(result.info).toMatchObject({ totalStakedPyth: total, activePyth: active, warmingUpPyth: 0, unstakingPyth: unstaking });
     });
+
+  it("allows a wallet with no staking accounts and reports a genuine zero", async () => {
+    mocks.accounts.mockResolvedValue([]);
+    const result = await getGovernanceStakingInfo(OWNER.toBase58());
+    expect(result.info.totalStakedPyth).toBe(0);
+    expect(result.info.stakingAccounts).toEqual([]);
+    expect(result.stakingAddress).toBe("");
   });
 
-  it("falls back quickly to a responsive RPC when an earlier endpoint hangs", async () => {
-    const stakingPubkey = new PublicKey(STAKING_ADDRESS);
-    const slowClient = {
-      getMainStakeAccount: vi.fn(
-        () => new Promise(() => undefined) as Promise<never>
-      ),
-      getClaimableRewards: vi.fn(),
-      getStakeAccountPositions: vi.fn(),
-      getTargetAccount: vi.fn(),
-      getPoolDataAccount: vi.fn(),
-      getRewardCustodyAccount: vi.fn(),
-      wallet: { publicKey: null as unknown as PublicKey },
-      connection: {},
-    };
-
-    const fastClient = {
-      getMainStakeAccount: vi.fn().mockResolvedValue({
-        stakeAccountPosition: stakingPubkey,
-      }),
-      getClaimableRewards: vi.fn().mockResolvedValue({ totalRewards: 1_000_000n }),
-      getStakeAccountPositions: vi.fn().mockResolvedValue({
-        address: stakingPubkey,
-        data: {
-          owner: new PublicKey(WALLET_ADDRESS),
-          positions: [],
-        },
-      }),
-      getTargetAccount: vi.fn().mockResolvedValue({
-        locked: 10_000_000_000n,
-        deltaLocked: 0n,
-      }),
-      getPoolDataAccount: vi.fn().mockResolvedValue(makePoolData()),
-      getRewardCustodyAccount: vi.fn().mockResolvedValue({
-        amount: 55_000_000n,
-      }),
-      wallet: { publicKey: null as unknown as PublicKey },
-      connection: {},
-    };
-
-    mockExtractPublisherData.mockReturnValue([]);
-    mockClients.push(slowClient, fastClient);
-
-    const result = await getOISStakingInfo(WALLET_ADDRESS);
-
-    expect(result.stakingAddress).toBe(STAKING_ADDRESS);
-    expect(fastClient.getMainStakeAccount).toHaveBeenCalledTimes(1);
+  it("reports zero governance stake for an OIS-only account", async () => {
+    mocks.positions.mockResolvedValue({ address: ACCOUNT, data: { owner: OWNER, positions: [position(500, 9n, null, true)] } });
+    expect((await getGovernanceStakingInfo(OWNER.toBase58())).info.totalStakedPyth).toBe(0);
   });
 
-  it("returns a clean user-facing error when stake account discovery times out", async () => {
-    const timeoutClient = {
-      getMainStakeAccount: vi
-        .fn()
-        .mockRejectedValue(
-          new Error("Stake account discovery timed out across all RPC endpoints")
-        ),
-      getClaimableRewards: vi.fn(),
-      getStakeAccountPositions: vi.fn(),
-      getTargetAccount: vi.fn(),
-      getPoolDataAccount: vi.fn(),
-      getRewardCustodyAccount: vi.fn(),
-      wallet: { publicKey: null as unknown as PublicKey },
-      connection: {},
-    };
-
-    mockClients.push(
-      timeoutClient,
-      timeoutClient,
-      timeoutClient,
-      timeoutClient
-    );
-
-    await expect(getOISStakingInfo(WALLET_ADDRESS)).rejects.toThrow(
-      "RPC timeout: Unable to discover staking account. Please try again later."
-    );
+  it.each(["", "invalid-address"])("rejects invalid input %s without RPC calls", async address => {
+    await expect(getGovernanceStakingInfo(address)).rejects.toThrow(address ? "Invalid wallet address" : "Wallet address is required");
+    expect(mocks.constructor).not.toHaveBeenCalled();
   });
 
-  // ── Return shape ────────────────────────────────────────────────────────────
-
-  it("returns the auto-discovered staking address as a base58 string", async () => {
-    setupHappyPath();
-
-    const result = await getOISStakingInfo(WALLET_ADDRESS);
-
-    expect(result.stakingAddress).toBe(STAKING_ADDRESS);
+  it("falls back to the public endpoint on discovery failure", async () => {
+    mocks.accounts.mockRejectedValueOnce(new Error("429"));
+    expect((await getGovernanceStakingInfo(OWNER.toBase58())).info.totalStakedPyth).toBe(190);
+    expect(mocks.constructor.mock.calls.map(([config]) => config.connection.rpcEndpoint)).toEqual([
+      "https://mock-primary.example", "https://api.mainnet-beta.solana.com",
+    ]);
   });
 
-  it("returns staking info with expected shape", async () => {
-    setupHappyPath();
+  it("falls back on a hung primary RPC", async () => {
+    vi.useFakeTimers();
+    mocks.accounts.mockImplementationOnce(() => new Promise(() => {}));
+    const read = getGovernanceStakingInfo(OWNER.toBase58());
+    await vi.advanceTimersByTimeAsync(10000);
+    expect((await read).info.totalStakedPyth).toBe(190);
+  });
 
-    const result = await getOISStakingInfo(WALLET_ADDRESS);
-
-    expect(result.info).toMatchObject({
-      totalStakedPyth: expect.any(Number),
-      claimableRewards: expect.any(Number),
-      StakeForEachPublisher: expect.any(Array),
-      generalStats: expect.objectContaining({
-        totalGovernance: expect.any(Number),
-        totalStaked: expect.any(Number),
-        rewardsDistributed: expect.any(Number),
-      }),
+  it("fails instead of returning a partial total when one account cannot be read", async () => {
+    mocks.accounts.mockResolvedValue([ACCOUNT, SECOND_ACCOUNT]);
+    mocks.positions.mockImplementation(async address => {
+      if (address.equals(SECOND_ACCOUNT)) throw new Error("Account unavailable");
+      return { address, data: { owner: OWNER, positions: mixedPositions() } };
     });
+    await expect(getGovernanceStakingInfo(OWNER.toBase58())).rejects.toThrow("Unable to load governance balances");
   });
 
-  it("returns correct totalStakedPyth from positions", async () => {
-    setupHappyPath();
-
-    const result = await getOISStakingInfo(WALLET_ADDRESS);
-
-    // 500_000_000 raw * 1e-6 = 500 PYTH
-    expect(result.info.totalStakedPyth).toBeCloseTo(500);
+  it("rejects a staking account owned by another wallet", async () => {
+    mocks.positions.mockResolvedValue({ address: ACCOUNT, data: { owner: SECOND_ACCOUNT, positions: mixedPositions() } });
+    await expect(getGovernanceStakingInfo(OWNER.toBase58())).rejects.toThrow("Unable to load governance balances");
   });
 
-  it("returns correct claimableRewards from SDK", async () => {
-    setupHappyPath();
+  it("fails when the chain clock cannot be read", async () => {
+    mocks.clock.mockResolvedValue(null);
+    await expect(getGovernanceStakingInfo(OWNER.toBase58())).rejects.toThrow("Unable to load governance balances");
+  });
 
-    const result = await getOISStakingInfo(WALLET_ADDRESS);
-
-    // 1_000_000 raw * 1e-6 = 1 PYTH
-    expect(result.info.claimableRewards).toBeCloseTo(1);
+  it("rediscovers accounts when refreshing an existing wallet", async () => {
+    const result = await refreshGovernanceStakingInfo(OWNER.toBase58());
+    expect(result.info.totalStakedPyth).toBe(190);
+    expect(mocks.accounts).toHaveBeenCalledWith(OWNER);
   });
 });
 
-describe("refreshOISStakingInfo", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockClients.length = 0;
+describe("network governance total", () => {
+  it("reads the global target without discovering wallets", async () => {
+    mocks.target.mockResolvedValue({ locked: 1_250_000_000_000_000n, deltaLocked: -50_000_000_000_000n });
+    expect(await getGovernanceTotalStaked()).toBe(1_200_000_000);
+    expect(mocks.accounts).not.toHaveBeenCalled();
+    expect(mocks.positions).not.toHaveBeenCalled();
   });
-
-  // ── Input validation ────────────────────────────────────────────────────────
-
-  it("throws if wallet address is empty", async () => {
-    await expect(refreshOISStakingInfo("", STAKING_ADDRESS)).rejects.toThrow(
-      "Wallet address is required"
-    );
+  it("falls back when the primary RPC fails", async () => {
+    mocks.target.mockRejectedValueOnce(new Error("RPC unavailable"))
+      .mockResolvedValueOnce({ locked: 10_000_000n, deltaLocked: 0n });
+    expect(await getGovernanceTotalStaked()).toBe(10);
   });
-
-  it("throws if staking address is empty", async () => {
-    await expect(refreshOISStakingInfo(WALLET_ADDRESS, "")).rejects.toThrow(
-      "Staking address is required"
-    );
+  it("falls back after a primary RPC timeout", async () => {
+    vi.useFakeTimers();
+    mocks.target.mockImplementationOnce(() => new Promise(() => {}))
+      .mockResolvedValueOnce({ locked: 12_000_000n, deltaLocked: 0n });
+    const read = getGovernanceTotalStaked();
+    await vi.advanceTimersByTimeAsync(10000);
+    expect(await read).toBe(12);
   });
-
-  it("throws if wallet address format is invalid", async () => {
-    await expect(
-      refreshOISStakingInfo("not-a-valid-address", STAKING_ADDRESS)
-    ).rejects.toThrow("Invalid wallet address format");
+  it("returns unavailable instead of zero when all RPCs fail", async () => {
+    mocks.target.mockRejectedValue(new Error("RPC unavailable"));
+    expect(await getGovernanceTotalStaked()).toBeNull();
   });
-
-  it("throws if staking address format is invalid", async () => {
-    await expect(
-      refreshOISStakingInfo(WALLET_ADDRESS, "not-a-valid-address")
-    ).rejects.toThrow("Invalid staking address format");
+  it("accepts a genuine zero", async () => {
+    mocks.target.mockResolvedValue({ locked: 0n, deltaLocked: 0n });
+    expect(await getGovernanceTotalStaked()).toBe(0);
   });
-
-  // ── No discovery ────────────────────────────────────────────────────────────
-
-  it("does not call getMainStakeAccount — uses the known staking address directly", async () => {
-    setupHappyPath();
-
-    await refreshOISStakingInfo(WALLET_ADDRESS, STAKING_ADDRESS);
-
-    expect(mockClient.getMainStakeAccount).not.toHaveBeenCalled();
-  });
-
-  it("uses the primary refresh client when it is healthy without probing fallback RPCs", async () => {
-    const stakingPubkey = new PublicKey(STAKING_ADDRESS);
-    const primaryClient = {
-      getMainStakeAccount: vi.fn(),
-      getClaimableRewards: vi.fn().mockResolvedValue({ totalRewards: 1_000_000n }),
-      getStakeAccountPositions: vi.fn().mockResolvedValue({
-        address: stakingPubkey,
-        data: {
-          owner: new PublicKey(WALLET_ADDRESS),
-          positions: [],
-        },
-      }),
-      getTargetAccount: vi.fn().mockResolvedValue({
-        locked: 10_000_000_000n,
-        deltaLocked: 0n,
-      }),
-      getPoolDataAccount: vi.fn().mockResolvedValue(makePoolData()),
-      getRewardCustodyAccount: vi.fn().mockResolvedValue({
-        amount: 55_000_000n,
-      }),
-      wallet: { publicKey: null as unknown as PublicKey },
-      connection: {},
-    };
-
-    const fallbackClient = {
-      getMainStakeAccount: vi.fn(),
-      getClaimableRewards: vi.fn(),
-      getStakeAccountPositions: vi.fn(),
-      getTargetAccount: vi.fn(),
-      getPoolDataAccount: vi.fn(),
-      getRewardCustodyAccount: vi.fn(),
-      wallet: { publicKey: null as unknown as PublicKey },
-      connection: {},
-    };
-
-    mockExtractPublisherData.mockReturnValue([]);
-    mockClients.push(primaryClient, fallbackClient);
-
-    const result = await refreshOISStakingInfo(
-      WALLET_ADDRESS,
-      STAKING_ADDRESS
-    );
-
-    expect(result.stakingAddress).toBe(STAKING_ADDRESS);
-    expect(primaryClient.getTargetAccount).toHaveBeenCalledTimes(1);
-    expect(fallbackClient.getTargetAccount).not.toHaveBeenCalled();
-    expect(fallbackClient.getStakeAccountPositions).not.toHaveBeenCalled();
-  });
-
-  // ── Return shape ────────────────────────────────────────────────────────────
-
-  it("returns the provided staking address unchanged", async () => {
-    setupHappyPath();
-
-    const result = await refreshOISStakingInfo(WALLET_ADDRESS, STAKING_ADDRESS);
-
-    expect(result.stakingAddress).toBe(STAKING_ADDRESS);
-  });
-
-  it("returns staking info with expected shape", async () => {
-    setupHappyPath();
-
-    const result = await refreshOISStakingInfo(WALLET_ADDRESS, STAKING_ADDRESS);
-
-    expect(result.info).toMatchObject({
-      totalStakedPyth: expect.any(Number),
-      claimableRewards: expect.any(Number),
-      StakeForEachPublisher: expect.any(Array),
-      generalStats: expect.objectContaining({
-        totalGovernance: expect.any(Number),
-        totalStaked: expect.any(Number),
-        rewardsDistributed: expect.any(Number),
-      }),
-    });
-  });
-
-  it("returns correct totalStakedPyth from positions", async () => {
-    setupHappyPath();
-
-    const result = await refreshOISStakingInfo(WALLET_ADDRESS, STAKING_ADDRESS);
-
-    expect(result.info.totalStakedPyth).toBeCloseTo(500);
-  });
-
-  it("returns correct claimableRewards", async () => {
-    setupHappyPath();
-
-    const result = await refreshOISStakingInfo(WALLET_ADDRESS, STAKING_ADDRESS);
-
-    expect(result.info.claimableRewards).toBeCloseTo(1);
+  it("rejects invalid negative totals", async () => {
+    mocks.target.mockResolvedValue({ locked: 1n, deltaLocked: -2n });
+    expect(await getGovernanceTotalStaked()).toBeNull();
   });
 });

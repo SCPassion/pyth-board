@@ -14,14 +14,14 @@ export default function WalletsPage() {
     <div className="w-full min-w-0 space-y-16 sm:space-y-20">
       <PageMasthead
         eyebrow="Wallet Management"
-        title="Connected wallets and validator positions."
-        description="Wallet addresses, staking accounts, APY, rewards, and validator rows for every wallet you've connected to this dashboard."
+        title="Your wallets and governance stake."
+        description="Governance balances and staking accounts for every tracked wallet, including active stake, warmup, and unstaking."
         right={
           <Badge
             variant="outline"
             className="font-data w-fit rounded-xl border-white/10 bg-black/15 px-3 py-1 text-xs text-white/85"
           >
-            {wallets.length} Wallets Connected
+            {wallets.length} Wallet{wallets.length === 1 ? "" : "s"} Tracked
           </Badge>
         }
       />
@@ -32,11 +32,11 @@ export default function WalletsPage() {
             <Wallet className="h-10 w-10 text-[#b5add1] sm:h-12 sm:w-12" />
           </div>
           <h3 className="font-display mb-4 text-2xl text-white">
-            No Wallets Connected
+            No Wallets Tracked
           </h3>
           <p className="mx-auto max-w-md text-sm leading-relaxed text-[#b4aec8] sm:text-base">
-            Connect a wallet to start tracking PYTH staking positions, validator
-            exposure, and claimable rewards in this dashboard.
+            Add a wallet address from the header to track PYTH governance stake,
+            warmup, and unstaking. No wallet connection or signing required.
           </p>
         </section>
       ) : (
@@ -44,7 +44,7 @@ export default function WalletsPage() {
           <SectionRule
             index="01"
             title="Wallet Portfolio"
-            description="Review staking balances, rewards, and validator allocations for each connected wallet."
+            description="Review governance balances and staking accounts for each tracked wallet."
             right={
               <Badge
                 variant="outline"

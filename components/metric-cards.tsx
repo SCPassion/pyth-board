@@ -21,8 +21,7 @@ import {
 
 type MetricCardsProps = {
   pythPrice: number | null;
-  totalStaked: number;
-  totalClaimableRewards: number;
+  totalStaked: number | null;
 };
 
 export function MetricCards({
@@ -34,9 +33,9 @@ export function MetricCards({
 
   const walletData = wallets.map((wallet) => ({
     name: wallet.name,
-    value: wallet.stakingInfo?.totalStakedPyth as number,
+    value: wallet.stakingInfo?.kind === "governance" ? wallet.stakingInfo.totalStakedPyth : 0,
     percentage:
-      totalStaked > 0
+      totalStaked !== null && totalStaked > 0
         ? (((wallet.stakingInfo?.totalStakedPyth as number) / totalStaked) * 100)
             .toFixed(1)
         : "0.0",
@@ -205,11 +204,11 @@ export function MetricCards({
             </div>
 
             <p className="font-data text-3xl font-medium text-white">
-              {wallets.length === 0 ? "No wallets connected" : `${wallets.length} Wallets`}
+              {wallets.length === 0 ? "No wallets tracked" : `${wallets.length} Wallet${wallets.length === 1 ? "" : "s"}`}
             </p>
 
             <div className="flex h-28 items-center justify-center rounded-[22px] bg-[#312940] ring-1 ring-white/6 sm:h-32">
-              {wallets.length > 0 ? (
+              {wallets.length > 0 && totalStaked !== null && totalStaked > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
@@ -232,12 +231,12 @@ export function MetricCards({
                 </ResponsiveContainer>
               ) : (
                 <p className="px-4 text-center text-sm text-[#9b94b6]">
-                  Connect a wallet to see your staking distribution.
+                  {wallets.length === 0 ? "Add a wallet to see your governance stake distribution." : totalStaked === null ? "Governance balances are unavailable. Refresh your wallets to see the distribution." : "No PYTH allocated to governance staking."}
                 </p>
               )}
             </div>
 
-            {wallets.length > 0 ? (
+            {wallets.length > 0 && totalStaked !== null && totalStaked > 0 ? (
               <div className="flex flex-wrap justify-center gap-x-2 gap-y-1 sm:gap-x-3">
                 {walletData.map((wallet, index) => (
                   <div

@@ -8,6 +8,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { WalletDropdown } from "@/components/wallet-dropdown";
 import { PriceTicker } from "@/components/price-ticker";
+import { GovernanceHeaderStat } from "@/components/governance-header-stat";
 import { usePwaInstall } from "@/components/pwa-install-context";
 import { useAppLoading } from "@/components/app-loading-context";
 import packageJson from "@/package.json";
@@ -96,13 +97,13 @@ export function TopHeader({
         }
       : isRefreshingWallets
         ? {
-            label: "Refreshing wallet balances and rewards...",
+            label: "Refreshing governance balances...",
             className:
               "border-cyan-400/30 bg-cyan-300/12 text-cyan-50 shadow-[0_0_24px_rgba(34,211,238,0.25)] animate-pulse",
           }
         : showRefreshComplete
           ? {
-              label: "Wallet balances refreshed",
+              label: "Governance balances refreshed",
               className:
                 `border-emerald-400/20 bg-emerald-300/10 text-emerald-50 transition-all duration-500 ${
                   isRefreshCompleteFading
@@ -113,7 +114,7 @@ export function TopHeader({
           : null;
 
   return (
-    <header className="flex min-h-20 items-center justify-between gap-3 border-b border-white/6 bg-[#241b35] px-3 py-3 sm:px-6">
+    <header className="flex min-h-20 flex-wrap items-center justify-between gap-3 border-b border-white/6 bg-[#241b35] px-3 py-3 sm:px-6">
       <div className="flex min-w-0 flex-1 items-center gap-3">
         <Button
           variant="ghost"
@@ -199,6 +200,10 @@ export function TopHeader({
             ) : null}
           </div>
         </div>
+      </div>
+
+      <div className="hidden shrink-0 lg:flex">
+        <GovernanceHeaderStat />
       </div>
 
       <div className="flex shrink-0 items-center gap-2 sm:gap-3">

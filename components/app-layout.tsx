@@ -9,10 +9,11 @@ import { Sidebar } from "@/components/sidebar";
 import { TopHeader } from "@/components/top-header";
 import { AppFooter } from "@/components/app-footer";
 import { useWalletInfosStore } from "@/store/store";
-import { refreshOISStakingInfo } from "@/action/pythActions";
-import { usePythPrice } from "@/hooks/use-pyth-price";
+import { refreshGovernanceStakingInfo } from "@/action/pythActions";
+import { parseStoredWallets } from "@/lib/wallet-storage";
 import { refreshWalletsSequentially } from "@/lib/wallet-refresh";
 import { AppLoadingContext } from "@/components/app-loading-context";
+import type { WalletInfo } from "@/types/pythTypes";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -29,8 +30,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     null
   );
 
-  const { wallets, setWallets } = useWalletInfosStore();
-  const pythPrice = usePythPrice();
+  const { setWallets } = useWalletInfosStore();
 
   const toggleMobileMenu = useCallback(() => {
     setIsMobileMenuOpen((prev) => !prev);
@@ -39,12 +39,16 @@ export function AppLayout({ children }: AppLayoutProps) {
   // Load wallets from localStorage - iOS/Mobile compatible version
   useEffect(() => {
     let isMounted = true;
+    let refreshGeneration = 0;
     setIsLoading(false);
 
     async function refreshWalletsInBackground(
-      storedWallets: typeof wallets
+      storedWallets: WalletInfo[],
+      generation: number
     ): Promise<void> {
-      if (isMounted) {
+      const isCurrent = () => isMounted && generation === refreshGeneration;
+      if (!isCurrent()) return;
+      if (isCurrent()) {
         setIsRefreshingWallets(true);
         setWalletRefreshError(null);
       }
@@ -53,22 +57,20 @@ export function AppLayout({ children }: AppLayoutProps) {
         const result = await refreshWalletsSequentially(
           storedWallets,
           async (wallet) => {
-            const next = await refreshOISStakingInfo(
-              wallet.address,
-              wallet.stakingAddress
-            );
+            const next = await refreshGovernanceStakingInfo(wallet.address);
             return next;
           },
           (nextWallets) => {
-            if (isMounted) {
-              setWallets(nextWallets);
+            if (isCurrent()) {
+              const updatedById = new Map(nextWallets.map(wallet => [wallet.id, wallet]));
+              setWallets(useWalletInfosStore.getState().wallets.map(wallet => updatedById.get(wallet.id) ?? wallet));
             }
           }
         );
 
-        if (isMounted) {
+        if (isCurrent()) {
           try {
-            localStorage.setItem("wallets", JSON.stringify(result.wallets));
+            localStorage.setItem("wallets", JSON.stringify(useWalletInfosStore.getState().wallets));
           } catch {
             // localStorage might be unavailable
           }
@@ -80,13 +82,15 @@ export function AppLayout({ children }: AppLayoutProps) {
           }
         }
       } finally {
-        if (isMounted) {
+        if (isCurrent()) {
           setIsRefreshingWallets(false);
         }
       }
     }
 
-    function loadWallets() {
+    function loadWallets(refresh = true) {
+      const generation = ++refreshGeneration;
+      setIsRefreshingWallets(false);
       // Check if we're in a browser environment
       if (typeof window === "undefined") {
         return;
@@ -106,24 +110,15 @@ export function AppLayout({ children }: AppLayoutProps) {
           return;
         }
 
-        let wallets = [];
-
-        if (storedWallets) {
-          try {
-            wallets = JSON.parse(storedWallets);
-          } catch (parseError) {
-            console.error("Error parsing wallet data:", parseError);
-            wallets = [];
-          }
-        }
+        const wallets = parseStoredWallets(storedWallets);
 
         if (isMounted) {
           setWallets(wallets);
         }
 
-        if (wallets.length > 0) {
+        if (refresh && wallets.length > 0) {
           setTimeout(() => {
-            void refreshWalletsInBackground(wallets);
+            void refreshWalletsInBackground(wallets, generation);
           }, 0);
         }
 
@@ -145,30 +140,16 @@ export function AppLayout({ children }: AppLayoutProps) {
     }
 
     loadWallets();
-
+    function handleStorageChange(event: StorageEvent) {
+      // Adopt another tab's snapshot without writing it back and triggering a refresh loop.
+      if (event.key === "wallets" || event.key === null) loadWallets(false);
+    }
+    window.addEventListener("storage", handleStorageChange);
     return () => {
       isMounted = false;
+      window.removeEventListener("storage", handleStorageChange);
     };
-  }, []); // Only run on mount
-
-  // Listen for localStorage changes (new wallets added) - SIMPLIFIED
-  useEffect(() => {
-    function handleStorageChange(event: StorageEvent) {
-      if (event.key === "wallets" && event.newValue) {
-        try {
-          const parsedWallets = JSON.parse(event.newValue);
-          setWallets(parsedWallets);
-        } catch (error) {
-          console.error("Error parsing wallet data from storage:", error);
-        }
-      }
-    }
-
-    window.addEventListener("storage", handleStorageChange);
-    return () => window.removeEventListener("storage", handleStorageChange);
-  }, []); // No dependencies to prevent loops
-
-  // Pyth price is now handled by usePythPrice hook
+  }, [setWallets]);
 
   return (
     <AppLoadingContext.Provider

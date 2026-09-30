@@ -77,7 +77,7 @@ export function StakingHelpPopup() {
                         Connect your Solana wallet
                       </p>
                       <p className="text-gray-400 text-sm">
-                        Click "Connect Wallet" and connect your Solana wallet
+                        Click &quot;Connect Wallet&quot; and connect your Solana wallet
                         (Phantom, Solflare, etc.)
                       </p>
                     </div>
@@ -89,11 +89,12 @@ export function StakingHelpPopup() {
                     </div>
                     <div>
                       <p className="text-white font-medium">
-                        Navigate to "Stake account"
+                        Navigate to &quot;Stake account&quot;
                       </p>
                       <p className="text-gray-400 text-sm">
-                        Copy your stake account address and paste it into the
-                        form.
+                        Review your governance stake and its warmup or cooldown
+                        status. Add your Solana wallet address to this dashboard;
+                        staking accounts are discovered automatically.
                       </p>
                     </div>
                   </div>
@@ -109,10 +110,10 @@ export function StakingHelpPopup() {
                         Important Note
                       </p>
                       <p className="text-blue-200 text-sm">
-                        Your staking account address is automatically generated
-                        when you first stake with the Pyth OIS program. If you
-                        haven't staked before, you'll need to create a staking
-                        position first on staking.pyth.network.
+                        Use your Solana wallet address to track governance stake.
+                        The dashboard discovers all Pyth staking accounts owned
+                        by it. Wallets without governance positions show a zero
+                        governance balance.
                       </p>
                     </div>
                   </div>

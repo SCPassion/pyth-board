@@ -9,14 +9,12 @@ const baseWallet = (id: string, totalStakedPyth: number): WalletInfo => ({
   address: `address-${id}`,
   stakingAddress: `staking-${id}`,
   stakingInfo: {
-    StakeForEachPublisher: [],
+    kind: "governance",
     totalStakedPyth,
-    claimableRewards: totalStakedPyth / 10,
-    generalStats: {
-      totalGovernance: 1,
-      totalStaked: 2,
-      rewardsDistributed: 3,
-    },
+    activePyth: totalStakedPyth,
+    warmingUpPyth: 0,
+    unstakingPyth: 0,
+    stakingAccounts: [],
   },
 });
 

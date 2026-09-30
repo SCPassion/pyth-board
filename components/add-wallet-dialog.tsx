@@ -51,7 +51,7 @@ export function AddWalletDialog({ open, onOpenChange, onAddWallet }: AddWalletDi
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Add New Wallet</DialogTitle>
-          <DialogDescription>Enter your Solana wallet address to start tracking your Pyth staking.</DialogDescription>
+          <DialogDescription>Enter your Solana wallet address to track your PYTH governance staking.</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">

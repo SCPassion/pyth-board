@@ -1,25 +1,18 @@
-export type PythStakingInfo = {
-  StakeForEachPublisher: MyPublisherInfo[];
+export type GovernanceStakeAccount = {
+  address: string;
   totalStakedPyth: number;
-  claimableRewards: number;
-  generalStats: {
-    totalGovernance: number;
-    totalStaked: number;
-    rewardsDistributed: number;
-  };
+  activePyth: number;
+  warmingUpPyth: number;
+  unstakingPyth: number;
 };
 
-export type MyPublisherInfo = {
-  publisherKey: string;
-  stakedAmount: number;
-  apy: number;
-  rewards: number;
-};
-
-export type PythGeneralStats = {
-  totalGovernance: number;
-  totalStaked: number;
-  rewardsDistributed: number;
+export type PythStakingInfo = {
+  kind: "governance";
+  totalStakedPyth: number;
+  activePyth: number;
+  warmingUpPyth: number;
+  unstakingPyth: number;
+  stakingAccounts: GovernanceStakeAccount[];
 };
 
 export type WalletInfo = {

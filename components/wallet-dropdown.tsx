@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader, Plus, Trash2, X } from "lucide-react";
 import { useWalletInfosStore } from "@/store/store";
-import { getOISStakingInfo } from "@/action/pythActions";
+import { getGovernanceStakingInfo } from "@/action/pythActions";
 import toast from "react-hot-toast";
 
 interface WalletDropdownProps {
@@ -58,8 +58,9 @@ export function WalletDropdown({
   function handleAddWallet(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    const name = formData.get("wallet-name") as string;
-    const address = formData.get("wallet-address") as string;
+    const name = String(formData.get("wallet-name") ?? "").trim();
+    const address = String(formData.get("wallet-address") ?? "").trim();
+    if (!name || !address || isLoading) return;
 
     if (wallets.some((wallet) => wallet.address === address)) {
       onClose();
@@ -80,34 +81,23 @@ export function WalletDropdown({
     setIsLoading(true);
     try {
       const { info: pythStakingInfo, stakingAddress } =
-        await getOISStakingInfo(walletAddress);
+        await getGovernanceStakingInfo(walletAddress);
 
       if (!pythStakingInfo) {
         throw new Error("Failed to fetch Pyth staking info");
       }
 
-      // add wallets
       addWallet({
         id: walletAddress,
-        name: name,
+        name,
         address: walletAddress,
         stakingAddress,
         stakingInfo: pythStakingInfo,
       });
-
-      localStorage.setItem(
-        "wallets",
-        JSON.stringify([
-          ...wallets,
-          {
-            id: walletAddress,
-            name: name,
-            address: walletAddress,
-            stakingAddress,
-            stakingInfo: pythStakingInfo,
-          },
-        ])
-      );
+      try {
+        localStorage.setItem("wallets", JSON.stringify(useWalletInfosStore.getState().wallets));
+      } catch { /* The wallet remains tracked if browser storage is unavailable. */ }
+      setShowAddForm(false);
 
       // Success toast
       toast.success(`Wallet "${name}" added successfully!`, {
@@ -136,7 +126,6 @@ export function WalletDropdown({
       });
     } finally {
       setIsLoading(false);
-      setShowAddForm(false);
     }
   }
 
@@ -145,7 +134,7 @@ export function WalletDropdown({
       {/* Dropdown */}
       <Card
         ref={dropdownRef}
-        className="absolute top-full right-2 sm:right-0 mt-2 w-80 sm:w-96 rounded-[28px] border-white/10 bg-[linear-gradient(148deg,rgba(58,48,84,0.98)_0%,rgba(44,36,66,0.98)_100%)] py-0 shadow-[0_24px_60px_rgba(8,5,18,0.4)] z-50 max-h-[calc(100vh-6rem)] sm:max-h-[calc(100vh-8rem)] overflow-y-auto"
+        className="absolute top-full right-0 mt-2 w-[min(24rem,calc(100vw-2rem))] rounded-[28px] border-white/10 bg-[linear-gradient(148deg,rgba(58,48,84,0.98)_0%,rgba(44,36,66,0.98)_100%)] py-0 shadow-[0_24px_60px_rgba(8,5,18,0.4)] z-50 max-h-[calc(100vh-6rem)] sm:max-h-[calc(100vh-8rem)] overflow-y-auto"
       >
         <CardHeader className="flex flex-row items-center justify-between px-6 pt-6 pb-3">
           <CardTitle className="text-white text-base sm:text-lg">
@@ -168,9 +157,9 @@ export function WalletDropdown({
                 <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-[#312940] ring-1 ring-white/8">
                   <Plus className="h-6 w-6 text-[#a8a1bf]" />
                 </div>
-                <p className="text-[#b4aec8] text-sm">No wallets connected</p>
+                <p className="text-[#b4aec8] text-sm">No wallets tracked</p>
                 <p className="text-[#8f88a9] text-xs mt-1">
-                  Add your first wallet below
+                  Track PYTH governance staking with a wallet address
                 </p>
               </div>
             ) : (
@@ -194,15 +183,12 @@ export function WalletDropdown({
                             "..." +
                             wallet.address.slice(-4)}
                         </p>
-                        <p className="text-[#a8a1bf] text-xs sm:text-sm font-data break-all transition-colors">
-                          Staking:{" "}
-                          {wallet.stakingAddress.slice(0, 5) +
-                            "..." +
-                            wallet.stakingAddress.slice(-4)}
-                        </p>
+
                         <p className="text-[#a8a1bf] text-xs sm:text-sm transition-colors">
-                          Staked:{" "}
-                          {wallet.stakingInfo?.totalStakedPyth.toFixed(2)} PYTH
+                          Governance:{" "}
+                          {wallet.stakingInfo?.kind === "governance"
+                            ? `${wallet.stakingInfo.totalStakedPyth.toFixed(2)} PYTH`
+                            : "Balance unavailable"}
                         </p>
                       </div>
                     </div>
@@ -249,6 +235,7 @@ export function WalletDropdown({
               onSubmit={handleAddWallet}
               className="flex-shrink-0 space-y-3 rounded-2xl border border-white/8 bg-[#2f2942] p-4 transition-all duration-300"
             >
+              <p className="text-xs leading-relaxed text-[#b4aec8]">Track governance balances across all staking accounts. No wallet connection or signing required.</p>
               <div className="space-y-2 sm:space-y-4">
                 <Label htmlFor="wallet-name" className="text-[#d8d3ea] text-sm">
                   Wallet Name

@@ -2,14 +2,14 @@
 
 Pyth Board is an independent, read-only community dashboard for PYTH staking, token activity, DAO reserves, protocol revenue, and news. It is a personal, unofficial project and is not affiliated with or endorsed by the Pyth Data Association, Douro Labs, the Pythian Council, or Pyth Network data publishers. Figures can be incomplete, delayed, or incorrect and are not financial advice. Verify important information with official sources.
 
-Current app version: **0.6.0**.
+Current app version: **0.6.2**.
 
 ## Site pages
 
 | Route | What it shows |
 | --- | --- |
-| `/` | Portfolio summary, staking balances and rewards, validators, and market metrics for tracked wallets. |
-| `/wallets` | Per-wallet staking accounts, validator positions, APY, and rewards. Wallets are saved in the browser. |
+| `/` | Governance staking portfolio and market metrics for tracked wallets. |
+| `/wallets` | Per-wallet governance stake, active balances, warmup, cooldown, and staking accounts. Wallets are saved in the browser. |
 | `/pythenians` | Pythenians NFT role and partner directory. |
 | `/reserve` | DAO Treasury and Pythian Council Ops balances, tracked asset valuations, PYTH swaps, buyback metrics, and reserve history. |
 | `/revenue` | Douro Labs reports from the Pyth forum: DAO distributions, revenue trends, product breakdowns, and a report archive. |
@@ -18,7 +18,7 @@ Current app version: **0.6.0**.
 | `/news` | Weekly Pyth digest and archive when digests are available. |
 | `/about` | Project disclosures and data limitations. |
 
-The header also shows SOL and PYTH prices and 24-hour changes. The layout supports mobile screens, and the site includes a web manifest and install prompt.
+The desktop header also shows the network-wide governance stake independently of tracked wallets, plus SOL and PYTH prices and 24-hour changes. The layout supports mobile screens, and the site includes a web manifest and install prompt.
 
 ### Growth tracking
 
@@ -77,7 +77,7 @@ An order deposit, cancellation, vault withdrawal, or DCA claim is not itself a t
 
 ## Data sources
 
-- Staking positions come from the Pyth staking SDK and Solana RPC through server actions. Tracked wallet addresses are stored in browser `localStorage`; the site does not request wallet signing or store private keys.
+- Governance positions come from the Pyth staking SDK and Solana RPC through server actions. Wallet totals include active, warming up, and pending or active unstaking positions across all owned accounts; OIS and fully unlocked positions are excluded. Legacy saved wallets retain their names and addresses, but cached OIS balances are discarded before refreshing governance data. Tracked wallet addresses are stored in browser `localStorage`; the site does not request wallet signing or store private keys.
 - Reserve balances and swaps come from tracked Solana accounts. Convex jobs maintain reserve holdings and hourly buyback snapshots.
 - Revenue reports come from the Pyth forum and are synced to Convex. A scheduled job generates the weekly news digest.
 - Growth uses scheduled holder and governance staker collections. Trading Activity reads retained indexer records from Convex; tracker collection is currently paused.

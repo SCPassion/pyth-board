@@ -34,8 +34,8 @@ export function DashboardSkeleton() {
                 <PulseBlock className="h-11 w-44 rounded-2xl bg-[#23144d]/80" />
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
-                {[1, 2].map((index) => (
+              <div className="flex flex-col justify-center gap-3">
+                {[1].map((index) => (
                   <div
                     key={index}
                     className="rounded-3xl bg-black/18 p-4 ring-1 ring-white/10"
@@ -101,28 +101,6 @@ export function DashboardSkeleton() {
               </div>
             </CardContent>
           </Card>
-        </div>
-      </div>
-
-      <div className="space-y-4">
-        <PulseBlock className="h-8 w-44" />
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
-          {[1, 2, 3].map((index) => (
-            <Card
-              key={index}
-              className="rounded-[28px] border-white/10 bg-[linear-gradient(148deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.02)_100%)] py-0 shadow-[0_20px_50px_rgba(9,5,20,0.18)]"
-            >
-              <CardContent className="p-5 sm:p-6">
-                <div className="flex items-center gap-3">
-                  <PulseBlock className="h-11 w-11 rounded-2xl" />
-                  <div className="space-y-2">
-                    <PulseBlock className="h-3 w-28 rounded-lg" />
-                    <PulseBlock className="h-6 w-20 rounded-xl" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
         </div>
       </div>
     </div>
