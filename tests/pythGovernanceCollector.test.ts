@@ -18,6 +18,10 @@ describe("Helius governance collector", () => {
       { amount: "10", startAt: 6048000000, endAt: 6652800000 },
       { amount: "11", startAt: 6652800000, endAt: 7257600000 },
     ] });
+    expect(result.cooldownSchedule).toEqual([
+      { amount: "10", owners: 1, endAt: 6652800000 },
+      { amount: "11", owners: 1, endAt: 7257600000 },
+    ]);
   });
   it("aggregates owners across pages and ranks exact balances, including unstaking-only owners", async () => {
     const address = (owner: number) => new PublicKey(Buffer.alloc(32, owner)).toBase58();
@@ -40,16 +44,21 @@ describe("Helius governance collector", () => {
       { owner: address(3), amount: "110", cooldowns: [{ amount: "110", startAt: 10 * 604800000, endAt: 11 * 604800000 }] },
       { owner: address(1), amount: "30", cooldowns: [{ amount: "30", startAt: 11 * 604800000, endAt: 12 * 604800000 }] },
     ]);
+    expect(result.cooldownSchedule).toEqual([
+      { amount: "110", owners: 1, endAt: 11 * 604800000 },
+      { amount: "30", owners: 1, endAt: 12 * 604800000 },
+    ]);
   });
-  it("caps each ranking at ten owners and resolves tied amounts deterministically", async () => {
-    const accounts = Array.from({ length: 12 }, (_, i) => entry(i + 1, [{ amount: 5n, unlocking: 11n }]));
+  it("caps both rankings at 100 owners without limiting the full cooldown schedule", async () => {
+    const accounts = Array.from({ length: 102 }, (_, i) => entry(i + 1, [{ amount: 5n, unlocking: 11n }]));
     const collect = (entries: typeof accounts) => run(vi.fn().mockResolvedValueOnce(clock())
       .mockResolvedValueOnce(page(entries)).mockResolvedValueOnce(clock()));
     const a = await collect(accounts), b = await collect(accounts.toReversed());
-    expect(a.topStakers).toHaveLength(10);
-    expect(a.topUnstaking).toHaveLength(10);
+    expect(a.topStakers).toHaveLength(100);
+    expect(a.topUnstaking).toHaveLength(100);
     expect(a.topStakers).toEqual(b.topStakers);
     expect(a.topUnstaking).toEqual(b.topUnstaking);
+    expect(a.cooldownSchedule).toEqual([{ amount: "510", owners: 102, endAt: 12 * 604800000 }]);
   });
   it("deduplicates across all pages and follows short/empty pages", async () => {
     const f = vi.fn().mockResolvedValueOnce(clock()).mockResolvedValueOnce(page([entry()], "a"))

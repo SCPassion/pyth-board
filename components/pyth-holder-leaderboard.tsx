@@ -6,6 +6,7 @@ import { api } from "@/convex/_generated/api";
 import { HOLDER_ENTITY_BY_OWNER, holderView } from "@/lib/growth/holderEntities";
 import { holderBarBalances, holderBarWidths } from "@/lib/growth/holderBars";
 import type { HolderPeriod } from "@/lib/growth/holderRankings";
+import { AddressRankSearch } from "@/components/address-rank-search";
 
 const integer = new Intl.NumberFormat("en-US");
 function tokens(value: string, signed = false) {
@@ -56,6 +57,18 @@ export function PythHolderLeaderboard() {
         </label>
       </div>
     </div>
+    <AddressRankSearch onLookup={address => {
+      if (!snapshot) return { message: "Awaiting the first holder ranking snapshot.", tone: "info" };
+      const row = view.find(entry => entry.owner === address);
+      if (row && row.viewRank <= limit) return {
+        message: `Rank #${row.viewRank} in the selected Top ${limit} · ${tokens(row.amount)} PYTH native balance.`, tone: "found",
+      };
+      if (row) return { message: `Rank #${row.viewRank} in this view, outside the selected Top ${limit}. Choose a larger Top list to see it.`, tone: "info" };
+      if (excludePooled && snapshot.entries.some(entry => entry.owner === address)) return {
+        message: "This address is in the tracked top 100 but hidden by Exclude pooled custody. Turn off that filter to see its rank.", tone: "info",
+      };
+      return { message: `Not in the selected Top ${limit}. This snapshot tracks only the top 100 native holders; the address may still hold PYTH outside that ranking.`, tone: "info" };
+    }} />
     {snapshot ? <>
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
         <p role="status" className="text-sm text-white/65">Showing {rows.length} of {view.length} {excludePooled ? "owners after filtering" : "tracked owners"}{excludePooled ? ` · ${snapshot.entries.length} tracked` : ""}</p>

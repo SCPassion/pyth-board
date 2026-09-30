@@ -20,6 +20,7 @@ export default defineSchema({
     topUnstaking: v.array(v.object({ owner: v.string(), amount: v.string(),
       cooldowns: v.optional(v.array(v.object({ amount: v.string(), startAt: v.number(), endAt: v.number() }))),
     })),
+    cooldownSchedule: v.optional(v.array(v.object({ endAt: v.number(), amount: v.string(), owners: v.number() }))),
   }).index("by_key", ["key"]),
   pythGovernanceStakerSnapshots: defineTable({
     date: v.string(), stakers: v.number(), collectedAt: v.number(), epoch: v.string(),

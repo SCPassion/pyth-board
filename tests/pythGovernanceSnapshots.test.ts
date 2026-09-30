@@ -2,10 +2,11 @@ import { expect, it, vi, beforeEach } from "vitest";
 import { store, latest, history, leaderboard, hasDate } from "../convex/pythGovernanceStakers";
 import { collect } from "../convex/pythGovernanceStakerCollection";
 import { collectGovernanceStakers } from "../lib/growth/governanceCollector";
+import { PublicKey } from "@solana/web3.js";
 vi.mock("../lib/growth/governanceCollector", () => ({ collectGovernanceStakers: vi.fn() }));
 const handler = (fn: unknown) => (fn as { _handler: (ctx: any, args: any) => Promise<any> })._handler;
 const args = { stakers: 2, collectedAt: Date.UTC(2026, 8, 12, 15), epoch: "2958", totalStakeAccounts: 4, eligibleStakeAccounts: 3 };
-const rankings = { topStakers: [{ owner: "11111111111111111111111111111111", amount: "1000000" }], topUnstaking: [] };
+const rankings = { topStakers: [{ owner: "11111111111111111111111111111111", amount: "1000000" }], topUnstaking: [], cooldownSchedule: [] };
 const storeArgs = { ...args, ...rankings };
 beforeEach(() => vi.clearAllMocks());
 
@@ -13,12 +14,23 @@ it("seeds rankings even when a count snapshot already exists for today", async (
   let rankingRow: any = null;
   const db = { query: (table: string) => ({ withIndex: () => ({ unique: async () => table === "pythGovernanceLeaderboard" ? rankingRow : args }) }) };
   expect(await handler(hasDate)({ db }, { date: "2026-09-12" })).toBe(false);
-  rankingRow = { topUnstaking: [], collectedAt: args.collectedAt - 86400000 };
+  rankingRow = { topStakers: [{}, {}], topUnstaking: [], collectedAt: args.collectedAt - 86400000 };
   expect(await handler(hasDate)({ db }, { date: "2026-09-12" })).toBe(false);
-  rankingRow = { topUnstaking: [], collectedAt: args.collectedAt };
+  rankingRow = { topStakers: [{}, {}], topUnstaking: [], collectedAt: args.collectedAt };
+  expect(await handler(hasDate)({ db }, { date: "2026-09-12" })).toBe(false);
+  rankingRow.cooldownSchedule = [];
   expect(await handler(hasDate)({ db }, { date: "2026-09-12" })).toBe(true);
   rankingRow.topUnstaking = [{ owner: rankings.topStakers[0].owner, amount: "1" }];
   expect(await handler(hasDate)({ db }, { date: "2026-09-12" })).toBe(false);
+});
+
+it("rescans a completed day when its staker ranking still contains only ten owners", async () => {
+  const count = { ...args, stakers: 101 };
+  const rankingRow = { collectedAt: args.collectedAt, topStakers: Array(10).fill({}), topUnstaking: [], cooldownSchedule: [] };
+  const db = { query: (table: string) => ({ withIndex: () => ({ unique: async () => table === "pythGovernanceLeaderboard" ? rankingRow : count }) }) };
+  expect(await handler(hasDate)({ db }, { date: "2026-09-12" })).toBe(false);
+  rankingRow.topStakers = Array(100).fill({});
+  expect(await handler(hasDate)({ db }, { date: "2026-09-12" })).toBe(true);
 });
 
 it.each([
@@ -29,6 +41,16 @@ it.each([
   [],
 ].map(cooldowns => ({ cooldowns })))("rejects incorrect cooldown amounts or dates %#", async ({ cooldowns }) => {
   await expect(handler(store)({}, { ...storeArgs, topUnstaking: [{ owner: rankings.topStakers[0].owner, amount: "1", cooldowns }] })).rejects.toThrow("Invalid governance cooldowns");
+});
+
+it.each([
+  [{ amount: "1", owners: 1, endAt: 6048000001 }],
+  [{ amount: "0", owners: 1, endAt: 6048000000 }],
+  [{ amount: "1", owners: 0, endAt: 6048000000 }],
+  [{ amount: "1", owners: 5, endAt: 6048000000 }],
+  [{ amount: "1", owners: 1, endAt: 6048000000 }, { amount: "1", owners: 1, endAt: 6048000000 }],
+].map(cooldownSchedule => ({ cooldownSchedule })))("rejects invalid full cooldown schedules %#", async ({ cooldownSchedule }) => {
+  await expect(handler(store)({}, { ...storeArgs, cooldownSchedule })).rejects.toThrow("Invalid governance cooldown schedule");
 });
 
 it("replaces only the latest leaderboard and never lets an older scan overwrite it", async () => {
@@ -49,7 +71,7 @@ it("replaces only the latest leaderboard and never lets an older scan overwrite 
 it.each([
   [{ owner: "invalid", amount: "1" }],
   [{ owner: rankings.topStakers[0].owner, amount: "0" }],
-  Array(11).fill(rankings.topStakers[0]),
+  Array.from({ length: 101 }, (_, i) => ({ owner: new PublicKey(Buffer.alloc(32, i + 1)).toBase58(), amount: "1" })),
   [rankings.topStakers[0], rankings.topStakers[0]],
   [{ ...rankings.topStakers[0], amount: "1" }, { owner: "11111111111111111111111111111112", amount: "2" }],
 ].map(topStakers => ({ topStakers })))("rejects malformed or unbounded rankings %# before reading the database", async ({ topStakers }) => {

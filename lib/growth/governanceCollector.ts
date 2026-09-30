@@ -112,7 +112,7 @@ export async function collectGovernanceStakers(endpoint: string | undefined, opt
     .filter(([, amounts]) => amounts[field] > 0n)
     .sort(([ownerA, a], [ownerB, b]) => a[field] === b[field]
       ? ownerA.localeCompare(ownerB) : a[field] > b[field] ? -1 : 1)
-    .slice(0, 10)
+    .slice(0, 100)
     .map(([owner, amounts]) => ({
       owner: new PublicKey(Buffer.from(owner, "hex")).toBase58(), amount: amounts[field].toString(),
       ...(field === "unstaking" ? { cooldowns: [...amounts.cooldowns.entries()]
@@ -124,7 +124,23 @@ export async function collectGovernanceStakers(endpoint: string | undefined, opt
           return { amount: amount.toString(), startAt, endAt };
         }) } : {}),
     }));
+  const cooldownTotals = new Map<bigint, { amount: bigint; owners: number }>();
+  for (const { cooldowns } of balances.values()) {
+    for (const [startEpoch, amount] of cooldowns) {
+      const total = cooldownTotals.get(startEpoch) ?? { amount: 0n, owners: 0 };
+      total.amount += amount;
+      total.owners++;
+      cooldownTotals.set(startEpoch, total);
+    }
+  }
+  const cooldownSchedule = [...cooldownTotals.entries()]
+    .sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)
+    .map(([startEpoch, { amount, owners }]) => {
+      const endAt = Number((startEpoch + 1n) * PYTH_EPOCH_SECONDS * 1000n);
+      if (!Number.isSafeInteger(endAt) || endAt > 8.64e15) throw new Error("Invalid cooldown date");
+      return { endAt, amount: amount.toString(), owners };
+    });
   return { stakers: owners.size, epoch: startClock.epoch.toString(), totalStakeAccounts, eligibleStakeAccounts,
-    topStakers: top("voting"), topUnstaking: top("unstaking"),
+    topStakers: top("voting"), topUnstaking: top("unstaking"), cooldownSchedule,
     encoding, pageSize, pages, requests, responseBytes, startedAt, collectedAt };
 }
