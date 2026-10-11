@@ -119,7 +119,7 @@ export function PriceFeedsPanel({ compact = false, samples }: { compact?: boolea
                 {payload.filter(item => item.value != null).map(item => <p key={String(item.dataKey)} className="mt-1 flex justify-between gap-6" style={{ color: item.color }}><span>{item.name}</span><span className="font-medium tabular-nums">{number.format(Number(item.value))}</span></p>)}
               </div>
             ) : null} />
-            {chartKeys.map(key => <Line key={key} type="linear" dataKey={key} name={series[key].label} stroke={series[key].color} strokeWidth={2} dot={results.length <= 30 ? { r: 3, fill: series[key].color } : false} activeDot={{ r: 5 }} connectNulls={false} isAnimationActive={false} />)}
+            {chartKeys.map(key => <Line key={key} type="linear" dataKey={key} name={series[key].label} stroke={series[key].color} strokeWidth={2} dot={results.length === 1 ? { r: 3, fill: series[key].color } : false} activeDot={{ r: 5 }} connectNulls={false} isAnimationActive={false} />)}
           </LineChart>
         </ChartContainer>
       )}

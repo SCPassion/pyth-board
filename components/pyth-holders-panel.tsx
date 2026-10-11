@@ -49,7 +49,7 @@ export function PythHoldersPanel() {
             <XAxis tick={{fill:"#cbd5e1",fontSize:11,style:{fill:"#cbd5e1"}}} dataKey="time" type="number" domain={["dataMin","dataMax"]} scale="time" tickFormatter={t=>new Date(t).toLocaleDateString("en-GB",{timeZone:"UTC",day:"numeric",month:"short"})} tickLine={false} axisLine={false} minTickGap={35} />
             <YAxis tick={{fill:"#cbd5e1",fontSize:11,style:{fill:"#cbd5e1"}}} domain={["auto","auto"]} allowDecimals={false} tickFormatter={n=>number.format(n)} tickLine={false} axisLine={false} width={66} />
             <ChartTooltip content={({active,payload,label})=>active && payload?.[0]?.value != null ? <div className="rounded-xl border border-white/20 bg-[#241b35] p-3 text-sm text-white"><p>{new Date(Number(label)).toLocaleDateString("en-GB",{timeZone:"UTC",year:"numeric",month:"short",day:"numeric"})} UTC</p><p className="mt-1 text-cyan-300">{number.format(Number(payload[0].value))} holders</p></div> : null} />
-            <Line type="linear" dataKey="holders" stroke="#67e8f9" strokeWidth={2} dot={{r:3}} connectNulls={false} isAnimationActive={false} />
+            <Line type="linear" dataKey="holders" stroke="#67e8f9" strokeWidth={2} dot={results.length === 1 ? {r:3,fill:"#67e8f9"} : false} activeDot={{r:5}} connectNulls={false} isAnimationActive={false} />
           </LineChart>
         </ChartContainer>}
     </section>;
