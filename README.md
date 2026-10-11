@@ -2,7 +2,7 @@
 
 Pyth Board is an independent, read-only community dashboard for PYTH staking, token activity, DAO reserves, protocol revenue, and news. It is a personal, unofficial project and is not affiliated with or endorsed by the Pyth Data Association, Douro Labs, the Pythian Council, or Pyth Network data publishers. Figures can be incomplete, delayed, or incorrect and are not financial advice. Verify important information with official sources.
 
-Current app version: **0.6.2**.
+Current app version: **0.6.3**.
 
 ## Site pages
 
