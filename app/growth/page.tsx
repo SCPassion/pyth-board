@@ -3,16 +3,18 @@ import { GovernanceLeaderboards } from "@/components/governance-leaderboards";
 import { PythHoldersPanel } from "@/components/pyth-holders-panel";
 import { PythHolderLeaderboard } from "@/components/pyth-holder-leaderboard";
 import { PageMasthead } from "@/components/page-masthead";
+import { PriceFeedsPanel } from "@/components/price-feeds-panel";
 
 export default function GrowthPage() {
   return (
     <div className="mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
       <PageMasthead
         eyebrow="Network / Growth"
-        title="PYTH ownership, over time."
-        description="Native holders and governance participation, at a glance."
+        title="The Pyth network, over time."
+        description="Price feed coverage, native holders, and governance participation."
         right={<span className="text-xs text-white/70">Daily snapshots · UTC</span>}
       />
+      <PriceFeedsPanel />
       <div className="grid grid-cols-1 items-stretch gap-5 lg:grid-cols-2">
         <PythHoldersPanel />
         <GovernanceStakersPanel />

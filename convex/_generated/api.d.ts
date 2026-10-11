@@ -20,6 +20,8 @@ import type * as pythGovernanceStakers from "../pythGovernanceStakers.js";
 import type * as pythHolderCollection from "../pythHolderCollection.js";
 import type * as pythHolderRankings from "../pythHolderRankings.js";
 import type * as pythHolders from "../pythHolders.js";
+import type * as pythPriceFeedCollection from "../pythPriceFeedCollection.js";
+import type * as pythPriceFeeds from "../pythPriceFeeds.js";
 import type * as pythPro from "../pythPro.js";
 import type * as reserveSnapshots from "../reserveSnapshots.js";
 import type * as trackerActions from "../trackerActions.js";
@@ -46,6 +48,8 @@ declare const fullApi: ApiFromModules<{
   pythHolderCollection: typeof pythHolderCollection;
   pythHolderRankings: typeof pythHolderRankings;
   pythHolders: typeof pythHolders;
+  pythPriceFeedCollection: typeof pythPriceFeedCollection;
+  pythPriceFeeds: typeof pythPriceFeeds;
   pythPro: typeof pythPro;
   reserveSnapshots: typeof reserveSnapshots;
   trackerActions: typeof trackerActions;

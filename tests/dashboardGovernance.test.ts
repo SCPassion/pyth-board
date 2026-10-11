@@ -13,6 +13,7 @@ vi.mock("@/hooks/use-pyth-price", () => ({ usePythPrice: () => null }));
 vi.mock("@/components/app-loading-context", () => ({ useAppLoading: () => ({ isLoading: false }) }));
 vi.mock("@/components/portfolio-summary", () => ({ PortfolioSummary: () => null }));
 vi.mock("@/components/metric-cards", () => ({ MetricCards: () => null }));
+vi.mock("@/components/price-feeds-panel", () => ({ PriceFeedsPanel: () => null }));
 vi.mock("next/navigation", () => ({ usePathname: () => "/" }));
 vi.mock("@/components/pwa-install-context", () => ({ usePwaInstall: () => ({ canInstall: false }) }));
 vi.mock("@/components/wallet-dropdown", () => ({ WalletDropdown: () => null }));

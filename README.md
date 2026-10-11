@@ -8,12 +8,12 @@ Current app version: **0.6.2**.
 
 | Route | What it shows |
 | --- | --- |
-| `/` | Governance staking portfolio and market metrics for tracked wallets. |
+| `/` | Governance staking portfolio, market metrics for tracked wallets, and total listed price-feed history. |
 | `/wallets` | Per-wallet governance stake, active balances, warmup, cooldown, and staking accounts. Wallets are saved in the browser. |
 | `/pythenians` | Pythenians NFT role and partner directory. |
 | `/reserve` | DAO Treasury and Pythian Council Ops balances, tracked asset valuations, PYTH swaps, buyback metrics, and reserve history. |
 | `/revenue` | Douro Labs reports from the Pyth forum: DAO distributions, revenue trends, product breakdowns, and a report archive. |
-| `/growth` | Daily native PYTH holder counts and top-100 balance changes; governance staker counts, top stakes, and unstaking cooldowns. |
+| `/growth` | Daily price-feed counts by status; native PYTH holder counts and top-100 balance changes; governance staker counts, top stakes, and unstaking cooldowns. |
 | `/activity` | Beta: observed PYTH trades across supported routes, with aggregate volumes and execution details. Currently hidden from navigation while collection is paused. |
 | `/news` | Weekly Pyth digest and archive when digests are available. |
 | `/about` | Project disclosures and data limitations. |
@@ -21,6 +21,12 @@ Current app version: **0.6.2**.
 The desktop header also shows the network-wide governance stake independently of tracked wallets, plus SOL and PYTH prices and 24-hour changes. The layout supports mobile screens, and the site includes a web manifest and install prompt.
 
 ### Growth tracking
+
+The **price-feed counts** job runs daily at **04:15 UTC**. It reads the same public JSON counters used by [Pyth Explore](https://app.pyth.com/explore/all), from `https://app.pyth.com/api/price-feeds/facets`, without an API key. One snapshot per UTC date records Stable, Coming soon, and Inactive; total listed is their sum, including announced and inactive feeds. Growth has independent status toggles and 30-day, 90-day, one-year, and all-history views. The dashboard charts total listed feeds. This tracks catalogue counts, not prices or individual feed transitions.
+
+All three counters must be present, unique, non-negative safe integers, and have a positive combined total. Additional statuses with positive counts are rejected until their treatment is defined. Failed fetches retry after 5 minutes and then 30 minutes without storing partial data or zero placeholders. The first successful snapshot for a date is retained; subsequent runs skip that date. History starts with the first successful collection, missed days remain gaps, and stale counts are labelled. The website endpoint may change independently of this app.
+
+After pushing the backend to a development deployment, initialize today's snapshot with `npx convex run pythPriceFeedCollection:collect '{}'`. The daily cron handles subsequent collections. Collection and storage are internal functions; only latest-count and paginated-history queries are public.
 
 The **native PYTH holders** job runs daily at **03:00 UTC**. It groups positive native PYTH token-account balances by Solana owner, records the total holder count and top 100 owners in the same collection, and retains 35 calendar days of top-100 snapshots. The leaderboard shows the top 10, 50, or 100, with balance and rank changes against snapshots from 1, 7, or 30 calendar days earlier. These are daily comparisons, not rolling 24-hour measurements. An address absent from an earlier top 100 has an unknown earlier balance and is shown as new to the list; no previous balance is inferred.
 

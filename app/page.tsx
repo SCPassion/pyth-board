@@ -9,6 +9,7 @@ import { useAppLoading } from "@/components/app-loading-context";
 import { useWalletInfosStore } from "@/store/store";
 import { usePythPrice } from "@/hooks/use-pyth-price";
 import { getGovernancePortfolioTotal } from "@/lib/wallet-storage";
+import { PriceFeedsPanel } from "@/components/price-feeds-panel";
 
 export default function Dashboard() {
   const { wallets } = useWalletInfosStore();
@@ -63,6 +64,11 @@ export default function Dashboard() {
           pythPrice={pythPrice}
           totalStaked={totalStaked}
         />
+      </section>
+
+      <section className="space-y-7">
+        <SectionRule index="03" title="Network Growth" description="Pyth's listed price feeds, over time." />
+        <PriceFeedsPanel compact />
       </section>
     </div>
   );

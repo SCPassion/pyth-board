@@ -5,6 +5,9 @@ import { holderBalance, holderComparison, holderLeaderboardEntry } from "./holde
 
 export default defineSchema({
   ...trackerTables,
+  pythPriceFeedSnapshots: defineTable({
+    date: v.string(), stable: v.number(), comingSoon: v.number(), inactive: v.number(), collectedAt: v.number(),
+  }).index("by_date", ["date"]),
   pythHolderRankingSnapshots: defineTable({
     exclusionKey: v.optional(v.string()),
     date: v.string(), collectedAt: v.number(), entries: v.array(holderBalance),
