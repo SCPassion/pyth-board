@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { usePaginatedQuery, useQuery } from "convex/react";
 import { ArrowUpRight, Check } from "lucide-react";
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
@@ -38,7 +38,7 @@ export function PriceFeedsPanel({ compact = false }: { compact?: boolean }) {
   const { results, status, loadMore } = usePaginatedQuery(api.pythPriceFeeds.history, { since }, { initialNumItems: 366 });
   useEffect(() => { if (status === "CanLoadMore") loadMore(366); }, [status, loadMore]);
   const ready = status === "Exhausted";
-  const chart = buildPriceFeedChart(results);
+  const chart = useMemo(() => buildPriceFeedChart(results), [results]);
   const first = results[0];
   const last = results.at(-1);
   const displayedCount = (row: PriceFeedSnapshot) => compact ? totalPriceFeeds(row) : visible.reduce((sum, key) => sum + row[key], 0);

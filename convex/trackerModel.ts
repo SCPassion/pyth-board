@@ -158,17 +158,12 @@ export const trackerMetricsFields = {
 export const trackerTables = {
   trackerMetrics: defineTable({
     bucketStart: v.number(),
-    // Preserve records written by the separate tracker development branch.
-    shard: v.optional(v.number()),
-    lastWebhookAt: v.optional(v.number()),
-    lastProcessedAt: v.optional(v.number()),
     ...trackerMetricsFields,
   }).index("by_bucketStart", ["bucketStart"]),
   trackerState: defineTable({
     key: v.string(),
     enabled: v.boolean(),
     webhookEnabled: v.optional(v.boolean()),
-    sourceCanaryCanceledRuns: v.optional(v.array(v.object({ runId: v.string(), until: v.number() }))),
     drainWakeupId: v.optional(v.id("_scheduled_functions")),
     drainDueAt: v.optional(v.number()),
     drainToken: v.optional(v.string()),
