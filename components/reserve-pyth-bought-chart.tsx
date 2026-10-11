@@ -116,12 +116,12 @@ export function ReservePythBoughtChart() {
       </div>
 
       <dl className="grid grid-cols-2 gap-x-4 gap-y-5 border-t border-white/8 pt-5 sm:grid-cols-4">
-        <div>
+        <div className="min-w-0">
           <dt className="text-[11px] text-[#a8a1bf] sm:text-xs">
             Total Bought
           </dt>
           <dd
-            className={`font-data mt-1 text-lg font-medium tabular-nums text-white sm:text-xl`}
+            className={`font-data mt-1 whitespace-nowrap text-lg font-medium tabular-nums text-white sm:text-xl`}
           >
             {latestPythBought !== null
               ? formatPythAmount(latestPythBought)
@@ -129,12 +129,12 @@ export function ReservePythBoughtChart() {
           </dd>
         </div>
 
-        <div>
+        <div className="min-w-0">
           <dt className="text-[11px] text-[#a8a1bf] sm:text-xs">
             Since Tracking
           </dt>
           <dd
-            className={`font-data mt-1 text-lg font-medium tabular-nums text-white sm:text-xl`}
+            className={`font-data mt-1 whitespace-nowrap text-lg font-medium tabular-nums text-white sm:text-xl`}
           >
             {pythBoughtSinceTracking !== null
               ? formatPythAmount(pythBoughtSinceTracking)
@@ -145,26 +145,32 @@ export function ReservePythBoughtChart() {
           </dd>
         </div>
 
-        <div>
+        <div className="min-w-0">
           <dt className="text-[11px] text-[#a8a1bf] sm:text-xs">
             USDC Spent
           </dt>
           <dd
-            className={`font-data mt-1 text-lg font-medium tabular-nums text-white sm:text-xl`}
+            className={`font-data mt-1 whitespace-nowrap text-lg font-medium tabular-nums text-white sm:text-xl`}
+            title={latestPoint ? formatUsd(latestPoint.totalUsdcSpent) : undefined}
           >
-            {latestPoint ? formatUsd(latestPoint.totalUsdcSpent) : "-"}
+            {latestPoint
+              ? `${formatUsd(latestPoint.totalUsdcSpent / 1_000_000, 3)}M`
+              : "-"}
           </dd>
         </div>
 
-        <div>
+        <div className="min-w-0">
           <dt className="text-[11px] text-[#a8a1bf] sm:text-xs">
-            Avg. Price
+            Avg. / PYTH
           </dt>
           <dd
-            className={`font-data mt-1 text-lg font-medium tabular-nums text-white sm:text-xl`}
+            className={`font-data mt-1 whitespace-nowrap text-lg font-medium tabular-nums text-white sm:text-xl`}
+            title={latestPoint && latestPoint.avgBuyPriceUsd > 0
+              ? formatUsdPerPyth(latestPoint.avgBuyPriceUsd)
+              : undefined}
           >
             {latestPoint && latestPoint.avgBuyPriceUsd > 0
-              ? formatUsdPerPyth(latestPoint.avgBuyPriceUsd)
+              ? formatUsd(latestPoint.avgBuyPriceUsd, 5)
               : "-"}
           </dd>
         </div>
