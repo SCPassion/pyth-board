@@ -51,11 +51,10 @@ export function PriceFeedsPanel({ compact = false }: { compact?: boolean }) {
     <section className="min-w-0 rounded-2xl border border-white/15 bg-white/[0.025] p-5 sm:p-6" aria-labelledby={titleId}>
       <div className="flex flex-wrap items-start justify-between gap-5">
         <div>
-          <h2 id={titleId} className="text-sm font-medium text-white/85">{compact ? "Total listed price feeds" : "Price feed growth"}</h2>
-          <p className="mt-1 text-xs text-white/65">Pyth Explore · Daily at 04:15 UTC</p>
-          <div className="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <h3 id={titleId} className="text-sm font-medium text-white/85">{compact ? "Total listed price feeds" : "Total listed feeds"}</h3>
+          <div className="mt-2 flex flex-wrap items-baseline gap-3">
             <p className="text-4xl font-medium tracking-tight tabular-nums text-white sm:text-5xl">{latest ? number.format(totalPriceFeeds(latest)) : "—"}</p>
-            <span className="text-sm text-white/65">{compact ? "across all three statuses" : "total listed feeds"}</span>
+            <span className="text-sm text-white/65">across all three statuses</span>
           </div>
           {compact && latest && <p className="mt-2 text-sm text-cyan-200">{number.format(latest.stable)} stable · {number.format(latest.comingSoon)} coming soon · {number.format(latest.inactive)} inactive</p>}
         </div>
@@ -70,28 +69,29 @@ export function PriceFeedsPanel({ compact = false }: { compact?: boolean }) {
       </div>
 
       {!compact && (
-        <div className="mt-6 grid grid-cols-1 gap-2 sm:grid-cols-3" role="group" aria-label="Price feed status series">
+        <div className="mt-4 grid grid-cols-3 gap-4" role="group" aria-label="Price feed status series">
           {PRICE_FEED_STATUSES.map(key => {
             const selected = visible.includes(key);
             return (
               <Button key={key} variant="ghost" aria-pressed={selected}
                 aria-label={`${series[key].label}: ${latest ? number.format(latest[key]) : "unavailable"}. ${selected ? "Hide" : "Show"} series`}
                 onClick={() => setVisible(current => current.includes(key) ? current.filter(value => value !== key) : [...current, key])}
-                className={`h-auto min-w-0 justify-between rounded-xl border px-4 py-3 text-left focus-visible:ring-cyan-300 ${selected ? "border-white/25 bg-white/[0.05] hover:bg-white/10" : "border-white/15 bg-transparent hover:bg-white/5"}`}>
-                <span className="flex min-w-0 items-center gap-3">
-                  <span className="flex size-5 shrink-0 items-center justify-center rounded-md border" style={{ borderColor: series[key].color, color: series[key].color }}>
+                className={`h-auto min-w-0 flex-col items-start gap-2 rounded-none border-b-2 px-0 py-3 text-left focus-visible:ring-cyan-300 hover:bg-white/5 ${selected ? "" : "opacity-60"}`}
+                style={{ borderColor: selected ? series[key].color : "rgba(255,255,255,0.2)" }}>
+                <span className="flex min-h-8 min-w-0 items-center gap-2 sm:min-h-5">
+                  <span className="flex size-4 shrink-0 items-center justify-center rounded border" style={{ borderColor: series[key].color, color: series[key].color }}>
                     {selected && <Check className="size-3.5" aria-hidden="true" />}
                   </span>
-                  <span><span className="block text-sm" style={{ color: series[key].color }}>{series[key].label}</span><span className="mt-1 block text-xs font-normal text-white/65">{series[key].description}</span></span>
+                  <span className="whitespace-normal text-xs sm:text-sm" style={{ color: series[key].color }}>{series[key].label}</span>
                 </span>
-                <span className="text-xl font-medium tabular-nums text-white">{latest ? number.format(latest[key]) : "—"}</span>
+                <span className="text-2xl font-medium tabular-nums text-white">{latest ? number.format(latest[key]) : "—"}</span>
               </Button>
             );
           })}
         </div>
       )}
 
-      <div className="mt-5 flex min-h-10 flex-wrap items-center justify-between gap-x-4 gap-y-2 text-xs leading-relaxed text-white/70" aria-live="polite">
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs leading-relaxed text-white/70" aria-live="polite">
         <p>{change !== null && first && last ? <>
           <span className={change >= 0 ? "text-cyan-200" : "text-rose-300"}>{change > 0 ? "+" : ""}{number.format(change)} {compact || visible.length === 3 ? "listed" : "selected"} feeds</span>
           {" · "}{utcDate(Date.parse(`${first.date}T00:00:00Z`))} – {utcDate(Date.parse(`${last.date}T00:00:00Z`))}
@@ -100,17 +100,17 @@ export function PriceFeedsPanel({ compact = false }: { compact?: boolean }) {
       </div>
 
       {!ready ? (
-        <div className="mt-4 flex h-60 items-center justify-center rounded-xl bg-white/[0.02] text-sm text-white/70" role="status">Loading daily snapshots…</div>
+        <div className="mt-4 flex h-32 items-center justify-center rounded-xl bg-white/[0.02] text-sm text-white/70" role="status">Loading daily snapshots…</div>
       ) : chart.length === 0 || chartKeys.length === 0 ? (
-        <div className="mt-4 flex h-60 items-center justify-center text-center text-sm leading-relaxed text-white/70">
+        <div className="mt-4 flex h-32 items-center justify-center text-center text-sm leading-relaxed text-white/70">
           {chartKeys.length === 0 ? "Enable a status above to show its history." : latest ? "No snapshots in this period." : "History begins with the first successful daily collection."}
         </div>
       ) : (
-        <ChartContainer config={series} className={`mt-4 w-full aspect-auto ${compact ? "h-60" : "h-72"}`} aria-label={compact ? "Total listed price feeds by UTC date" : "Daily price-feed counts for enabled statuses"}>
+        <ChartContainer config={series} className="mt-4 w-full aspect-auto" style={{ height: results.length < 2 ? 160 : 240 }} aria-label={compact ? "Total listed price feeds by UTC date" : "Daily price-feed counts for enabled statuses"}>
           <LineChart accessibilityLayer data={chart} margin={{ left: 0, right: 12, top: 12, bottom: 8 }}>
             <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.12)" />
-            <XAxis dataKey="time" type="number" domain={["dataMin", "dataMax"]} scale="time" tick={{ fill: "#cbd5e1", fontSize: 12 }} tickFormatter={time => new Date(time).toLocaleDateString("en-GB", { timeZone: "UTC", day: "numeric", month: "short" })} tickLine={false} axisLine={false} minTickGap={35} />
-            <YAxis domain={[0, "auto"]} allowDecimals={false} tick={{ fill: "#cbd5e1", fontSize: 12 }} tickFormatter={value => number.format(value)} tickLine={false} axisLine={false} width={60} />
+            <XAxis dataKey="time" type="number" domain={["dataMin", "dataMax"]} scale="time" tick={{ fill: "#cbd5e1", fontSize: 12, style: { fill: "#cbd5e1" } }} tickFormatter={time => new Date(time).toLocaleDateString("en-GB", { timeZone: "UTC", day: "numeric", month: "short" })} tickLine={false} axisLine={false} minTickGap={35} />
+            <YAxis domain={[0, "auto"]} allowDecimals={false} tick={{ fill: "#cbd5e1", fontSize: 12, style: { fill: "#cbd5e1" } }} tickFormatter={value => number.format(value)} tickLine={false} axisLine={false} width={60} />
             <ChartTooltip content={({ active, payload, label }) => active && payload?.some(item => item.value != null) ? (
               <div className="rounded-xl border border-white/25 bg-[#241b35] p-3 text-xs text-white shadow-lg">
                 <p className="mb-2 text-white/75">{utcDate(Number(label))} · UTC</p>
@@ -123,11 +123,14 @@ export function PriceFeedsPanel({ compact = false }: { compact?: boolean }) {
       )}
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-white/15 pt-4 text-xs leading-relaxed text-white/65">
-        <p>{latest === undefined ? "Loading collection status…" : latest ? `Last collected ${new Date(latest.collectedAt).toLocaleString("en-GB", { timeZone: "UTC" })} UTC` : "Awaiting the first collection"}</p>
+        <p title={latest ? new Date(latest.collectedAt).toUTCString() : undefined}>{latest === undefined ? "Loading collection status…" : latest ? `Collected ${new Date(latest.collectedAt).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "UTC" })} UTC` : "Awaiting the first collection"}</p>
         <a href="https://app.pyth.com/explore/all" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-white/80 hover:text-cyan-200 focus-visible:outline-2 focus-visible:outline-cyan-300">Source: Pyth Explore <ArrowUpRight className="size-3" aria-hidden="true" /></a>
       </div>
       {stale && <p role="status" className="mt-2 text-sm text-amber-300">Collection is overdue. Showing the last successful snapshot.</p>}
-      {!compact && <p className="mt-3 text-xs leading-relaxed text-white/65">Total listed = stable + coming soon + inactive. Statuses follow Pyth Explore; stable means live. Counts are daily observations, with gaps for missed collections and no earlier history backfilled.</p>}
+      {!compact && <details className="mt-3 text-xs leading-relaxed text-white/65">
+        <summary className="cursor-pointer rounded focus-visible:outline-2 focus-visible:outline-cyan-300">About these counts</summary>
+        <p className="mt-2">Collected daily at 04:15 UTC. Total listed = stable + coming soon + inactive. Statuses follow Pyth Explore; stable means live. History starts with the first collection, with gaps for missed days.</p>
+      </details>}
     </section>
   );
 }

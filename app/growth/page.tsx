@@ -8,29 +8,27 @@ import { SectionRule } from "@/components/section-rule";
 
 export default function GrowthPage() {
   return (
-    <div className="mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+    <div className="mx-auto w-full max-w-7xl space-y-8">
       <PageMasthead
         eyebrow="Network / Growth"
-        title="The Pyth network, over time."
+        title="Network growth"
         description="Price feed coverage, native holders, and governance participation."
+        compact
         right={<span className="text-xs text-white/70">Daily snapshots · UTC</span>}
       />
-      <section className="space-y-6">
-        <SectionRule index="01" title="Price feed coverage" description="Stable, coming soon, and inactive feeds over time." />
+      <section className="space-y-4">
+        <SectionRule index="01" title="Price feed coverage" />
         <PriceFeedsPanel />
       </section>
-      <section className="space-y-6 pt-4 sm:pt-6">
-        <SectionRule index="02" title="Ownership & participation" description="Native PYTH holders, governance stakers, and owner rankings." />
+      <section className="space-y-6">
+        <SectionRule index="02" title="Ownership & participation" />
         <div className="grid grid-cols-1 items-stretch gap-5 lg:grid-cols-2">
           <PythHoldersPanel />
           <GovernanceStakersPanel />
         </div>
-        <p className="text-sm leading-relaxed text-white/70">
-          Governance stakers counts voting-eligible stake owners: each owner with a positive LOCKED or PREUNLOCKING governance position counts once. UNLOCKING and UNLOCKED positions do not count because they no longer carry governance voting power.
-        </p>
         <PythHolderLeaderboard />
         <GovernanceLeaderboards />
-        <details open className="group rounded-2xl border border-white/10 bg-white/[0.025]">
+        <details className="group rounded-2xl border border-white/10 bg-white/[0.025]">
           <summary className="cursor-pointer rounded-2xl px-5 py-4 text-sm font-medium text-white/85 focus-visible:outline-2 focus-visible:outline-cyan-300 sm:px-6">
             How these metrics are counted
             <span className="ml-3 hidden text-xs font-normal text-white/55 sm:inline">Definitions, collection times &amp; limitations</span>

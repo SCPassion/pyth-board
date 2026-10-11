@@ -55,8 +55,7 @@ describe("synthetic holder change display through the real leaderboard component
   const html=render();
   expect(ownerRow(html,gain)).toContain("+500,000");
   expect(ownerRow(html,gain)).toContain("+25.00%");
-  expect(html).toContain("PYTH ownership activity");
-  expect(html).toContain("The largest native PYTH balances and how their holdings change over time.");
+  expect(html).toContain("Top PYTH holders");
   expect(ownerRow(html,custody)).toContain("width:80%");
   expect(ownerRow(html,custody)).toContain("width:20%");
   expect(ownerRow(html,gain)).toContain("width:2%");

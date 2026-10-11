@@ -14,12 +14,14 @@ import { parseStoredWallets } from "@/lib/wallet-storage";
 import { refreshWalletsSequentially } from "@/lib/wallet-refresh";
 import { AppLoadingContext } from "@/components/app-loading-context";
 import type { WalletInfo } from "@/types/pythTypes";
+import { usePathname } from "next/navigation";
 
 interface AppLayoutProps {
   children: React.ReactNode;
 }
 
 export function AppLayout({ children }: AppLayoutProps) {
+  const isGrowthPage = usePathname() === "/growth";
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshingWallets, setIsRefreshingWallets] = useState(false);
@@ -172,7 +174,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             onMobileMenuToggle={toggleMobileMenu}
           />
 
-          <main className="min-w-0 flex-1 overflow-auto overflow-x-hidden bg-[radial-gradient(circle_at_top_right,rgba(135,80,255,0.12),transparent_22%),linear-gradient(180deg,#261e35_0%,#251c34_100%)] p-4 sm:p-8 lg:p-12">
+          <main className={`min-h-0 min-w-0 flex-1 overflow-auto overflow-x-hidden bg-[radial-gradient(circle_at_top_right,rgba(135,80,255,0.12),transparent_22%),linear-gradient(180deg,#261e35_0%,#251c34_100%)] ${isGrowthPage ? "p-4 sm:p-6 lg:p-8" : "p-4 sm:p-8 lg:p-12"}`}>
             {isLoading && (
               <div className="fixed right-4 top-4 z-50 rounded-2xl bg-[#6f4bd8] px-4 py-2 text-white shadow-lg">
                 Loading wallet data...
@@ -180,11 +182,11 @@ export function AppLayout({ children }: AppLayoutProps) {
             )}
             <div className="mx-auto max-w-[1360px]">
               {children}
-              <AppFooter className="-mx-4 mt-12 shadow-none sm:hidden" />
+              <AppFooter className={isGrowthPage ? "mt-10 rounded-2xl shadow-none" : "-mx-4 mt-12 shadow-none sm:hidden"} />
             </div>
           </main>
 
-          <AppFooter className="hidden md:block" />
+          {!isGrowthPage && <AppFooter className="hidden md:block" />}
         </div>
       </div>
     </AppLoadingContext.Provider>

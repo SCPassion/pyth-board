@@ -7,6 +7,7 @@ import { ChevronDown } from "lucide-react";
 import { AddressRankSearch } from "@/components/address-rank-search";
 
 const integer = new Intl.NumberFormat("en-US");
+const compactNumber = new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 2 });
 const fullDate = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
 type Cooldown = { amount: string; startAt: number; endAt: number };
 type ScheduledCooldown = { endAt: number; amount: string; owners: number };
@@ -25,6 +26,11 @@ function formatPyth(amount: string) {
   const raw = BigInt(amount);
   const fraction = (raw % 1_000_000n).toString().padStart(6, "0").replace(/0+$/, "");
   return integer.format(raw / 1_000_000n) + (fraction ? `.${fraction}` : "");
+}
+
+function Amount({ raw }: { raw: string }) {
+  const exact = formatPyth(raw);
+  return <span title={`${exact} PYTH`} aria-label={exact}>{compactNumber.format(Number(raw) / 1_000_000)}</span>;
 }
 
 function Wallet({ owner }: { owner: string }) {
@@ -78,9 +84,9 @@ function CooldownSchedule({ periods, owners, asOf, limit }: { periods: Scheduled
   return <>
     <div className="mt-5 flex flex-wrap items-baseline justify-between gap-3 border-b border-white/10 pb-4">
       <p className="text-xs text-white/60">Top {limit} unstaking addresses · {selected.length} finish {selected.length === 1 ? "date" : "dates"}</p>
-      <p className="text-sm tabular-nums text-white/90"><span className="text-white/55">Total </span>{formatPyth(total.toString())} <span className="text-[10px] text-white/45">PYTH</span></p>
+      <p className="text-sm tabular-nums text-white/90"><span className="text-white/65">Total </span><Amount raw={total.toString()} /> <span className="text-[10px] text-white/65">PYTH</span></p>
     </div>
-    <p className="mt-2 text-[11px] text-white/50">All qualifying owners: {formatPyth(allOwnersTotal.toString())} PYTH across {periods.length} dates</p>
+    <p className="mt-2 text-xs text-white/65">All qualifying owners: <Amount raw={allOwnersTotal.toString()} /> PYTH across {periods.length} dates</p>
     <ol className="mt-2 divide-y divide-white/10">
       {selected.map(({ period, ranked, amount }) => {
         const width = largest > 0n ? Number(amount * 10_000n / largest) / 100 : 0;
@@ -93,7 +99,7 @@ function CooldownSchedule({ periods, owners, asOf, limit }: { periods: Scheduled
                   <time dateTime={new Date(period.endAt).toISOString()} title={new Date(period.endAt).toUTCString()} className="text-sm font-medium text-white/90">{fullDate.format(period.endAt)}</time>
                   <span className="mt-1 flex items-center gap-1.5 text-[11px] text-white/55"><span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${pending ? "bg-amber-300" : "bg-cyan-300"}`} />{pending ? "Cooldown pending" : "In cooldown"} · {ranked.length} of {period.owners} owners</span>
                 </span>
-                <span className="flex items-center gap-2 text-sm tabular-nums text-white/90">{formatPyth(amount.toString())} <span className="text-[10px] text-white/45">PYTH</span><ChevronDown aria-hidden="true" className="ml-1 h-4 w-4 shrink-0 text-white/50 transition-transform group-open:rotate-180" /></span>
+                <span className="flex items-center gap-2 text-sm tabular-nums text-white/90"><Amount raw={amount.toString()} /> <span className="text-[10px] text-white/65">PYTH</span><ChevronDown aria-hidden="true" className="ml-1 h-4 w-4 shrink-0 text-white/50 transition-transform group-open:rotate-180" /></span>
               </span>
               <span aria-hidden="true" className="mt-3 block h-2.5 overflow-hidden rounded-full bg-white/[0.06]">
                 <span className={`block h-full rounded-full ${pending ? "bg-amber-300" : "bg-cyan-300"}`} style={{ width: `${width}%` }} />
@@ -105,7 +111,7 @@ function CooldownSchedule({ periods, owners, asOf, limit }: { periods: Scheduled
                 className={`mt-2 divide-y divide-white/10 ${ranked.length > 10 ? "max-h-80 overflow-y-auto overscroll-contain pr-2 focus-visible:rounded-lg focus-visible:outline-2 focus-visible:outline-cyan-300" : ""}`}>
                 {ranked.map((row, i) => <li key={row.owner} className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 py-2 text-xs">
                   <span className="flex items-baseline gap-3"><span className="w-4 tabular-nums text-white/45">{i + 1}</span><Wallet owner={row.owner} /></span>
-                  <span className="tabular-nums text-white/85">{formatPyth(row.amount)} <span className="text-[10px] text-white/45">PYTH</span></span>
+                  <span className="tabular-nums text-white/85"><Amount raw={row.amount} /> <span className="text-[10px] text-white/65">PYTH</span></span>
                 </li>)}
               </ol>
             </div>
@@ -141,7 +147,7 @@ function UnstakingAddresses({ owners, asOf, limit }: { owners: UnstakingOwner[];
               <span className="min-w-0 flex-1">
                 <span className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
                   <Wallet owner={row.owner} />
-                  <span className="text-sm tabular-nums text-white/90">{formatPyth(row.amount)} <span className="text-[10px] text-white/45">PYTH</span></span>
+                  <span className="text-sm tabular-nums text-white/90"><Amount raw={row.amount} /> <span className="text-[10px] text-white/65">PYTH</span></span>
                 </span>
                 <span className={`mt-1.5 inline-block rounded-full px-2 py-0.5 text-[10px] font-medium ${status.color}`}>{status.label}</span>
               </span>
@@ -172,7 +178,7 @@ export function GovernanceLeaderboards() {
   return <section aria-labelledby="governance-activity-title" className="space-y-4">
     <div className="flex flex-wrap items-end justify-between gap-3">
       <div>
-        <h2 id="governance-activity-title" className="text-lg font-medium text-white/90">Governance staking activity</h2>
+        <h3 id="governance-activity-title" className="text-lg font-medium text-white/90">Governance rankings</h3>
         <p className="mt-1 text-sm text-white/65">The largest governance stakes and when unstaking amounts become withdrawable.</p>
       </div>
       {snapshot && <p className="text-xs text-white/55">Updated {new Date(snapshot.collectedAt).toLocaleString("en-GB", { timeZone: "UTC" })} UTC</p>}
@@ -209,7 +215,7 @@ export function GovernanceLeaderboards() {
             return <li key={row.owner}>
               <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
                 <div className="flex items-baseline gap-3"><span className="w-4 text-xs tabular-nums text-white/45">{i + 1}</span><Wallet owner={row.owner} /></div>
-                <span className="text-sm tabular-nums text-white/90">{formatPyth(row.amount)} <span className="text-[10px] text-white/45">PYTH</span></span>
+                <span className="text-sm tabular-nums text-white/90"><Amount raw={row.amount} /> <span className="text-[10px] text-white/65">PYTH</span></span>
               </div>
               <div aria-hidden="true" className="ml-7 mt-2 h-2.5 overflow-hidden rounded-full bg-white/[0.06]">
                 <div className="h-full rounded-full bg-gradient-to-r from-cyan-400/60 to-cyan-200" style={{ width: `${width}%` }} />
@@ -226,9 +232,9 @@ export function GovernanceLeaderboards() {
           </div>
           <div role="group" aria-label="Unstaking view" className="ml-auto inline-flex shrink-0 rounded-lg border border-white/15 bg-white/[0.025] p-0.5 text-xs font-medium">
             <button type="button" aria-pressed={unstakingView === "time"} onClick={() => setUnstakingView("time")}
-              className={`rounded-md px-3 py-2 focus-visible:outline-2 focus-visible:outline-cyan-300 ${unstakingView === "time" ? "bg-amber-300 text-[#241b30]" : "text-white/70 hover:text-white"}`}>By date</button>
+              className={`rounded-md px-3 py-2 focus-visible:outline-2 focus-visible:outline-cyan-300 ${unstakingView === "time" ? "bg-white/15 text-white" : "text-white/70 hover:text-white"}`}>By date</button>
             <button type="button" aria-pressed={unstakingView === "addresses"} onClick={() => setUnstakingView("addresses")}
-              className={`rounded-md px-3 py-2 focus-visible:outline-2 focus-visible:outline-cyan-300 ${unstakingView === "addresses" ? "bg-amber-300 text-[#241b30]" : "text-white/70 hover:text-white"}`}>By address</button>
+              className={`rounded-md px-3 py-2 focus-visible:outline-2 focus-visible:outline-cyan-300 ${unstakingView === "addresses" ? "bg-white/15 text-white" : "text-white/70 hover:text-white"}`}>By address</button>
           </div>
         </div>
         {snapshot ? unstakingView === "time"

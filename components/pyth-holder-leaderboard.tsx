@@ -9,6 +9,7 @@ import type { HolderPeriod } from "@/lib/growth/holderRankings";
 import { AddressRankSearch } from "@/components/address-rank-search";
 
 const integer = new Intl.NumberFormat("en-US");
+const compactNumber = new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 2 });
 function tokens(value: string, signed = false) {
   const raw = BigInt(value), absolute = raw < 0n ? -raw : raw;
   const fraction = (absolute % 1_000_000n).toString().padStart(6, "0").replace(/0+$/, "");
@@ -29,17 +30,13 @@ export function PythHolderLeaderboard() {
     return current > maximum ? (current > previous ? current : previous) : previous > maximum ? previous : maximum;
   }, 0n);
   const compact = limit > 10;
-  return <section aria-labelledby="ownership-activity-title" className="space-y-4">
-    <div>
-      <h2 id="ownership-activity-title" className="text-lg font-medium text-white/90">PYTH ownership activity</h2>
-      <p className="mt-1 text-sm text-white/65">The largest native PYTH balances and how their holdings change over time.</p>
-    </div>
+  return <section aria-labelledby="holder-ranking-title">
     <div className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.025] p-5 sm:p-6">
     <div className="flex flex-wrap items-baseline justify-between gap-3">
       <h3 id="holder-ranking-title" className="text-base font-medium text-white/90">Top PYTH holders</h3>
       {snapshot && <p className="text-sm text-white/60" title={new Date(snapshot.collectedAt).toUTCString()}>Updated {new Date(snapshot.collectedAt).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "UTC" })} UTC</p>}
     </div>
-    <div className="mt-5 flex flex-wrap items-center justify-between gap-4 border-y border-white/10 py-4">
+    <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-3">
       <label className="flex cursor-pointer items-center gap-2.5 rounded-lg text-sm text-white/80">
         <input type="checkbox" checked={excludePooled} onChange={event => setExcludePooled(event.target.checked)} className="h-4 w-4 accent-cyan-300 focus-visible:outline-cyan-300" />
         Exclude pooled custody
@@ -71,7 +68,7 @@ export function PythHolderLeaderboard() {
     }} />
     {snapshot ? <>
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-        <p role="status" className="text-sm text-white/65">Showing {rows.length} of {view.length} {excludePooled ? "owners after filtering" : "tracked owners"}{excludePooled ? ` · ${snapshot.entries.length} tracked` : ""}</p>
+        <p role="status" className="text-xs text-white/65">Showing {rows.length} of {view.length} {excludePooled ? "owners after filtering" : "tracked owners"}{excludePooled ? ` · ${snapshot.entries.length} tracked` : ""}</p>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-white/75" aria-label="Balance bar legend">
           <span className="flex items-center gap-1.5"><span aria-hidden="true" className="h-2.5 w-5 rounded-sm bg-cyan-200" />Retained</span>
           <span className="flex items-center gap-1.5"><span aria-hidden="true" className="h-2.5 w-5 rounded-sm bg-emerald-300" />Added</span>
@@ -80,7 +77,7 @@ export function PythHolderLeaderboard() {
       </div>
       {excludePooled && <p className="mt-2 text-sm leading-relaxed text-white/60">Filtered within the tracked top 100; lower-ranked owners are not fetched.</p>}
       {Date.now() - snapshot.collectedAt > 36 * 60 * 60 * 1000 && <p role="status" className="mt-3 text-sm text-amber-200">Collection is overdue. Showing the last successful snapshot.</p>}
-      <p role="status" className="mt-3 text-sm leading-relaxed text-white/65">
+      <p role="status" className="mt-2 text-xs leading-relaxed text-white/65">
         {period?.status === "collecting" ? `Collecting history · ${days === 1 ? "24-hour" : `${days}-day`} changes aren’t available yet.` : period?.status === "missing" ? `Snapshot unavailable for ${period.date}. Changes cannot be calculated.` : `Compared with ${period?.collectedAt ? new Date(period.collectedAt).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "UTC" }) : period?.date} UTC`}
       </p>
       <ol aria-label={`${rows.length} PYTH holders in the ${excludePooled ? "custody-filtered" : "all holders"} view`} className={compact ? "mt-2 divide-y divide-white/[0.06]" : "mt-5 space-y-5"}>
@@ -107,7 +104,7 @@ export function PythHolderLeaderboard() {
                   {entity && <a href={entity.source} target="_blank" rel="noopener noreferrer" title={`Solscan attribution · ${entity.category}`} className="mt-1 block rounded text-[11px] text-violet-200 hover:text-violet-100 focus-visible:outline-2 focus-visible:outline-cyan-300">{entity.label}</a>}
                 </div>
                 <div className="ml-auto text-right tabular-nums">
-                  <p className="text-sm text-white/90">{tokens(row.amount)} <span className="text-[10px] text-white/45">PYTH</span></p>
+                  <p className="text-sm text-white/90" title={`${tokens(row.amount)} PYTH`}><span aria-label={tokens(row.amount)}>{compactNumber.format(Number(row.amount) / 1_000_000)}</span> <span className="text-[10px] text-white/65">PYTH</span></p>
                   <p className={`mt-1 text-xs ${color}`} aria-label={`${days === 1 ? "24-hour" : `${days}-day`} balance change`}>
                     {delta != null ? <>{tokens(delta, true)} <span className="text-[10px]">PYTH</span><span className="ml-2 text-[11px]">({change?.percentageDelta && !change.percentageDelta.startsWith("-") && change.percentageDelta !== "0.00" ? "+" : ""}{change?.percentageDelta}%)</span></> : <span title={newEntry ? `Not in top 100 on ${period.date}; previous balance unknown` : period?.status === "collecting" ? "Collecting history" : "Snapshot unavailable"}>—</span>}
                   </p>
