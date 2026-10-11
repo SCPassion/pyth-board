@@ -8,6 +8,8 @@ import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
+import { IsolatedSnapshotDot } from "@/components/isolated-snapshot-dot";
+import { isolatedSnapshotTimes } from "@/lib/growth/chartHistory";
 import {
   buildPriceFeedChart, PRICE_FEED_DAY_MS, PRICE_FEED_STATUSES, totalPriceFeeds,
   type PriceFeedSnapshot, type PriceFeedStatus,
@@ -41,6 +43,7 @@ export function PriceFeedsPanel({ compact = false, samples }: { compact?: boolea
   const results = useMemo(() => samples ? samples.filter(row => row.date >= since) : liveResults, [samples, since, liveResults]);
   const ready = !!samples || status === "Exhausted";
   const chart = useMemo(() => buildPriceFeedChart(results), [results]);
+  const isolatedTimes = useMemo(() => isolatedSnapshotTimes(results), [results]);
   const first = results[0];
   const last = results.at(-1);
   const displayedCount = (row: PriceFeedSnapshot) => compact ? totalPriceFeeds(row) : visible.reduce((sum, key) => sum + row[key], 0);
@@ -119,7 +122,7 @@ export function PriceFeedsPanel({ compact = false, samples }: { compact?: boolea
                 {payload.filter(item => item.value != null).map(item => <p key={String(item.dataKey)} className="mt-1 flex justify-between gap-6" style={{ color: item.color }}><span>{item.name}</span><span className="font-medium tabular-nums">{number.format(Number(item.value))}</span></p>)}
               </div>
             ) : null} />
-            {chartKeys.map(key => <Line key={key} type="linear" dataKey={key} name={series[key].label} stroke={series[key].color} strokeWidth={2} dot={results.length === 1 ? { r: 3, fill: series[key].color } : false} activeDot={{ r: 5 }} connectNulls={false} isAnimationActive={false} />)}
+            {chartKeys.map(key => <Line key={key} type="linear" dataKey={key} name={series[key].label} stroke={series[key].color} strokeWidth={2} dot={isolatedTimes.size ? <IsolatedSnapshotDot times={isolatedTimes} /> : false} activeDot={{ r: 5 }} connectNulls={false} isAnimationActive={false} />)}
           </LineChart>
         </ChartContainer>
       )}

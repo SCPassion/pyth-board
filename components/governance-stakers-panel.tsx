@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { usePaginatedQuery, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
+import { IsolatedSnapshotDot } from "@/components/isolated-snapshot-dot";
+import { isolatedSnapshotTimes } from "@/lib/growth/chartHistory";
 
 const DAY = 86_400_000;
 const number = new Intl.NumberFormat("en-US");
@@ -19,6 +21,7 @@ export function GovernanceStakersPanel() {
   const ready = status === "Exhausted";
   const first = results[0];
   const last = results.at(-1);
+  const isolatedTimes = useMemo(() => isolatedSnapshotTimes(results), [results]);
   const change = ready && results.length >= 2 && last && first ? last.stakers-first.stakers : null;
   const chart = results.flatMap((row,i) => {
     const time = Date.parse(`${row.date}T00:00:00Z`);
@@ -49,7 +52,7 @@ export function GovernanceStakersPanel() {
             <XAxis tick={{fill:"#cbd5e1",fontSize:11,style:{fill:"#cbd5e1"}}} dataKey="time" type="number" domain={["dataMin","dataMax"]} scale="time" tickFormatter={t=>new Date(t).toLocaleDateString("en-GB",{timeZone:"UTC",day:"numeric",month:"short"})} tickLine={false} axisLine={false} minTickGap={35} />
             <YAxis tick={{fill:"#cbd5e1",fontSize:11,style:{fill:"#cbd5e1"}}} domain={["auto","auto"]} allowDecimals={false} tickFormatter={n=>number.format(n)} tickLine={false} axisLine={false} width={66} />
             <ChartTooltip content={({active,payload,label})=>active && payload?.[0]?.value != null ? <div className="rounded-xl border border-white/20 bg-[#241b35] p-3 text-sm text-white"><p>{new Date(Number(label)).toLocaleDateString("en-GB",{timeZone:"UTC",year:"numeric",month:"short",day:"numeric"})} UTC</p><p className="mt-1 text-violet-300">{number.format(Number(payload[0].value))} stakers</p></div> : null} />
-            <Line type="linear" dataKey="stakers" stroke="#c4b5fd" strokeWidth={2} dot={results.length === 1 ? {r:3,fill:"#c4b5fd"} : false} activeDot={{r:5}} connectNulls={false} isAnimationActive={false} />
+            <Line type="linear" dataKey="stakers" stroke="#c4b5fd" strokeWidth={2} dot={isolatedTimes.size ? <IsolatedSnapshotDot times={isolatedTimes} /> : false} activeDot={{r:5}} connectNulls={false} isAnimationActive={false} />
           </LineChart>
         </ChartContainer>}
     </section>;
