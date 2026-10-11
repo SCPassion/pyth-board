@@ -5,8 +5,12 @@ import { PythHolderLeaderboard } from "@/components/pyth-holder-leaderboard";
 import { PageMasthead } from "@/components/page-masthead";
 import { PriceFeedsPanel } from "@/components/price-feeds-panel";
 import { SectionRule } from "@/components/section-rule";
+import Link from "next/link";
+import { priceFeedPreview } from "@/lib/growth/priceFeedPreview";
 
-export default function GrowthPage() {
+export default async function GrowthPage({ searchParams }: { searchParams: Promise<{ preview?: string }> }) {
+  const preview = (await searchParams).preview === "sample";
+  const samples = preview ? priceFeedPreview(new Date().toISOString().slice(0, 10)) : undefined;
   return (
     <div className="mx-auto w-full max-w-7xl space-y-8">
       <PageMasthead
@@ -16,9 +20,13 @@ export default function GrowthPage() {
         compact
         right={<span className="text-xs text-white/70">Daily snapshots · UTC</span>}
       />
+      {preview && <div role="status" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-300/25 bg-amber-300/5 px-4 py-3 text-sm text-amber-100">
+        <p>Sample preview · 90 days of fictional price-feed history. Ownership data below is live.</p>
+        <Link href="/growth" className="rounded underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-amber-200">Return to live data</Link>
+      </div>}
       <section className="space-y-4">
         <SectionRule index="01" title="Price feed coverage" />
-        <PriceFeedsPanel />
+        <PriceFeedsPanel samples={samples} />
       </section>
       <section className="space-y-6">
         <SectionRule index="02" title="Ownership & participation" />

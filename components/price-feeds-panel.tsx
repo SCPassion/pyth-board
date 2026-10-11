@@ -23,9 +23,9 @@ const series = {
 };
 const utcDate = (time: number) => new Date(time).toLocaleDateString("en-GB", { timeZone: "UTC", day: "numeric", month: "short", year: "numeric" });
 
-export function PriceFeedsPanel({ compact = false }: { compact?: boolean }) {
+export function PriceFeedsPanel({ compact = false, samples }: { compact?: boolean; samples?: PriceFeedSnapshot[] }) {
   const titleId = useId();
-  const [period, setPeriod] = useState<keyof typeof periods>("30D");
+  const [period, setPeriod] = useState<keyof typeof periods>(samples ? "90D" : "30D");
   const [visible, setVisible] = useState<PriceFeedStatus[]>([...PRICE_FEED_STATUSES]);
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -34,10 +34,12 @@ export function PriceFeedsPanel({ compact = false }: { compact?: boolean }) {
   }, []);
   const days = periods[period];
   const since = days === null ? "0000-01-01" : new Date(now - (days - 1) * PRICE_FEED_DAY_MS).toISOString().slice(0, 10);
-  const latest = useQuery(api.pythPriceFeeds.latest, {});
-  const { results, status, loadMore } = usePaginatedQuery(api.pythPriceFeeds.history, { since }, { initialNumItems: 366 });
+  const liveLatest = useQuery(api.pythPriceFeeds.latest, samples ? "skip" : {});
+  const { results: liveResults, status, loadMore } = usePaginatedQuery(api.pythPriceFeeds.history, samples ? "skip" : { since }, { initialNumItems: 366 });
   useEffect(() => { if (status === "CanLoadMore") loadMore(366); }, [status, loadMore]);
-  const ready = status === "Exhausted";
+  const latest = samples ? samples.at(-1) : liveLatest;
+  const results = useMemo(() => samples ? samples.filter(row => row.date >= since) : liveResults, [samples, since, liveResults]);
+  const ready = !!samples || status === "Exhausted";
   const chart = useMemo(() => buildPriceFeedChart(results), [results]);
   const first = results[0];
   const last = results.at(-1);
@@ -117,19 +119,19 @@ export function PriceFeedsPanel({ compact = false }: { compact?: boolean }) {
                 {payload.filter(item => item.value != null).map(item => <p key={String(item.dataKey)} className="mt-1 flex justify-between gap-6" style={{ color: item.color }}><span>{item.name}</span><span className="font-medium tabular-nums">{number.format(Number(item.value))}</span></p>)}
               </div>
             ) : null} />
-            {chartKeys.map(key => <Line key={key} type="linear" dataKey={key} name={series[key].label} stroke={series[key].color} strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} connectNulls={false} isAnimationActive={false} />)}
+            {chartKeys.map(key => <Line key={key} type="linear" dataKey={key} name={series[key].label} stroke={series[key].color} strokeWidth={2} dot={results.length <= 30 ? { r: 3, fill: series[key].color } : false} activeDot={{ r: 5 }} connectNulls={false} isAnimationActive={false} />)}
           </LineChart>
         </ChartContainer>
       )}
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-white/15 pt-4 text-xs leading-relaxed text-white/65">
-        <p title={latest ? new Date(latest.collectedAt).toUTCString() : undefined}>{latest === undefined ? "Loading collection status…" : latest ? `Collected ${new Date(latest.collectedAt).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "UTC" })} UTC` : "Awaiting the first collection"}</p>
-        <a href="https://app.pyth.com/explore/all" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-white/80 hover:text-cyan-200 focus-visible:outline-2 focus-visible:outline-cyan-300">Source: Pyth Explore <ArrowUpRight className="size-3" aria-hidden="true" /></a>
+        <p title={!samples && latest ? new Date(latest.collectedAt).toUTCString() : undefined}>{samples ? "Sample data · fictional daily snapshots" : latest === undefined ? "Loading collection status…" : latest ? `Collected ${new Date(latest.collectedAt).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "UTC" })} UTC` : "Awaiting the first collection"}</p>
+        {!samples && <a href="https://app.pyth.com/explore/all" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-white/80 hover:text-cyan-200 focus-visible:outline-2 focus-visible:outline-cyan-300">Source: Pyth Explore <ArrowUpRight className="size-3" aria-hidden="true" /></a>}
       </div>
       {stale && <p role="status" className="mt-2 text-sm text-amber-300">Collection is overdue. Showing the last successful snapshot.</p>}
       {!compact && <details className="mt-3 text-xs leading-relaxed text-white/65">
         <summary className="cursor-pointer rounded focus-visible:outline-2 focus-visible:outline-cyan-300">About these counts</summary>
-        <p className="mt-2">Collected daily at 04:15 UTC. Total listed = stable + coming soon + inactive. Statuses follow Pyth Explore; stable means live. History starts with the first collection, with gaps for missed days.</p>
+        <p className="mt-2">{samples ? "These fictional counts demonstrate the chart after 90 daily snapshots. They are generated for this preview and are not stored in the database." : "Collected daily at 04:15 UTC. Total listed = stable + coming soon + inactive. Statuses follow Pyth Explore; stable means live. History starts with the first collection, with gaps for missed days."}</p>
       </details>}
     </section>
   );
