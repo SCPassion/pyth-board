@@ -7,6 +7,7 @@ import {
   useEffect,
   useMemo,
   useState,
+  useSyncExternalStore,
 } from "react";
 
 interface BeforeInstallPromptEvent extends Event {
@@ -26,6 +27,16 @@ interface PwaInstallContextValue {
 
 const PwaInstallContext = createContext<PwaInstallContextValue | null>(null);
 
+const standaloneQuery = "(display-mode: standalone)";
+const getStandaloneSnapshot = () => window.matchMedia(standaloneQuery).matches;
+const getServerStandaloneSnapshot = () => false;
+
+function subscribeToStandalone(onChange: () => void) {
+  const mediaQuery = window.matchMedia(standaloneQuery);
+  mediaQuery.addEventListener("change", onChange);
+  return () => mediaQuery.removeEventListener("change", onChange);
+}
+
 export function PwaInstallProvider({
   children,
 }: {
@@ -33,21 +44,22 @@ export function PwaInstallProvider({
 }) {
   const [deferredPrompt, setDeferredPrompt] =
     useState<BeforeInstallPromptEvent | null>(null);
-  const [isInstalled, setIsInstalled] = useState(false);
+  const [installedFromEvent, setInstalledFromEvent] = useState(false);
+  const isStandalone = useSyncExternalStore(
+    subscribeToStandalone,
+    getStandaloneSnapshot,
+    getServerStandaloneSnapshot,
+  );
+  const isInstalled = isStandalone || installedFromEvent;
 
   useEffect(() => {
-    if (window.matchMedia("(display-mode: standalone)").matches) {
-      setIsInstalled(true);
-      return;
-    }
-
     const handleBeforeInstallPrompt = (event: Event) => {
       event.preventDefault();
       setDeferredPrompt(event as BeforeInstallPromptEvent);
     };
 
     const handleAppInstalled = () => {
-      setIsInstalled(true);
+      setInstalledFromEvent(true);
       setDeferredPrompt(null);
     };
 

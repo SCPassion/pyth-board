@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { NewsHero } from "@/components/news/news-hero";
@@ -15,12 +15,6 @@ export default function NewsPage() {
   const latestDigest = useQuery(api.news.getLatestDigest, {});
   const archiveDigests = useQuery(api.news.listDigests, { limit: 12 });
   const [selectedWeekKey, setSelectedWeekKey] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!selectedWeekKey && latestDigest?.weekKey) {
-      setSelectedWeekKey(latestDigest.weekKey);
-    }
-  }, [latestDigest, selectedWeekKey]);
 
   if (latestDigest === undefined || archiveDigests === undefined) {
     return (

@@ -18,19 +18,46 @@ interface TopHeaderProps {
   onMobileMenuToggle: () => void;
 }
 
+function WalletRefreshCompleteNotice({ completedAt }: { completedAt: number }) {
+  const [phase, setPhase] = useState<"visible" | "fading" | "hidden">(() => {
+    const elapsed = Date.now() - completedAt;
+    return elapsed >= 1800 ? "hidden" : elapsed >= 1200 ? "fading" : "visible";
+  });
+
+  useEffect(() => {
+    const elapsed = Date.now() - completedAt;
+    if (elapsed >= 1800) return;
+
+    const fadeTimer = setTimeout(() => setPhase("fading"), Math.max(0, 1200 - elapsed));
+    const hideTimer = setTimeout(() => setPhase("hidden"), Math.max(0, 1800 - elapsed));
+    return () => {
+      clearTimeout(fadeTimer);
+      clearTimeout(hideTimer);
+    };
+  }, [completedAt]);
+
+  if (phase === "hidden") return null;
+
+  return (
+    <div
+      className={`hidden max-w-[24rem] truncate rounded-full border border-emerald-400/20 bg-emerald-300/10 px-3 py-1 text-[11px] font-medium text-emerald-50 transition-all duration-500 2xl:inline-flex ${phase === "fading" ? "translate-y-[-4px] opacity-0" : "translate-y-0 opacity-100"}`}
+      title="Governance balances refreshed"
+    >
+      Governance balances refreshed
+    </div>
+  );
+}
+
 export function TopHeader({
   isMobileMenuOpen,
   onMobileMenuToggle,
 }: TopHeaderProps) {
   const [showWalletDropdown, setShowWalletDropdown] = useState(false);
-  const [showRefreshComplete, setShowRefreshComplete] = useState(false);
-  const [isRefreshCompleteFading, setIsRefreshCompleteFading] = useState(false);
   const { canInstall, installApp } = usePwaInstall();
   const { isRefreshingWallets, lastWalletRefreshAt, walletRefreshError } =
     useAppLoading();
   const pathname = usePathname();
   const walletMenuRef = useRef<HTMLDivElement>(null);
-  const wasRefreshingRef = useRef(false);
 
   const pageTitle =
     pathname === "/"
@@ -49,45 +76,6 @@ export function TopHeader({
                   ? "About"
             : "Pyth Dashboard";
 
-  useEffect(() => {
-    let fadeTimer: ReturnType<typeof setTimeout> | undefined;
-    let hideTimer: ReturnType<typeof setTimeout> | undefined;
-
-    if (isRefreshingWallets) {
-      wasRefreshingRef.current = true;
-      setShowRefreshComplete(false);
-      setIsRefreshCompleteFading(false);
-      return;
-    }
-
-    if (walletRefreshError) {
-      setShowRefreshComplete(false);
-      setIsRefreshCompleteFading(false);
-      wasRefreshingRef.current = false;
-      return;
-    }
-
-    if (wasRefreshingRef.current && lastWalletRefreshAt) {
-      setShowRefreshComplete(true);
-      setIsRefreshCompleteFading(false);
-      wasRefreshingRef.current = false;
-
-      fadeTimer = setTimeout(() => {
-        setIsRefreshCompleteFading(true);
-      }, 1200);
-
-      hideTimer = setTimeout(() => {
-        setShowRefreshComplete(false);
-        setIsRefreshCompleteFading(false);
-      }, 1800);
-    }
-
-    return () => {
-      if (fadeTimer) clearTimeout(fadeTimer);
-      if (hideTimer) clearTimeout(hideTimer);
-    };
-  }, [isRefreshingWallets, lastWalletRefreshAt, walletRefreshError]);
-
   const walletRefreshStatus =
     walletRefreshError
       ? {
@@ -101,17 +89,7 @@ export function TopHeader({
             className:
               "border-cyan-400/30 bg-cyan-300/12 text-cyan-50 shadow-[0_0_24px_rgba(34,211,238,0.25)] animate-pulse",
           }
-        : showRefreshComplete
-          ? {
-              label: "Governance balances refreshed",
-              className:
-                `border-emerald-400/20 bg-emerald-300/10 text-emerald-50 transition-all duration-500 ${
-                  isRefreshCompleteFading
-                    ? "translate-y-[-4px] opacity-0"
-                    : "translate-y-0 opacity-100"
-                }`,
-            }
-          : null;
+        : null;
 
   return (
     <header className="flex min-h-20 flex-wrap items-center justify-between gap-3 border-b border-white/6 bg-[#241b35] px-3 py-3 sm:px-6">
@@ -197,6 +175,8 @@ export function TopHeader({
               >
                 {walletRefreshStatus.label}
               </div>
+            ) : lastWalletRefreshAt !== null ? (
+              <WalletRefreshCompleteNotice key={lastWalletRefreshAt} completedAt={lastWalletRefreshAt} />
             ) : null}
           </div>
         </div>
