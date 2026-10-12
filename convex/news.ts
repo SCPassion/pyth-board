@@ -1,4 +1,6 @@
-import { v } from "convex/values";
+import { v, type Infer } from "convex/values";
+import { api, internal } from "./_generated/api";
+import type { Id } from "./_generated/dataModel";
 import {
   internalAction,
   internalMutation,
@@ -37,6 +39,14 @@ const FORUM_CATEGORY_FEEDS = [
 ] as const;
 const DEFAULT_OPENAI_MODEL = "gpt-4.1-mini";
 const PROMPT_VERSION = "v1";
+
+const digestGenerationResultValidator = v.union(
+  v.object({ skipped: v.literal(true), weekKey: v.string() }),
+  v.object({
+    weekKey: v.string(),
+    sourceCounts: v.object({ forumPosts: v.number(), forumTopics: v.number() }),
+  })
+);
 
 const digestSectionValidator = v.object({
   title: v.string(),
@@ -419,18 +429,15 @@ export const generateWeeklyDigest = internalAction({
     force: v.optional(v.boolean()),
     endMs: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
+  returns: digestGenerationResultValidator,
+  handler: async (ctx, args): Promise<Infer<typeof digestGenerationResultValidator>> => {
     const digestEndMs = getDigestEndMs(args.endMs ?? Date.now());
     const { startMs: rangeStartMs, endMs: rangeEndMs } =
       buildDigestWeekWindow(digestEndMs);
     const weekKey = formatWeekKey(digestEndMs);
-    const existing = (await ctx.runQuery("news:getDigestByWeekKey" as any, {
+    const existing = await ctx.runQuery(api.news.getDigestByWeekKey, {
       weekKey,
-    })) as
-      | {
-          status: string;
-        }
-      | null;
+    });
 
     if (existing?.status === "completed" && !args.force) {
       return {
@@ -450,7 +457,7 @@ export const generateWeeklyDigest = internalAction({
         rangeEndMs,
       });
 
-      await ctx.runMutation("news:upsertSourceItems" as any, {
+      await ctx.runMutation(internal.news.upsertSourceItems, {
         weekKey,
         items: sourceItems,
       });
@@ -464,7 +471,7 @@ export const generateWeeklyDigest = internalAction({
               sourceItems,
             });
 
-      await ctx.runMutation("news:saveDigest" as any, {
+      await ctx.runMutation(internal.news.saveDigest, {
         weekKey,
         rangeStartMs,
         rangeEndMs,
@@ -487,7 +494,7 @@ export const generateWeeklyDigest = internalAction({
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
 
-      await ctx.runMutation("news:saveDigest" as any, {
+      await ctx.runMutation(internal.news.saveDigest, {
         weekKey,
         rangeStartMs,
         rangeEndMs,
@@ -514,10 +521,11 @@ export const triggerDigestGeneration = mutation({
   args: {
     force: v.optional(v.boolean()),
   },
-  handler: async (ctx, args): Promise<unknown> => {
+  returns: v.id("_scheduled_functions"),
+  handler: async (ctx, args): Promise<Id<"_scheduled_functions">> => {
     return await ctx.scheduler.runAfter(
       0,
-      "news:generateWeeklyDigest" as any,
+      internal.news.generateWeeklyDigest,
       {
         force: args.force,
       }
