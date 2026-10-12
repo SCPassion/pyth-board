@@ -12,6 +12,9 @@ import { createPageMetadata, SITE_URL } from "@/lib/seo";
 export const metadata: Metadata = {
   ...createPageMetadata("/"),
   metadataBase: new URL(SITE_URL),
+  verification: {
+    google: "R6I4YyG4_hy7Xm_ZXhoXrk7yeLFonsMdz8ebMjJAHI8",
+  },
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
