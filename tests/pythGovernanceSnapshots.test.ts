@@ -3,15 +3,24 @@ import { store, latest, history, leaderboard, hasDate } from "../convex/pythGove
 import { collect } from "../convex/pythGovernanceStakerCollection";
 import { collectGovernanceStakers } from "../lib/growth/governanceCollector";
 import { PublicKey } from "@solana/web3.js";
+import type { Doc } from "../convex/_generated/dataModel";
+import type { internal } from "../convex/_generated/api";
+import type { DefaultFunctionArgs, FunctionArgs, FunctionVisibility, RegisteredAction, RegisteredMutation, RegisteredQuery } from "convex/server";
 vi.mock("../lib/growth/governanceCollector", () => ({ collectGovernanceStakers: vi.fn() }));
-const handler = (fn: unknown) => (fn as { _handler: (ctx: any, args: any) => Promise<any> })._handler;
+// Unit tests provide only the context methods exercised by each handler.
+const handler = <Visibility extends FunctionVisibility, Args extends DefaultFunctionArgs, Result>(
+  fn: RegisteredQuery<Visibility, Args, Result> | RegisteredMutation<Visibility, Args, Result> | RegisteredAction<Visibility, Args, Result>,
+) => (fn as unknown as { _handler: (ctx: unknown, args: Args) => Result })._handler;
+type SnapshotRow = Omit<Doc<"pythGovernanceStakerSnapshots">, "_id" | "_creationTime">;
+type LeaderboardRow = Omit<Doc<"pythGovernanceLeaderboard">, "_id" | "_creationTime"> & { _id?: string };
+type RankingSummary = Pick<LeaderboardRow, "collectedAt" | "topUnstaking" | "cooldownSchedule"> & { topStakers: unknown[] };
 const args = { stakers: 2, collectedAt: Date.UTC(2026, 8, 12, 15), epoch: "2958", totalStakeAccounts: 4, eligibleStakeAccounts: 3 };
 const rankings = { topStakers: [{ owner: "11111111111111111111111111111111", amount: "1000000" }], topUnstaking: [], cooldownSchedule: [] };
 const storeArgs = { ...args, ...rankings };
 beforeEach(() => vi.clearAllMocks());
 
 it("seeds rankings even when a count snapshot already exists for today", async () => {
-  let rankingRow: any = null;
+  let rankingRow: RankingSummary | null = null;
   const db = { query: (table: string) => ({ withIndex: () => ({ unique: async () => table === "pythGovernanceLeaderboard" ? rankingRow : args }) }) };
   expect(await handler(hasDate)({ db }, { date: "2026-09-12" })).toBe(false);
   rankingRow = { topStakers: [{}, {}], topUnstaking: [], collectedAt: args.collectedAt - 86400000 };
@@ -54,11 +63,11 @@ it.each([
 });
 
 it("replaces only the latest leaderboard and never lets an older scan overwrite it", async () => {
-  let row: any = null;
+  let row: LeaderboardRow | null = null;
   const db = {
     query: (table: string) => ({ withIndex: () => ({ unique: async () => table === "pythGovernanceLeaderboard" ? row : { ...args } }) }),
-    insert: vi.fn(async (_table, value) => { row = { ...value, _id: "ranking" }; }),
-    replace: vi.fn(async (_id, value) => { row = { ...value, _id: "ranking" }; }),
+    insert: vi.fn(async (_table: string, value: LeaderboardRow) => { row = { ...value, _id: "ranking" }; }),
+    replace: vi.fn(async (_id: string, value: LeaderboardRow) => { row = { ...value, _id: "ranking" }; }),
   };
   await handler(store)({ db }, storeArgs);
   await handler(store)({ db }, { ...storeArgs, collectedAt: args.collectedAt + 1000 });
@@ -79,10 +88,13 @@ it.each([
 });
 
 it("keeps the first successful daily snapshot through an indexed transaction", async () => {
-  const rows: any[] = [];
-  let rankingRow: any = null;
-  const withIndex = vi.fn((_name, filter) => { filter({ eq: (key: string, date: string) => { expect(key).toBe("date"); expect(date).toBe("2026-09-12"); } }); return { unique: async () => rows[0] ?? null }; });
-  const db = { query: vi.fn(table => table === "pythGovernanceLeaderboard" ? { withIndex: () => ({ unique: async () => rankingRow }) } : { withIndex }), insert: vi.fn(async (table, row) => { if (table === "pythGovernanceLeaderboard") rankingRow = row; else rows.push(row); }) };
+  const rows: SnapshotRow[] = [];
+  let rankingRow: LeaderboardRow | null = null;
+  const withIndex = vi.fn((_name: string, filter: (q: { eq: (key: string, date: string) => void }) => unknown) => { filter({ eq: (key: string, date: string) => { expect(key).toBe("date"); expect(date).toBe("2026-09-12"); } }); return { unique: async () => rows[0] ?? null }; });
+  const db = { query: vi.fn((table: string) => table === "pythGovernanceLeaderboard" ? { withIndex: () => ({ unique: async () => rankingRow }) } : { withIndex }), insert: vi.fn(async (table: string, row: SnapshotRow | LeaderboardRow) => {
+    if ("topStakers" in row) { expect(table).toBe("pythGovernanceLeaderboard"); rankingRow = row; }
+    else { expect(table).toBe("pythGovernanceStakerSnapshots"); rows.push(row); }
+  }) };
   await handler(store)({ db }, storeArgs);
   await handler(store)({ db }, { ...storeArgs, stakers: 3 });
   expect(db.query).toHaveBeenCalledWith("pythGovernanceStakerSnapshots");
@@ -131,14 +143,17 @@ it("returns only public snapshot fields and preserves history pagination", async
 });
 
 it("concurrent daily actions preserve one canonical row under Convex transaction serialization", async () => {
-  const rows: any[] = [];
-  let rankingRow: any = null;
+  const rows: SnapshotRow[] = [];
+  let rankingRow: LeaderboardRow | null = null;
   const db = { query: (table: string) => ({ withIndex: () => ({ unique: async () => table === "pythGovernanceLeaderboard" ? rankingRow : rows[0] ?? null }) }),
-    insert: async (table: string, row: unknown) => { if (table === "pythGovernanceLeaderboard") rankingRow = row; else rows.push(row); } };
+    insert: async (table: string, row: SnapshotRow | LeaderboardRow) => {
+      if ("topStakers" in row) { expect(table).toBe("pythGovernanceLeaderboard"); rankingRow = row; }
+      else { expect(table).toBe("pythGovernanceStakerSnapshots"); rows.push(row); }
+    } };
   // Convex serializes conflicting indexed transactions via OCC. Model that boundary
   // here; deployment verification also invokes the real mutation concurrently.
-  let transaction = Promise.resolve();
-  const ctx = { runQuery: vi.fn().mockResolvedValue(false), runMutation: vi.fn((_ref, input) => {
+  let transaction: Promise<unknown> = Promise.resolve();
+  const ctx = { runQuery: vi.fn().mockResolvedValue(false), runMutation: vi.fn((_ref: unknown, input: FunctionArgs<typeof internal.pythGovernanceStakers.store>) => {
     transaction = transaction.then(() => handler(store)({ db }, input)); return transaction;
   }) };
   vi.mocked(collectGovernanceStakers).mockResolvedValue({ ...storeArgs, collectedAt: Date.now(), startedAt: Date.now(),

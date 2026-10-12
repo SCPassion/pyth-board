@@ -29,8 +29,8 @@ describe.each([
     "uses the configured primary and preserves fallback order (%s)",
     async (primary) => {
       vi.stubEnv("PRIMARY_SOLANA_RPC_URL", primary);
-      const module = await import(`../convex/${moduleName}.ts`);
-      await expect(module[jobName]._handler({})).rejects.toThrow();
+      const snapshotModule = await import(`../convex/${moduleName}.ts`);
+      await expect(snapshotModule[jobName]._handler({})).rejects.toThrow();
       expect(connection.mock.calls.map(([endpoint]) => endpoint)).toEqual(
         primary ? [primary, ...fallbacks] : fallbacks,
       );

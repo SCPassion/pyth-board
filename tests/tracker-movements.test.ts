@@ -8,7 +8,17 @@ import { accountPythMovements } from "../lib/tracker/movements";
 import { parseEvidence } from "../lib/tracker/parsers";
 import { PARSER_VERSION, PYTH_MINT } from "../lib/tracker/config";
 const modules = import.meta.glob("../convex/**/*.ts");
-const fixture = () => structuredClone(evidence);
+type EvidenceFixture = typeof evidence;
+type TransactionMeta = EvidenceFixture["rawTransaction"]["meta"];
+type MutableEvidenceFixture = Omit<EvidenceFixture, "rawTransaction"> & {
+  rawTransaction: Omit<EvidenceFixture["rawTransaction"], "meta"> & {
+    meta: Omit<TransactionMeta, "innerInstructions" | "err"> & {
+      innerInstructions: TransactionMeta["innerInstructions"] | null;
+      err: null | { InstructionError: [number, string] };
+    };
+  };
+};
+const fixture = (): MutableEvidenceFixture => structuredClone(evidence);
 const accounting = (p = fixture()) =>
   accountPythMovements(p, p.signature, true);
 afterEach(() => {
@@ -80,9 +90,9 @@ it.each([
     raw.meta.preTokenBalances.find((b) => b.mint === PYTH_MINT)!.programId =
       "other";
   if (mode === "missing instructions")
-    (raw.meta as any).innerInstructions = null;
+    raw.meta.innerInstructions = null;
   if (mode === "failed")
-    (raw.meta as any).err = { InstructionError: [0, "failed"] };
+    raw.meta.err = { InstructionError: [0, "failed"] };
   if (mode === "keys") raw.transaction.message.accountKeys = [];
   expect(accounting(p)).toMatchObject({
     status: "UNAVAILABLE",
