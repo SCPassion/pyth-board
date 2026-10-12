@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useId, useMemo, useState } from "react";
 import { usePaginatedQuery, useQuery } from "convex/react";
-import { ArrowUpRight, Check } from "lucide-react";
+import { ArrowUpRight, Check, Info } from "lucide-react";
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
@@ -18,12 +18,36 @@ import {
 const number = new Intl.NumberFormat("en-US");
 const periods = { "30D": 30, "90D": 90, "1Y": 365, ALL: null } as const;
 const series = {
-  stable: { label: "Stable", color: "#67e8f9", description: "Live feeds" },
-  comingSoon: { label: "Coming soon", color: "#fbbf24", description: "Announced feeds" },
-  inactive: { label: "Inactive", color: "#c4b5fd", description: "Inactive feeds" },
+  stable: { label: "Stable", color: "#67e8f9", description: "Live feeds. Stable describes the feed's lifecycle, not whether its price fluctuates." },
+  comingSoon: { label: "Coming soon", color: "#fbbf24", description: "Announced feeds that have not started publishing prices yet." },
+  inactive: { label: "Inactive", color: "#c4b5fd", description: "Retired or expired feeds that remain in the catalog." },
   total: { label: "Total listed", color: "#67e8f9" },
 };
 const utcDate = (time: number) => new Date(time).toLocaleDateString("en-GB", { timeZone: "UTC", day: "numeric", month: "short", year: "numeric" });
+
+function StatusHint({ status }: { status: PriceFeedStatus }) {
+  const hintId = useId();
+  const [open, setOpen] = useState(false);
+  const alignment = status === "stable" ? "left-0" : status === "inactive" ? "right-0" : "left-1/2 -translate-x-1/2";
+
+  return (
+    <div className="pointer-events-none absolute inset-x-0 top-3 flex justify-end"
+      onPointerEnter={event => { if (event.pointerType === "mouse") setOpen(true); }}
+      onPointerLeave={event => { if (!event.currentTarget.contains(document.activeElement)) setOpen(false); }}>
+      <button type="button" aria-label={`About ${series[status].label.toLowerCase()} feeds`}
+        aria-describedby={open ? hintId : undefined}
+        className="pointer-events-auto flex size-7 shrink-0 items-center justify-center rounded-full text-white/50 hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-cyan-300"
+        onFocus={() => setOpen(true)} onBlur={() => setOpen(false)} onClick={() => setOpen(true)}
+        onKeyDown={event => { if (event.key === "Escape") { setOpen(false); event.stopPropagation(); } }}>
+        <Info className="size-3.5" aria-hidden="true" />
+      </button>
+      {open && <span id={hintId} role="tooltip"
+        className={`pointer-events-auto absolute top-full z-20 w-64 max-w-[calc(100vw-3rem)] pt-1 ${alignment}`}>
+        <span className="block rounded-xl border border-white/20 bg-[#241b35] px-3 py-2 text-xs leading-relaxed text-white/85 shadow-xl">{series[status].description}</span>
+      </span>}
+    </div>
+  );
+}
 
 export function PriceFeedsPanel({ compact = false, samples }: { compact?: boolean; samples?: PriceFeedSnapshot[] }) {
   const titleId = useId();
@@ -78,12 +102,13 @@ export function PriceFeedsPanel({ compact = false, samples }: { compact?: boolea
           {PRICE_FEED_STATUSES.map(key => {
             const selected = visible.includes(key);
             return (
-              <Button key={key} variant="ghost" aria-pressed={selected}
+              <div key={key} className="relative min-w-0">
+              <Button variant="ghost" aria-pressed={selected}
                 aria-label={`${series[key].label}: ${latest ? number.format(latest[key]) : "unavailable"}. ${selected ? "Hide" : "Show"} series`}
                 onClick={() => setVisible(current => current.includes(key) ? current.filter(value => value !== key) : [...current, key])}
-                className={`h-auto min-w-0 flex-col items-start gap-2 rounded-none border-b-2 px-0 py-3 text-left focus-visible:ring-cyan-300 hover:bg-white/5 ${selected ? "" : "opacity-60"}`}
+                className={`h-auto w-full min-w-0 flex-col items-start gap-2 rounded-none border-b-2 px-0 py-3 text-left focus-visible:ring-cyan-300 hover:bg-white/5 ${selected ? "" : "opacity-60"}`}
                 style={{ borderColor: selected ? series[key].color : "rgba(255,255,255,0.2)" }}>
-                <span className="flex min-h-8 min-w-0 items-center gap-2 sm:min-h-5">
+                <span className="flex min-h-8 min-w-0 items-center gap-2 pr-7 sm:min-h-7">
                   <span className="flex size-4 shrink-0 items-center justify-center rounded border" style={{ borderColor: series[key].color, color: series[key].color }}>
                     {selected && <Check className="size-3.5" aria-hidden="true" />}
                   </span>
@@ -91,6 +116,8 @@ export function PriceFeedsPanel({ compact = false, samples }: { compact?: boolea
                 </span>
                 <span className="text-2xl font-medium tabular-nums text-white">{latest ? number.format(latest[key]) : "—"}</span>
               </Button>
+              <StatusHint status={key} />
+              </div>
             );
           })}
         </div>
@@ -134,7 +161,11 @@ export function PriceFeedsPanel({ compact = false, samples }: { compact?: boolea
       {stale && <p role="status" className="mt-2 text-sm text-amber-300">Collection is overdue. Showing the last successful snapshot.</p>}
       {!compact && <details className="mt-3 text-xs leading-relaxed text-white/65">
         <summary className="cursor-pointer rounded focus-visible:outline-2 focus-visible:outline-cyan-300">About these counts</summary>
-        <p className="mt-2">{samples ? "These fictional counts demonstrate the chart after 90 daily snapshots. They are generated for this preview and are not stored in the database." : "Collected daily at 04:15 UTC. Total listed = stable + coming soon + inactive. Statuses follow Pyth Explore; stable means live. History starts with the first collection, with gaps for missed days."}</p>
+        <p className="mt-2">{samples ? "These fictional counts demonstrate the chart after 90 daily snapshots. They are generated for this preview and are not stored in the database." : "Collected daily at 04:15 UTC. Total listed = stable + coming soon + inactive. History starts with the first collection, with gaps for missed days."}</p>
+        <dl className="mt-3 space-y-2">
+          {PRICE_FEED_STATUSES.map(key => <div key={key}><dt className="inline font-medium" style={{ color: series[key].color }}>{series[key].label}: </dt><dd className="inline">{series[key].description}</dd></div>)}
+        </dl>
+        <a href="https://docs.pyth.network/price-feeds/pro/symbology-reference#pricing--data-quality" target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center gap-1 rounded text-white/80 hover:text-cyan-200 focus-visible:outline-2 focus-visible:outline-cyan-300">Pyth&apos;s status definitions <ArrowUpRight className="size-3" aria-hidden="true" /></a>
       </details>}
     </section>
   );
