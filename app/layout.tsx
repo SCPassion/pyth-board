@@ -7,10 +7,11 @@ import { PwaInstallProvider } from "@/components/pwa-install-context";
 import { Analytics } from "@vercel/analytics/react";
 import { Toaster } from "react-hot-toast";
 import { uiSansFont, displayFont, monoFont } from "@/lib/fonts";
+import { createPageMetadata, SITE_URL } from "@/lib/seo";
 
 export const metadata: Metadata = {
-  title: "Pyth Network Staking Dashboard",
-  description: "Track your Pyth Network staking across multiple wallets",
+  ...createPageMetadata("/"),
+  metadataBase: new URL(SITE_URL),
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -19,17 +20,6 @@ export const metadata: Metadata = {
   },
   formatDetection: {
     telephone: false,
-  },
-  openGraph: {
-    type: "website",
-    siteName: "Pyth Dashboard",
-    title: "Pyth Network Staking Dashboard",
-    description: "Track your Pyth Network staking across multiple wallets",
-  },
-  twitter: {
-    card: "summary",
-    title: "Pyth Network Staking Dashboard",
-    description: "Track your Pyth Network staking across multiple wallets",
   },
 };
 

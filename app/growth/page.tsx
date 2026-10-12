@@ -7,6 +7,12 @@ import { PriceFeedsPanel } from "@/components/price-feeds-panel";
 import { SectionRule } from "@/components/section-rule";
 import Link from "next/link";
 import { priceFeedPreview } from "@/lib/growth/priceFeedPreview";
+import { createPageMetadata } from "@/lib/seo";
+
+export async function generateMetadata({ searchParams }: { searchParams: Promise<{ preview?: string }> }) {
+  const preview = (await searchParams).preview === "sample";
+  return createPageMetadata("/growth", { index: !preview });
+}
 
 export default async function GrowthPage({ searchParams }: { searchParams: Promise<{ preview?: string }> }) {
   const preview = (await searchParams).preview === "sample";

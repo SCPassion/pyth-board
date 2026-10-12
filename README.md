@@ -99,6 +99,24 @@ The hourly buyback job fetches parsed transactions in paced batches of five and 
 
 Trading Activity uses a separate HTTP webhook and worker; it adds no cron job. Its tracker tables and indexes are also included in the Convex schema. See [CHANGES.md](CHANGES.md) for the Trading Activity indexer's scope and limitations.
 
+## Search visibility
+
+The canonical production site is `https://pyth.scptech.xyz`. Page titles,
+descriptions, canonical URLs, and social metadata are defined in `lib/seo.ts`.
+The public pages are listed at `/sitemap.xml`, and `/robots.txt` allows crawling
+and points to that sitemap. The paused Trading Activity beta and Growth's
+`?preview=sample` view use `noindex`; Vercel preview deployments also use
+`noindex`. These metadata settings do not change wallet storage, data fetching,
+calculations, charts, or page interactions.
+
+After deployment, verify `pyth.scptech.xyz` in Google Search Console, submit
+`https://pyth.scptech.xyz/sitemap.xml`, and inspect the home, reserve, revenue,
+and growth URLs to request indexing. Search Console verification requires the
+site owner's account and either the requested DNS record or verification tag.
+Submission does not guarantee indexing or rankings. This first SEO pass keeps
+the existing client-side rendering; public data snapshots and permanent URLs
+for individual news digests remain possible future improvements.
+
 ## Run locally
 
 Use a Node.js version compatible with Next.js 16 and npm. Install dependencies, then copy `.env.local.example` to `.env.local` and fill in the values needed for your development deployment. Set Convex environment variables in Convex rather than exposing provider keys as `NEXT_PUBLIC_*` values. In particular, keep `HELIUS_API_KEY` private; it is also used to authorize the Helius webhook endpoint.

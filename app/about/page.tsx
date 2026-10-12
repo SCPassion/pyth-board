@@ -2,6 +2,9 @@ import { PageMasthead } from "@/components/page-masthead";
 import { Badge } from "@/components/ui/badge";
 import { AlertTriangle, ExternalLink, Info, ShieldCheck } from "lucide-react";
 import Link from "next/link";
+import { createPageMetadata } from "@/lib/seo";
+
+export const metadata = createPageMetadata("/about");
 
 const disclosures = [
   {
