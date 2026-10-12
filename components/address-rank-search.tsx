@@ -17,7 +17,7 @@ export function AddressRankSearch({ onLookup }: { onLookup: (address: string) =>
     : null;
 
   return <div className="mt-4">
-    <form onSubmit={event => { event.preventDefault(); setCheckedAddress(input.trim()); }}>
+    <form className="relative" onSubmit={event => { event.preventDefault(); setCheckedAddress(input.trim()); }}>
       <label htmlFor={inputId} className="sr-only">Check a wallet address</label>
       <div className="flex gap-2">
         <input id={inputId} type="search" value={input} onChange={event => { setInput(event.target.value); setCheckedAddress(""); }} autoComplete="off" autoCapitalize="none" spellCheck={false}
