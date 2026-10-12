@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useId, useMemo, useState } from "react";
 import { usePaginatedQuery, useQuery } from "convex/react";
 import { ArrowUpRight, Check, Info } from "lucide-react";
@@ -76,6 +75,168 @@ export function PriceFeedsPanel({ compact = false, samples }: { compact?: boolea
   const stale = latest && now - latest.collectedAt > 36 * 60 * 60_000;
   const chartKeys = compact ? (["total"] as const) : visible;
 
+  const historyChart = !ready ? (
+    <div
+      className={`flex items-center justify-center rounded-xl bg-white/[0.02] text-sm text-white/70 ${compact ? "h-[180px]" : "mt-4 h-32"}`}
+      role="status"
+    >
+      Loading daily snapshots…
+    </div>
+  ) : chart.length === 0 || chartKeys.length === 0 ? (
+    <div
+      className={`flex items-center justify-center text-center text-sm leading-relaxed text-white/70 ${compact ? "h-[180px]" : "mt-4 h-32"}`}
+    >
+      {chartKeys.length === 0
+        ? "Enable a status above to show its history."
+        : latest
+          ? "No snapshots in this period."
+          : "History begins with the first successful daily collection."}
+    </div>
+  ) : (
+    <ChartContainer
+      config={series}
+      className={`${compact ? "min-h-[180px] shrink-0" : "mt-4"} w-full aspect-auto`}
+      style={{ height: compact ? 180 : results.length < 2 ? 160 : 240 }}
+      aria-label={
+        compact
+          ? "Total listed price feeds by UTC date"
+          : "Daily price-feed counts for enabled statuses"
+      }
+    >
+      <LineChart
+        accessibilityLayer
+        data={chart}
+        margin={{ left: 0, right: 12, top: 12, bottom: 8 }}
+      >
+        <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.12)" />
+        <XAxis
+          dataKey="time"
+          type="number"
+          domain={["dataMin", "dataMax"]}
+          scale="time"
+          tick={{ fill: "#cbd5e1", fontSize: 12, style: { fill: "#cbd5e1" } }}
+          tickFormatter={(time) =>
+            new Date(time).toLocaleDateString("en-GB", {
+              timeZone: "UTC",
+              day: "numeric",
+              month: "short",
+            })
+          }
+          tickLine={false}
+          axisLine={false}
+          minTickGap={35}
+        />
+        <YAxis
+          domain={[0, "auto"]}
+          allowDecimals={false}
+          tick={{ fill: "#cbd5e1", fontSize: 12, style: { fill: "#cbd5e1" } }}
+          tickFormatter={(value) => number.format(value)}
+          tickLine={false}
+          axisLine={false}
+          width={60}
+        />
+        <ChartTooltip
+          content={({ active, payload, label }) =>
+            active && payload?.some((item) => item.value != null) ? (
+              <div className="rounded-xl border border-white/25 bg-[#241b35] p-3 text-xs text-white shadow-lg">
+                <p className="mb-2 text-white/75">
+                  {utcDate(Number(label))} · UTC
+                </p>
+                {payload
+                  .filter((item) => item.value != null)
+                  .map((item) => (
+                    <p
+                      key={String(item.dataKey)}
+                      className="mt-1 flex justify-between gap-6"
+                      style={{ color: item.color }}
+                    >
+                      <span>{item.name}</span>
+                      <span className="font-medium tabular-nums">
+                        {number.format(Number(item.value))}
+                      </span>
+                    </p>
+                  ))}
+              </div>
+            ) : null
+          }
+        />
+        {chartKeys.map((key) => (
+          <Line
+            key={key}
+            type="linear"
+            dataKey={key}
+            name={series[key].label}
+            stroke={series[key].color}
+            strokeWidth={2}
+            dot={
+              isolatedTimes.size ? (
+                <IsolatedSnapshotDot times={isolatedTimes} />
+              ) : (
+                false
+              )
+            }
+            activeDot={{ r: 5 }}
+            connectNulls={false}
+            isAnimationActive={false}
+          />
+        ))}
+      </LineChart>
+    </ChartContainer>
+  );
+
+  if (compact) {
+    return (
+      <section
+        className="flex min-w-0 flex-col gap-5"
+        aria-labelledby={titleId}
+      >
+        <div>
+          <p className="font-data text-[11px] uppercase tracking-[0.25em] text-cyan-300/60">
+            Network growth · 30D
+          </p>
+          <h3
+            id={titleId}
+            className="font-display mt-1 text-xl text-white sm:text-2xl"
+          >
+            Price feeds
+          </h3>
+        </div>
+        <div className="min-h-[108px] border-t border-white/8 pt-4">
+          <p className="text-xs text-[#a8a1bf]">Total listed feeds</p>
+          <p
+            className="font-data mt-1 text-3xl font-medium tabular-nums text-white"
+            title={
+              latest
+                ? `Collected ${new Date(latest.collectedAt).toUTCString()}`
+                : undefined
+            }
+          >
+            {latest ? number.format(totalPriceFeeds(latest)) : "—"}
+          </p>
+          <dl className="mt-2 grid grid-cols-3 gap-2 text-[10px]">
+            {PRICE_FEED_STATUSES.map((key) => (
+              <div key={key} className="min-w-0">
+                <dt className="text-[#a8a1bf]">{series[key].label}</dt>
+                <dd
+                  className="font-data mt-0.5 tabular-nums"
+                  style={{ color: series[key].color }}
+                >
+                  {latest ? number.format(latest[key]) : "—"}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+        {historyChart}
+        {stale && (
+          <p role="status" className="text-xs text-amber-300">
+            Collection is overdue. Showing the last successful snapshot.
+          </p>
+        )}
+      </section>
+    );
+  }
+
   return (
     <section className="min-w-0 rounded-2xl border border-white/15 bg-white/[0.025] p-5 sm:p-6" aria-labelledby={titleId}>
       <div className="flex flex-wrap items-start justify-between gap-5">
@@ -128,31 +289,10 @@ export function PriceFeedsPanel({ compact = false, samples }: { compact?: boolea
           <span className={change >= 0 ? "text-cyan-200" : "text-rose-300"}>{change > 0 ? "+" : ""}{number.format(change)} {compact || visible.length === 3 ? "listed" : "selected"} feeds</span>
           {" · "}{utcDate(Date.parse(`${first.date}T00:00:00Z`))} – {utcDate(Date.parse(`${last.date}T00:00:00Z`))}
         </> : ready ? "Trend changes appear after two daily snapshots." : "Loading history…"}</p>
-        {compact && <Link href="/growth" className="inline-flex items-center gap-1 text-cyan-200 hover:text-white focus-visible:outline-2 focus-visible:outline-cyan-300">Explore feed growth <ArrowUpRight className="size-3.5" aria-hidden="true" /></Link>}
+
       </div>
 
-      {!ready ? (
-        <div className="mt-4 flex h-32 items-center justify-center rounded-xl bg-white/[0.02] text-sm text-white/70" role="status">Loading daily snapshots…</div>
-      ) : chart.length === 0 || chartKeys.length === 0 ? (
-        <div className="mt-4 flex h-32 items-center justify-center text-center text-sm leading-relaxed text-white/70">
-          {chartKeys.length === 0 ? "Enable a status above to show its history." : latest ? "No snapshots in this period." : "History begins with the first successful daily collection."}
-        </div>
-      ) : (
-        <ChartContainer config={series} className="mt-4 w-full aspect-auto" style={{ height: results.length < 2 ? 160 : 240 }} aria-label={compact ? "Total listed price feeds by UTC date" : "Daily price-feed counts for enabled statuses"}>
-          <LineChart accessibilityLayer data={chart} margin={{ left: 0, right: 12, top: 12, bottom: 8 }}>
-            <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.12)" />
-            <XAxis dataKey="time" type="number" domain={["dataMin", "dataMax"]} scale="time" tick={{ fill: "#cbd5e1", fontSize: 12, style: { fill: "#cbd5e1" } }} tickFormatter={time => new Date(time).toLocaleDateString("en-GB", { timeZone: "UTC", day: "numeric", month: "short" })} tickLine={false} axisLine={false} minTickGap={35} />
-            <YAxis domain={[0, "auto"]} allowDecimals={false} tick={{ fill: "#cbd5e1", fontSize: 12, style: { fill: "#cbd5e1" } }} tickFormatter={value => number.format(value)} tickLine={false} axisLine={false} width={60} />
-            <ChartTooltip content={({ active, payload, label }) => active && payload?.some(item => item.value != null) ? (
-              <div className="rounded-xl border border-white/25 bg-[#241b35] p-3 text-xs text-white shadow-lg">
-                <p className="mb-2 text-white/75">{utcDate(Number(label))} · UTC</p>
-                {payload.filter(item => item.value != null).map(item => <p key={String(item.dataKey)} className="mt-1 flex justify-between gap-6" style={{ color: item.color }}><span>{item.name}</span><span className="font-medium tabular-nums">{number.format(Number(item.value))}</span></p>)}
-              </div>
-            ) : null} />
-            {chartKeys.map(key => <Line key={key} type="linear" dataKey={key} name={series[key].label} stroke={series[key].color} strokeWidth={2} dot={isolatedTimes.size ? <IsolatedSnapshotDot times={isolatedTimes} /> : false} activeDot={{ r: 5 }} connectNulls={false} isAnimationActive={false} />)}
-          </LineChart>
-        </ChartContainer>
-      )}
+      {historyChart}
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-white/15 pt-4 text-xs leading-relaxed text-white/65">
         <p title={!samples && latest ? new Date(latest.collectedAt).toUTCString() : undefined}>{samples ? "Sample data · fictional daily snapshots" : latest === undefined ? "Loading collection status…" : latest ? `Collected ${new Date(latest.collectedAt).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "UTC" })} UTC` : "Awaiting the first collection"}</p>

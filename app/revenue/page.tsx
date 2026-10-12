@@ -4,6 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { SectionRule } from "@/components/section-rule";
+import { ChartLegend } from "@/components/chart-legend";
+import { RevenueTrendChart } from "@/components/revenue-trend-chart";
+import { formatCompactUsd as compactUsd } from "@/lib/buyback/format";
 import {
   ChartContainer,
   ChartTooltip,
@@ -13,7 +16,6 @@ import { buildRevenueBreakdownSections } from "@/lib/pyth-pro/breakdown";
 import {
   getDefaultProductRevenueKeys,
   getDefaultDistributionKey,
-  getDefaultRevenueTrendKeys,
   selectExclusiveSeries,
   toggleVisibleSeries,
 } from "@/lib/pyth-pro/chart-visibility";
@@ -57,77 +59,6 @@ const PRODUCT_COLORS = [
   "#93c5fd",
 ];
 
-function ChartLegend({
-  items,
-}: {
-  items: Array<{
-    key: string;
-    label: string;
-    color: string;
-    note?: string;
-    active: boolean;
-    onToggle?: () => void;
-  }>;
-}) {
-  return (
-    <div className="flex flex-wrap gap-2 sm:gap-x-4">
-      {items.map((item) => {
-        const className = [
-            "flex items-center gap-2 rounded-full border px-2.5 py-1.5 text-xs transition",
-            item.active
-              ? "border-white/10 bg-white/[0.07] text-[#d8d1ea]"
-              : "border-white/5 bg-white/[0.025] text-[#8f88a9] opacity-55 hover:opacity-80",
-          ].join(" ");
-        const content = (
-          <>
-            <span
-              className="h-2.5 w-2.5 rounded-full"
-              style={{ backgroundColor: item.active ? item.color : "#6b627f" }}
-              aria-hidden
-            />
-            <span>{item.label}</span>
-            {item.note ? (
-              <span className="font-data text-[10px] uppercase tracking-[0.16em] text-[#8f88a9]">
-                {item.note}
-              </span>
-            ) : null}
-          </>
-        );
-
-        if (!item.onToggle) {
-          return (
-            <div key={item.key} className={className}>
-              {content}
-            </div>
-          );
-        }
-
-        return (
-          <button
-            key={item.key}
-            type="button"
-            aria-pressed={item.active}
-            onClick={item.onToggle}
-            className={className}
-          >
-            {content}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-function compactUsd(value: number | null | undefined) {
-  if (value === null || value === undefined) return "-";
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    notation: "compact",
-    maximumFractionDigits: 2,
-  }).format(value);
-}
-
 function formatDate(value: number) {
   return new Intl.DateTimeFormat("en-US", {
     month: "short",
@@ -167,155 +98,6 @@ function MetricCard({
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-cyan-300/10 text-cyan-200 ring-1 ring-cyan-200/20">
           <Icon className="h-5 w-5" />
         </div>
-      </div>
-    </div>
-  );
-}
-
-function RevenueLinesChart({
-  data,
-}: {
-  data: ReturnType<typeof buildDouroRevenueSeries>;
-}) {
-  const [visibleKeys, setVisibleKeys] = useState(getDefaultRevenueTrendKeys);
-  const isVisible = (key: string) => visibleKeys.includes(key);
-  const hasMonthlyAxis =
-    isVisible("monthlyGrossRevenueUsd") || isVisible("monthlyDaoShareUsd");
-  const hasCumulativeAxis = isVisible("cumulativeGrossRevenueUsd");
-  const toggleSeries = (key: string) => {
-    setVisibleKeys((currentKeys) => toggleVisibleSeries(currentKeys, key));
-  };
-  const legendItems = [
-    {
-      key: "monthlyGrossRevenueUsd",
-      label: "Monthly gross",
-      color: "#67e8f9",
-      note: "left axis",
-      active: isVisible("monthlyGrossRevenueUsd"),
-      onToggle: () => toggleSeries("monthlyGrossRevenueUsd"),
-    },
-    {
-      key: "monthlyDaoShareUsd",
-      label: "Monthly DAO share",
-      color: "#c084fc",
-      note: "left axis",
-      active: isVisible("monthlyDaoShareUsd"),
-      onToggle: () => toggleSeries("monthlyDaoShareUsd"),
-    },
-    {
-      key: "cumulativeGrossRevenueUsd",
-      label: "Cumulative gross",
-      color: "#86efac",
-      note: "right axis",
-      active: isVisible("cumulativeGrossRevenueUsd"),
-      onToggle: () => toggleSeries("cumulativeGrossRevenueUsd"),
-    },
-  ];
-
-  return (
-    <div className="flex h-full flex-col gap-5">
-      <div>
-        <p className="font-data text-[11px] uppercase tracking-[0.25em] text-cyan-300/60">
-          Monthly & cumulative
-        </p>
-        <h3 className="font-display mt-1 text-xl text-white sm:text-2xl">
-          Revenue trend
-        </h3>
-      </div>
-      <ChartLegend items={legendItems} />
-      <div className="aspect-[16/10] min-h-[260px] w-full">
-        <ChartContainer
-          className="!block h-full w-full min-w-0 aspect-auto"
-          config={{
-            monthlyGrossRevenueUsd: { label: "Monthly Gross", color: "#67e8f9" },
-            monthlyDaoShareUsd: { label: "DAO Share", color: "#c084fc" },
-            cumulativeGrossRevenueUsd: {
-              label: "Cumulative Gross",
-              color: "#86efac",
-            },
-          }}
-        >
-          <LineChart data={data} margin={{ left: 0, right: 0, top: 14, bottom: 6 }}>
-            <CartesianGrid stroke="rgba(255,255,255,0.08)" vertical={false} />
-            <XAxis
-              dataKey="label"
-              tickLine={false}
-              axisLine={false}
-              tick={{ fill: "#8f88a9", fontSize: 11 }}
-            />
-            {hasMonthlyAxis ? (
-              <YAxis
-                yAxisId="monthly"
-                width={58}
-                tickLine={false}
-                axisLine={false}
-                tick={{ fill: "#8f88a9", fontSize: 11 }}
-                tickFormatter={(value) => compactUsd(Number(value))}
-              />
-            ) : null}
-            {hasCumulativeAxis ? (
-              <YAxis
-                yAxisId="cumulative"
-                orientation="right"
-                width={58}
-                tickLine={false}
-                axisLine={false}
-                tick={{ fill: "#8f88a9", fontSize: 11 }}
-                tickFormatter={(value) => compactUsd(Number(value))}
-              />
-            ) : null}
-            <ChartTooltip
-              content={
-                <ChartTooltipContent
-                  className="border-white/10 bg-[#241b35] text-white"
-                  formatter={(value, name) => (
-                    <div className="flex w-full items-center justify-between gap-5">
-                      <span className="text-[#b4aec8]">{String(name)}</span>
-                      <span className="font-data tabular-nums text-white">
-                        {compactUsd(Number(value))}
-                      </span>
-                    </div>
-                  )}
-                />
-              }
-            />
-            {isVisible("monthlyGrossRevenueUsd") ? (
-              <Line
-                yAxisId="monthly"
-                type="monotone"
-                dataKey="monthlyGrossRevenueUsd"
-                name="Monthly Gross"
-                stroke="var(--color-monthlyGrossRevenueUsd)"
-                strokeWidth={2.5}
-                dot={{ r: 3 }}
-                connectNulls={false}
-              />
-            ) : null}
-            {isVisible("monthlyDaoShareUsd") ? (
-              <Line
-                yAxisId="monthly"
-                type="monotone"
-                dataKey="monthlyDaoShareUsd"
-                name="DAO Share"
-                stroke="var(--color-monthlyDaoShareUsd)"
-                strokeWidth={2.5}
-                dot={{ r: 3 }}
-                connectNulls={false}
-              />
-            ) : null}
-            {isVisible("cumulativeGrossRevenueUsd") ? (
-              <Line
-                yAxisId="cumulative"
-                type="monotone"
-                dataKey="cumulativeGrossRevenueUsd"
-                name="Cumulative Gross"
-                stroke="var(--color-cumulativeGrossRevenueUsd)"
-                strokeWidth={2.5}
-                dot={{ r: 3 }}
-              />
-            ) : null}
-          </LineChart>
-        </ChartContainer>
       </div>
     </div>
   );
@@ -879,7 +661,7 @@ export default function RevenuePage() {
         <div className="space-y-5">
           <div className="grid grid-cols-1 divide-y divide-white/10 overflow-hidden rounded-[30px] border border-white/10 bg-[linear-gradient(148deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.02)_100%)] shadow-[0_20px_50px_rgba(9,5,20,0.18)] xl:grid-cols-2 xl:divide-x xl:divide-y-0">
             <div className="min-w-0 p-5 sm:p-7">
-              <RevenueLinesChart data={revenueSeries} />
+              <RevenueTrendChart data={revenueSeries} />
             </div>
             <div className="min-w-0 p-5 sm:p-7">
               <ProductLinesChart series={productSeries} />

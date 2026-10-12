@@ -9,7 +9,7 @@ import { useAppLoading } from "@/components/app-loading-context";
 import { useWalletInfosStore } from "@/store/store";
 import { usePythPrice } from "@/hooks/use-pyth-price";
 import { getGovernancePortfolioTotal } from "@/lib/wallet-storage";
-import { PriceFeedsPanel } from "@/components/price-feeds-panel";
+import { DashboardProtocolCharts } from "@/components/dashboard-protocol-charts";
 
 export default function Dashboard() {
   const { wallets } = useWalletInfosStore();
@@ -60,15 +60,16 @@ export default function Dashboard() {
           title="Market Metrics"
           description="Live PYTH price and wallet spread."
         />
-        <MetricCards
-          pythPrice={pythPrice}
-          totalStaked={totalStaked}
-        />
+        <MetricCards pythPrice={pythPrice} totalStaked={totalStaked} />
       </section>
 
       <section className="space-y-7">
-        <SectionRule index="03" title="Network Growth" description="Pyth's listed price feeds, over time." />
-        <PriceFeedsPanel compact />
+        <SectionRule
+          index="03"
+          title="Protocol Overview"
+          description="Price feeds, on-chain buybacks, and reported revenue, at a glance."
+        />
+        <DashboardProtocolCharts />
       </section>
     </div>
   );

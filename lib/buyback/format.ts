@@ -34,3 +34,13 @@ export function formatUsdPerPyth(value: number): string {
     maximumFractionDigits: 5,
   }).format(value)} / PYTH`;
 }
+
+export function formatCompactUsd(value: number | null | undefined) {
+  if (value === null || value === undefined) return "-";
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    notation: "compact",
+    maximumFractionDigits: 2,
+  }).format(value);
+}
