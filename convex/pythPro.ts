@@ -149,7 +149,7 @@ export const getKnownTopicCursors = internalQuery({
       highestPostNumber: v.number(),
     })
   ),
-  handler: async (ctx, args) => {
+  handler: async (ctx) => {
     const docs = await ctx.db
       .query("pythProReports")
       .withIndex("by_topicId")

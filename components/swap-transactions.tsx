@@ -155,7 +155,7 @@ export function SwapTransactions({
                   <div className="flex-shrink-0 w-4"></div>
                 </div>
                 <div className="space-y-2">
-                  {transactions.map((tx, index) => (
+                  {transactions.map((tx) => (
                     <a
                       key={tx.signature}
                       href={tx.explorerUrl}

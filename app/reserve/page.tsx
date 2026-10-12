@@ -18,7 +18,7 @@ import type {
   JupiterDcaCouncilOpsStatus,
 } from "@/types/pythTypes";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
+import { AlertCircle, RefreshCw } from "lucide-react";
 import { SectionRule } from "@/components/section-rule";
 
 function getDcaVaultUsd(

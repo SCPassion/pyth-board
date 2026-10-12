@@ -42,7 +42,7 @@ export function ReserveAccountCard({
     }).format(value);
   };
 
-  const formatTokenAmount = (amount: number, decimals: number = 0) => {
+  const formatTokenAmount = (amount: number) => {
     if (amount === 0) return "0.00";
     if (amount < 0.01) return "< 0.01";
 
@@ -167,7 +167,7 @@ export function ReserveAccountCard({
               </div>
               <div className="text-right flex-shrink-0">
                 <p className="text-white font-semibold text-sm sm:text-base">
-                  {formatTokenAmount(accountInfo.solBalance, 4)}
+                  {formatTokenAmount(accountInfo.solBalance)}
                 </p>
                 <p className="text-xs text-[#a8a1bf]">
                   {formatCurrency(
@@ -218,7 +218,7 @@ export function ReserveAccountCard({
                       {token.symbol}
                     </p>
                     <p className="text-white font-semibold text-sm">
-                      {formatTokenAmount(token.amount, token.decimals)}
+                      {formatTokenAmount(token.amount)}
                     </p>
                     {token.usdValue !== undefined && token.usdValue > 0 && (
                       <p className="text-xs text-[#a8a1bf]">
@@ -323,7 +323,7 @@ export function ReserveAccountCard({
                               <p className="text-white font-semibold text-sm tabular-nums">
                                 {symbol === "USDC" || symbol === "USDT"
                                   ? formatCurrency(remaining)
-                                  : formatTokenAmount(remaining, 4)}{" "}
+                                  : formatTokenAmount(remaining)}{" "}
                                 {symbol}
                               </p>
                               {usdValue > 0 && symbol !== "USDC" && symbol !== "USDT" ? (

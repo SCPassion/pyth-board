@@ -243,11 +243,6 @@ async function getReserveAccountInfo(
   const totalSolAmount = solBalance + totalWrappedSol;
   const totalSolValue = totalSolAmount * effectiveSolPrice;
 
-  // Find PYTH mint address from TOKEN_SYMBOLS
-  const PYTH_MINT = Object.keys(TOKEN_SYMBOLS).find(
-    (mint) => TOKEN_SYMBOLS[mint] === "PYTH"
-  );
-
   // Calculate USD values for non-SOL tokens only (wrapped SOL is included in native SOL)
   const updatedTokenBalances = otherTokens.map((token) => {
     let usdValue = 0;

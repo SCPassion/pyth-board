@@ -65,7 +65,7 @@ async function getPricesFromDefiLlama(): Promise<{
       pythPrice,
       pyth24hAgo: Number.isFinite(pyth24hAgo) ? pyth24hAgo : 0,
     };
-  } catch (error) {
+  } catch {
     clearTimeout(timeoutId);
     return {
       solPrice: 0,

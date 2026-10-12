@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
+import stakingLocation from "@/public/pyth_stakingLocation.png";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { HelpCircle, X, ExternalLink } from "lucide-react";
@@ -60,10 +62,11 @@ export function StakingHelpPopup() {
                 </p>
 
                 <div className="bg-[#1a1f2e] rounded-lg p-4 border border-gray-700">
-                  <img
-                    src="/pyth_stakingLocation.png"
+                  <Image
+                    src={stakingLocation}
                     alt="Pyth Network staking interface showing wallet management"
-                    className="w-full rounded-lg border border-gray-600"
+                    sizes="(max-width: 672px) 100vw, 592px"
+                    className="h-auto w-full rounded-lg border border-gray-600"
                   />
                 </div>
 
