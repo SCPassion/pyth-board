@@ -337,7 +337,7 @@ export function PriceFeedsPanel({ compact = false, samples }: { compact?: boolea
           {" · "}{utcDate(Date.parse(`${first.date}T00:00:00Z`))} – {utcDate(Date.parse(`${last.date}T00:00:00Z`))}
         </> : ready ? "Trend changes appear after two daily snapshots." : "Loading history…"}</p>
         <div className="flex gap-1 rounded-xl border border-white/20 p-1" role="group" aria-label="Price feed chart view">
-          {(["change", "counts"] as const).map(value => <Button
+          {(["counts", "change"] as const).map(value => <Button
             key={value} size="sm" variant="ghost" aria-pressed={view === value} onClick={() => setView(value)}
             className={`h-7 rounded-lg px-3 text-xs focus-visible:ring-cyan-300 ${view === value ? "bg-white/15 text-white" : "text-white/70 hover:bg-white/10 hover:text-white"}`}>
             {value === "change" ? "Change" : "Counts"}
