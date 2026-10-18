@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
 import { IsolatedSnapshotDot } from "@/components/isolated-snapshot-dot";
 import { PriceFeedCountCharts } from "@/components/price-feed-count-charts";
+import { GrowthSegmentedControl } from "@/components/growth-controls";
 import { isolatedSnapshotTimes } from "@/lib/growth/chartHistory";
 import {
   buildPriceFeedChart, buildPriceFeedChangeChart, PRICE_FEED_DAY_MS, PRICE_FEED_SERIES, PRICE_FEED_STATUSES,
@@ -35,7 +36,7 @@ function StatusHint({ status }: { status: PriceFeedSeries }) {
   const alignment = status === "stable" ? "left-0" : status === "inactive" || status === "total" ? "right-0" : "left-1/2 -translate-x-1/2";
 
   return (
-    <div className="pointer-events-none absolute inset-x-0 top-3 flex justify-end"
+    <div className="pointer-events-none absolute inset-x-0 top-3 flex justify-end px-2"
       onPointerEnter={event => { if (event.pointerType === "mouse") setOpen(true); }}
       onPointerLeave={event => { if (!event.currentTarget.contains(document.activeElement)) setOpen(false); }}>
       <button type="button" aria-label={`About ${series[status].label.toLowerCase()} feeds`}
@@ -290,18 +291,11 @@ export function PriceFeedsPanel({ compact = false, samples }: { compact?: boolea
           </div>
           {compact && latest && <p className="mt-2 text-sm text-cyan-200">{number.format(latest.stable)} stable · {number.format(latest.comingSoon)} coming soon · {number.format(latest.inactive)} inactive</p>}
         </div>
-        <div className="flex flex-wrap gap-1 rounded-xl border border-white/20 p-1" role="group" aria-label="Price feed history period">
-          {(Object.keys(periods) as (keyof typeof periods)[]).map(value => (
-            <Button key={value} size="sm" variant="ghost" aria-pressed={period === value} onClick={() => setPeriod(value)}
-              className={`h-8 rounded-lg px-3 text-xs focus-visible:ring-cyan-300 ${period === value ? "bg-white/15 text-white" : "text-white/70 hover:bg-white/10 hover:text-white"}`}>
-              {value}
-            </Button>
-          ))}
-        </div>
+        <GrowthSegmentedControl label="Price feed history period" value={period} onChange={setPeriod} options={(Object.keys(periods) as (keyof typeof periods)[]).map(value=>({value,label:value}))} />
       </div>
 
       {!compact && (
-        <div className={`mt-4 grid gap-4 ${changeView ? "grid-cols-3" : "grid-cols-2 lg:grid-cols-4"}`} role="group" aria-label="Price feed chart series">
+        <div className={`mt-4 grid gap-4 ${changeView ? "grid-cols-2 sm:grid-cols-3" : "grid-cols-2 lg:grid-cols-4"}`} role="group" aria-label="Price feed chart series">
           {availableSeries.map(key => {
             const selected = visible.includes(key);
             return (
@@ -309,8 +303,8 @@ export function PriceFeedsPanel({ compact = false, samples }: { compact?: boolea
               <Button variant="ghost" aria-pressed={selected}
                 aria-label={`${series[key].label}: ${latest ? number.format(seriesCount(latest, key)) : "unavailable"}. ${selected ? "Hide" : "Show"} series`}
                 onClick={() => setVisible(current => current.includes(key) ? current.filter(value => value !== key) : [...current, key])}
-                className={`h-auto w-full min-w-0 flex-col items-start gap-2 rounded-none border-b-2 px-0 py-3 text-left focus-visible:ring-cyan-300 hover:bg-white/5 ${selected ? "" : "opacity-60"}`}
-                style={{ borderColor: selected ? series[key].color : "rgba(255,255,255,0.2)" }}>
+                className={`h-auto w-full min-w-0 flex-col items-start gap-2 rounded-xl border px-3 py-3 text-left focus-visible:ring-cyan-300 hover:bg-white/5 ${selected ? "" : "opacity-60"}`}
+                style={{ borderColor: selected ? `${series[key].color}70` : "rgba(255,255,255,0.15)", backgroundColor: selected ? `${series[key].color}12` : "rgba(255,255,255,0.025)" }}>
                 <span className="flex min-h-8 min-w-0 items-center gap-2 pr-7 sm:min-h-7">
                   <span className="flex size-4 shrink-0 items-center justify-center rounded border" style={{ borderColor: series[key].color, color: series[key].color }}>
                     {selected && <Check className="size-3.5" aria-hidden="true" />}
@@ -336,13 +330,7 @@ export function PriceFeedsPanel({ compact = false, samples }: { compact?: boolea
           <span className={change >= 0 ? "text-cyan-200" : "text-rose-300"}>{change > 0 ? "+" : ""}{number.format(change)} {includesAllFeeds ? "listed" : "selected"} {Math.abs(change) === 1 ? "feed" : "feeds"}</span>
           {" · "}{utcDate(Date.parse(`${first.date}T00:00:00Z`))} – {utcDate(Date.parse(`${last.date}T00:00:00Z`))}
         </> : ready ? "Trend changes appear after two daily snapshots." : "Loading history…"}</p>
-        <div className="flex gap-1 rounded-xl border border-white/20 p-1" role="group" aria-label="Price feed chart view">
-          {(["counts", "change"] as const).map(value => <Button
-            key={value} size="sm" variant="ghost" aria-pressed={view === value} onClick={() => setView(value)}
-            className={`h-7 rounded-lg px-3 text-xs focus-visible:ring-cyan-300 ${view === value ? "bg-white/15 text-white" : "text-white/70 hover:bg-white/10 hover:text-white"}`}>
-            {value === "change" ? "Change" : "Counts"}
-          </Button>)}
-        </div>
+        <GrowthSegmentedControl label="Price feed chart view" value={view} onChange={setView} options={[{value:"counts",label:"Counts"},{value:"change",label:"Change"}]} />
       </div>
 
       <p className="mt-3 text-xs text-white/60">

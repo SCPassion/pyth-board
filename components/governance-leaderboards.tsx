@@ -5,6 +5,7 @@ import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { ChevronDown } from "lucide-react";
 import { AddressRankSearch } from "@/components/address-rank-search";
+import { GrowthSegmentedControl, growthSelectClassName } from "@/components/growth-controls";
 
 const integer = new Intl.NumberFormat("en-US");
 const compactNumber = new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 2 });
@@ -187,7 +188,7 @@ export function GovernanceLeaderboards() {
     <div className="flex flex-wrap items-center justify-between gap-3 border-y border-white/10 py-3">
       <p className="text-xs text-white/60">Address rankings in both charts</p>
       <label className="flex items-center gap-2 text-xs text-white/70">Show
-        <select value={addressLimit} onChange={event => setAddressLimit(Number(event.target.value))} className="rounded-lg border border-white/15 bg-[#292238] px-3 py-2 text-white focus-visible:outline-cyan-300">
+        <select value={addressLimit} onChange={event => setAddressLimit(Number(event.target.value))} className={growthSelectClassName}>
           {[10, 50, 100].map(count => <option key={count} value={count}>Top {count}</option>)}
         </select>
       </label>
@@ -230,12 +231,7 @@ export function GovernanceLeaderboards() {
             <h3 id="governance-cooldown-schedule" className="text-sm font-medium text-white/90">PYTH unstaking</h3>
             <p className="mt-1 text-xs text-white/60">See when cooldowns finish or which addresses have the largest amounts</p>
           </div>
-          <div role="group" aria-label="Unstaking view" className="ml-auto inline-flex shrink-0 rounded-lg border border-white/15 bg-white/[0.025] p-0.5 text-xs font-medium">
-            <button type="button" aria-pressed={unstakingView === "time"} onClick={() => setUnstakingView("time")}
-              className={`rounded-md px-3 py-2 focus-visible:outline-2 focus-visible:outline-cyan-300 ${unstakingView === "time" ? "bg-white/15 text-white" : "text-white/70 hover:text-white"}`}>By date</button>
-            <button type="button" aria-pressed={unstakingView === "addresses"} onClick={() => setUnstakingView("addresses")}
-              className={`rounded-md px-3 py-2 focus-visible:outline-2 focus-visible:outline-cyan-300 ${unstakingView === "addresses" ? "bg-white/15 text-white" : "text-white/70 hover:text-white"}`}>By address</button>
-          </div>
+          <GrowthSegmentedControl label="Unstaking view" value={unstakingView} onChange={setUnstakingView} className="ml-auto" options={[{value:"time",label:"By date"},{value:"addresses",label:"By address"}]} />
         </div>
         {snapshot ? unstakingView === "time"
           ? <CooldownSchedule periods={snapshot.cooldownSchedule} owners={snapshot.topUnstaking} asOf={snapshot.collectedAt} limit={addressLimit} />

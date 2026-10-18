@@ -7,6 +7,7 @@ import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 import { IsolatedSnapshotDot } from "@/components/isolated-snapshot-dot";
 import { isolatedSnapshotTimes } from "@/lib/growth/chartHistory";
+import { GrowthSegmentedControl } from "@/components/growth-controls";
 
 const DAY = 86_400_000;
 const number = new Intl.NumberFormat("en-US");
@@ -40,9 +41,7 @@ export function PythHoldersPanel() {
           <p className="mt-2 text-xs text-white/65">{latest === undefined ? "Loading collection status…" : latest ? `Last collected ${new Date(latest.collectedAt).toLocaleString("en-GB",{timeZone:"UTC"})} UTC` : "Awaiting the first daily collection"}</p>
           {stale && <p role="status" className="mt-2 text-sm text-amber-300">Collection is overdue. Showing the last successful snapshot.</p>}
         </div>
-        <div className="flex gap-1 rounded-xl border border-white/15 p-1" aria-label="History period">
-          {(["30D","90D","ALL"] as const).map(value=><button key={value} type="button" aria-pressed={period===value} onClick={()=>setPeriod(value)} className={`rounded-lg px-3 py-2 text-xs font-medium transition-colors focus-visible:outline-2 focus-visible:outline-cyan-300 ${period===value ? "bg-white/15 text-white" : "text-white/70 hover:bg-white/5"}`}>{value}</button>)}
-        </div>
+        <GrowthSegmentedControl label="History period" value={period} onChange={setPeriod} options={(["30D","90D","ALL"] as const).map(value=>({value,label:value}))} />
       </div>
       <p className="mt-4 text-xs leading-relaxed text-white/80">{change !== null && first ? <><span className={change>=0 ? "text-cyan-300" : "text-rose-300"}>{change>0?"+":""}{number.format(change)} holders ({change>0?"+":""}{(100*change/first.holders).toFixed(2)}%)</span> · across available {period === "ALL" ? "history" : period+" history"}</> : ready ? "Period change will appear after two daily collections." : "Loading history…"}</p>
       {ready && chart.length === 0 ? <div className="flex mt-4 h-60 items-center justify-center text-center text-sm text-white/65">{latest ? "No snapshots in this period." : "Your history starts with the first successful collection. No earlier data is backfilled."}</div> :

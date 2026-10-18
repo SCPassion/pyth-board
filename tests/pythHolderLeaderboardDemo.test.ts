@@ -8,11 +8,11 @@ import { compareHolderRankings, daysBefore } from "../lib/growth/holderRankings"
 import { HOLDER_ENTITIES } from "../lib/growth/holderEntities";
 import { PythHolderLeaderboard } from "../components/pyth-holder-leaderboard";
 
-const demo = vi.hoisted(() => ({ snapshot: null as unknown, days: 1, limit: 10, filtered: false }));
+const demo = vi.hoisted(() => ({ snapshot: null as unknown, days: 1, limit: 10, filtered: false, display: "list", order: "balance" }));
 vi.mock("convex/react", () => ({ useQuery: () => demo.snapshot }));
 vi.mock("react", async importOriginal => ({
   ...await importOriginal<typeof import("react")>(),
-  useState: (initial: unknown) => [typeof initial === "boolean" ? demo.filtered : initial === 10 ? demo.limit : demo.days, () => {}],
+  useState: (initial: unknown) => [typeof initial === "boolean" ? demo.filtered : initial === 100 ? demo.limit : initial === 7 ? demo.days : initial === "bubbles" ? demo.display : initial === "balance" ? demo.order : initial, () => {}],
 }));
 const address = (seed: number) => new PublicKey(new Uint8Array(32).fill(seed)).toBase58();
 const custody = HOLDER_ENTITIES.find(entity => entity.category === "staking custody")!.owner;
@@ -42,8 +42,8 @@ const historical=(days:number,entries=baseline)=>({date:daysBefore(date,days),co
 const seven=baseline.map(row=>({...row,amount:(BigInt(row.amount)*2n).toString()}));
 const thirty=baseline.map(row=>({...row,amount:(BigInt(row.amount)/2n).toString()}));
 const snapshot={date,collectedAt,firstDate:"2026-08-28",exclusions:[],...compareHolderRankings(today,"2026-08-28",{1:historical(1),7:historical(7,seven),30:historical(30,thirty)})};
-function render(days=1,filtered=false,limit=10,data:unknown=snapshot){
- Object.assign(demo,{snapshot:data,days,filtered,limit});
+function render(days=1,filtered=false,limit=10,data:unknown=snapshot,order="balance",display="list"){
+ Object.assign(demo,{snapshot:data,days,filtered,limit,order,display});
  return renderToStaticMarkup(createElement(PythHolderLeaderboard));
 }
 function ownerRow(html:string,owner:string){
@@ -51,7 +51,7 @@ function ownerRow(html:string,owner:string){
 }
 
 describe("synthetic holder change display through the real leaderboard component",()=>{
- it("renders gains, losses, zero and one raw token unit accurately",()=>{
+ it("renders gains, losses and one raw token unit accurately, excluding unchanged owners",()=>{
   const html=render();
   expect(ownerRow(html,gain)).toContain("+500,000");
   expect(ownerRow(html,gain)).toContain("+25.00%");
@@ -64,27 +64,24 @@ describe("synthetic holder change display through the real leaderboard component
   expect(ownerRow(html,jump)).toContain("width:1.5%");
   expect(ownerRow(html,jump)).toContain("width:0.5%");
   expect(ownerRow(html,jump)).toContain("border-dashed");
-  expect(ownerRow(html,flat)).not.toContain("border-dashed");
+  expect(html).not.toContain(`href="https://solscan.io/account/${flat}"`);
   expect(ownerRow(html,gain)).toContain("text-emerald-300");
   expect(ownerRow(html,gain)).toContain("Rank improved by 1");
   expect(ownerRow(html,jump)).toContain("−500,000");
   expect(ownerRow(html,jump)).toContain("-25.00%");
   expect(ownerRow(html,jump)).toContain("text-rose-300");
   expect(ownerRow(html,jump)).toContain("Rank fell by 1");
-  expect(ownerRow(html,flat)).toContain("0.00%");
   expect(ownerRow(html,micro)).toContain("+0.000001");
   expect(ownerRow(html,micro)).not.toContain("+0.00%");
  });
  it("never invents zero balances for an entrant or missing history",()=>{
   const html=render();
-  expect(ownerRow(html,entrant)).toContain("New to top 100");
-  expect(ownerRow(html,entrant)).toContain("previous balance unknown");
-  expect(ownerRow(html,entrant)).not.toContain("bg-emerald-300");
-  expect(ownerRow(html,entrant)).not.toContain("border-dashed");
+  expect(html).not.toContain(`href="https://solscan.io/account/${entrant}"`);
   const missing={...snapshot,...compareHolderRankings(today,"2026-08-28",{})};
   const missingHtml=render(1,false,10,missing);
   expect(missingHtml).toContain("Snapshot unavailable");
-  expect(ownerRow(missingHtml,entrant)).not.toContain("New to top 100");
+  expect(missingHtml).not.toContain("New to top 100</span>");
+  expect(missingHtml).toContain("when both daily snapshots are available");
   const collecting={...snapshot,firstDate:date,...compareHolderRankings(today,date,{})};
   const collectingHtml=render(1,false,10,collecting);
   expect(collectingHtml).toContain("Collecting history");
@@ -101,17 +98,52 @@ describe("synthetic holder change display through the real leaderboard component
   expect(ownerRow(filtered,gain)).toContain("width:80%");
   expect(ownerRow(filtered,gain)).toContain("width:20%");
   expect(filtered).toContain("h-1.5");
-  expect(filtered).toContain("Showing 99 of 99 owners after filtering");
+  expect(filtered).toContain("Showing 3 of 3 owners with changes");
   expect(ownerRow(filtered,gain)).toContain("Rank improved by 1");
   expect(ownerRow(filtered,gain)).toContain("+500,000");
-  expect(render(1,false,50)).toContain("Showing 50 of 100 tracked owners");
+  expect(render(1,false,50)).toContain("Showing 4 of 4 owners with changes");
+ });
+ it("ranks movers before limiting and excludes flat and unknown balances",()=>{
+  const increases=render(1,false,10,snapshot,"increase");
+  expect(increases).toContain("Showing 3 of 3 owners with increases");
+  expect(increases.indexOf(`href="https://solscan.io/account/${custody}"`)).toBeLessThan(increases.indexOf(`href="https://solscan.io/account/${gain}"`));
+  expect(increases).not.toContain(`href="https://solscan.io/account/${entrant}"`);
+  expect(increases).not.toContain(`href="https://solscan.io/account/${flat}"`);
+  const reductions=render(1,false,10,snapshot,"reduction");
+  expect(reductions).toContain("Showing 1 of 1 owners with reductions");
+  expect(ownerRow(reductions,jump)).toContain("Holder #3");
+  expect(ownerRow(reductions,jump)).not.toContain("Rank fell");
+  expect(render(30,false,10,snapshot,"reduction")).toContain("No recorded reductions");
+  const missing={...snapshot,...compareHolderRankings(today,"2026-08-28",{})};
+  expect(render(1,false,10,missing,"increase")).toContain("when both daily snapshots are available");
+ });
+ it("renders only changed wallets for the selected interval with exact accessible details",()=>{
+  const html=render(1,false,100,snapshot,"balance","bubbles");
+  expect(html).toContain("PYTH holder bubble map");
+  expect(html.match(/aria-controls=/g)).toHaveLength(4);
+  expect(html).toContain("+500,000 PYTH (+25.00%)");
+  expect(html).toContain("−500,000 PYTH (-25.00%)");
+  expect(html).toContain("+0.000001 PYTH");
+  expect(html).toContain("+&lt;0.01%");
+  expect(html).not.toContain(`aria-label="${flat} ·`);
+  expect(html).not.toContain(`aria-label="${entrant} ·`);
+  expect(html).not.toContain("Unchanged / no comparison");
+  expect(html).toContain("Pause motion");
+  expect(html).not.toContain("Balance bar legend");
+  const filtered=render(1,true,100,snapshot,"increase","bubbles");
+  expect(filtered.match(/aria-controls=/g)).toHaveLength(2);
+  expect(filtered).not.toContain(`aria-label="${custody}`);
+  expect(render(7,false,100,snapshot,"balance","bubbles").match(/aria-controls=/g)).toHaveLength(99);
+  const noChanges={...snapshot,entries:snapshot.entries.map(entry=>({...entry,changes:entry.changes.map(change=>({...change,amountDelta:"0"}))}))};
+  expect(render(1,false,100,noChanges,"balance","bubbles")).toContain("No recorded nonzero changes");
+  expect(render(1,false,100,noChanges,"balance","bubbles")).not.toContain("PYTH holder bubble map");
  });
  it("exports a clearly marked interactive preview without modifying Convex",()=>{
   const variants:Record<string,string>={};
   for(const period of [1,7,30])for(const filtered of [false,true])for(const limit of [10,50,100])variants[`${period}-${filtered}-${limit}`]=render(period,filtered,limit);
   const cssDir=join(process.cwd(),".next/static/chunks");
   const css=(existsSync(cssDir) ? readdirSync(cssDir) : []).filter(name=>name.endsWith(".css")).map(name=>readFileSync(join(cssDir,name),"utf8")).join("\n");
-  const html=`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PYTH changes — synthetic preview</title><style>${css}\nbody{background:#21192f;color:white;font-family:Arial,sans-serif;margin:0;padding:24px}main{max-width:1000px;margin:auto}.demo{background:#483622;border:1px solid #d5ae55;padding:14px 20px;border-radius:12px;margin-bottom:20px;font-size:14px;line-height:1.6}</style></head><body><main><div class="demo"><strong>DEMO · ALL BALANCES AND CHANGES ARE SYNTHETIC</strong><br>No live data was changed. Gain: +500,000 PYTH; loss: −500,000 PYTH; unchanged: 0; smallest increase: +0.000001 PYTH; new entrant: unavailable previous balance. Change the period and custody filter below.</div><div id="preview">${variants["1-false-10"]}</div></main><script>const variants=${JSON.stringify(variants).replace(/</g,"\\u003c")};let days="1",filtered=false,limit="10";document.getElementById("preview").addEventListener("change",event=>{const target=event.target;if(target.type==="checkbox")filtered=target.checked;else if(target.options?.[0]?.value==="10")limit=target.value;else days=target.value;document.getElementById("preview").innerHTML=variants[days+"-"+filtered+"-"+limit];});</script></body></html>`;
+  const html=`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PYTH changes — synthetic preview</title><style>${css}\nbody{background:#21192f;color:white;font-family:Arial,sans-serif;margin:0;padding:24px}main{max-width:1000px;margin:auto}.demo{background:#483622;border:1px solid #d5ae55;padding:14px 20px;border-radius:12px;margin-bottom:20px;font-size:14px;line-height:1.6}</style></head><body><main><div class="demo"><strong>DEMO · ALL BALANCES AND CHANGES ARE SYNTHETIC</strong><br>No live data was changed. Gain: +500,000 PYTH; loss: −500,000 PYTH; smallest increase: +0.000001 PYTH. Unchanged owners and unknown previous balances are excluded. Change the period and custody filter below.</div><div id="preview">${variants["1-false-10"]}</div></main><script>const variants=${JSON.stringify(variants).replace(/</g,"\\u003c")};let days="1",filtered=false,limit="10";document.getElementById("preview").addEventListener("change",event=>{const target=event.target;if(target.type==="checkbox")filtered=target.checked;else if(target.options?.[0]?.value==="10")limit=target.value;else days=target.value;document.getElementById("preview").innerHTML=variants[days+"-"+filtered+"-"+limit];});</script></body></html>`;
   mkdirSync("reports",{recursive:true});
   writeFileSync("reports/pyth-holder-changes-demo.html",html);
   expect(html).toContain("ALL BALANCES AND CHANGES ARE SYNTHETIC");
