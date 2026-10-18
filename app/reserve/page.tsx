@@ -223,7 +223,7 @@ export default function ReservePage() {
             <p
               className={`font-data text-[11px] uppercase tracking-[0.32em] text-cyan-300/70`}
             >
-              Strategic Reserve &middot; OP&#8209;PIP&#8209;87
+              Strategic Reserve V2 &middot; OP&#8209;PIP&#8209;136
             </p>
             <h1
               className={`font-display text-3xl italic text-white sm:text-4xl lg:text-5xl`}
@@ -231,16 +231,16 @@ export default function ReservePage() {
               Pyth Strategic Reserve
             </h1>
             <p className="max-w-2xl text-sm leading-relaxed text-white/70 sm:text-base">
-              A DAO-owned ledger of Pyth&apos;s{" "}
+              Track PYTH accumulation under the DAO&apos;s{" "}
               <a
-                href="https://forum.pyth.network/t/passed-op-pip-87-pyth-token-phase-2-pyth-strategic-reserve/2293"
+                href="https://forum.pyth.network/t/passed-op-pip-136-pyth-strategic-reserve-v2/2711"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-medium text-white underline decoration-white/30 underline-offset-4 hover:decoration-white"
               >
-                treasury-funded buyback program
+                Strategic Reserve V2 framework
               </a>
-              , tracking $SOL, $PYTH, $USDC &amp; $USDT holdings in real time.
+              , alongside current SOL, PYTH, USDC &amp; USDT holdings.
             </p>
           </div>
 
@@ -335,13 +335,28 @@ export default function ReservePage() {
 
       {/* 05 — About */}
       <section className="space-y-5 pb-2">
-        <SectionRule index="05" title="About the Strategic Reserve" />
+        <SectionRule index="05" title="About Strategic Reserve V2" />
         <div className="grid grid-cols-1 gap-x-8 gap-y-4 text-sm leading-relaxed text-[#b4aec8] sm:text-[15px] lg:grid-cols-[1fr_1px_1fr]">
-          <p>
-            The Pyth Strategic Reserve is a DAO-owned reserve established to
-            systematically acquire PYTH tokens using protocol revenue,
-            administered under strict on-chain guardrails.
-          </p>
+          <div className="space-y-4">
+            <p>
+              OP-PIP-136 replaces monthly one-third Treasury purchases with
+              ongoing PYTH accumulation from eligible non-PYTH assets and the
+              DAO&apos;s approved revenue shares. Existing revenue shares and
+              commercial terms remain unchanged.
+            </p>
+            <p>
+              <a
+                href="https://forum.pyth.network/t/passed-op-pip-140-recover-stranded-dao-usdc-transfer-the-treasury-to-the-pythian-council-ops-multisig-and-clarify-direct-fee-repatriation/2722"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-white underline decoration-white/30 underline-offset-4 hover:decoration-white"
+              >
+                OP-PIP-140
+              </a>{" "}
+              further clarifies that eligible DAO-owned fees may be repatriated
+              directly to Council-controlled multisigs for conversion under V2.
+            </p>
+          </div>
           <div className="hidden bg-white/10 lg:block" aria-hidden />
           <ul className="space-y-2">
             <li className="flex gap-3">
@@ -350,7 +365,7 @@ export default function ReservePage() {
               >
                 &#8226;
               </span>
-              Monthly purchases using one-third (33%) of the Treasury balance
+              Eligible assets can be converted without separate monthly purchase votes
             </li>
             <li className="flex gap-3">
               <span
@@ -358,8 +373,7 @@ export default function ReservePage() {
               >
                 &#8226;
               </span>
-              Administered by the Pythian Council Ops Multisig (6/8 approval
-              required)
+              Council Ops executes conversions and returns purchased PYTH to the DAO Treasury
             </li>
             <li className="flex gap-3">
               <span
@@ -367,7 +381,7 @@ export default function ReservePage() {
               >
                 &#8226;
               </span>
-              All acquired PYTH tokens are repatriated to the DAO Treasury
+              Direct PYTH distributions are held by the DAO; they are not market purchases
             </li>
             <li className="flex gap-3">
               <span
@@ -375,8 +389,15 @@ export default function ReservePage() {
               >
                 &#8226;
               </span>
-              Transactions follow strict parameters: max 5% slippage, max
-              $25,000 per transaction
+              Execution limits: 5% slippage, $25,000 per transaction; limit orders at least 0.1% below market
+            </li>
+            <li className="flex gap-3">
+              <span className="font-data shrink-0 text-cyan-300/60">&#8226;</span>
+              No selling, borrowing against, leveraging or distributing accumulated PYTH without separate DAO approval
+            </li>
+            <li className="flex gap-3">
+              <span className="font-data shrink-0 text-cyan-300/60">&#8226;</span>
+              Monthly Council reports include execution details, balances and public transaction proofs
             </li>
           </ul>
         </div>
