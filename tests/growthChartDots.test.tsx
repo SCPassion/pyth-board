@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { Line, LineChart, XAxis, YAxis } from "recharts";
 import { IsolatedSnapshotDot } from "../components/isolated-snapshot-dot";
 import { isolatedSnapshotTimes } from "../lib/growth/chartHistory";
-import { buildPriceFeedChart } from "../lib/growth/priceFeeds";
+import { buildPriceFeedChart, priceFeedTotalDomain } from "../lib/growth/priceFeeds";
 
 function renderHistory(dates: string[]) {
   const snapshots = dates.map((date, index) => ({ date, collectedAt: Date.parse(`${date}T04:15:00Z`), stable: index, comingSoon: 10, inactive: 5 }));
@@ -15,6 +15,30 @@ function renderHistory(dates: string[]) {
 }
 
 const dots = (html: string) => (html.match(/<circle class="recharts-line-dot"/g) ?? []).length;
+
+describe("dashboard feed-count scale", () => {
+  it("makes small changes among thousands of feeds visible, with room above and below", () => {
+    const [min, max] = priceFeedTotalDomain([3860, 3865]);
+    expect(min).toBeLessThan(3860);
+    expect(max).toBeGreaterThan(3865);
+    expect(5 / (max - min)).toBeGreaterThan(0.1);
+    expect(1 / (max - min)).toBeLessThan(0.1);
+  });
+
+  it("keeps constant totals and single snapshots centered in a usable scale", () => {
+    const [min, max] = priceFeedTotalDomain([3865, 3865]);
+    expect(min).toBeLessThan(3865);
+    expect(max).toBeGreaterThan(3865);
+    expect(max - min).toBeGreaterThanOrEqual(20);
+  });
+
+  it("includes large changes and never shows negative feed counts", () => {
+    const [min, max] = priceFeedTotalDomain([2, 5000]);
+    expect(min).toBe(0);
+    expect(max).toBeGreaterThan(5000);
+    expect(priceFeedTotalDomain([0, 0])).toEqual([0, 1]);
+  });
+});
 
 describe("daily history markers", () => {
   it("keeps two observations visible across a missed collection day, including zero", () => {

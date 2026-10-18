@@ -3,6 +3,8 @@ export const PRICE_FEED_DAY_MS = 86_400_000;
 
 export const PRICE_FEED_STATUSES = ["stable", "comingSoon", "inactive"] as const;
 export type PriceFeedStatus = (typeof PRICE_FEED_STATUSES)[number];
+export const PRICE_FEED_SERIES = [...PRICE_FEED_STATUSES, "total"] as const;
+export type PriceFeedSeries = (typeof PRICE_FEED_SERIES)[number];
 export type PriceFeedCounts = Record<PriceFeedStatus, number>;
 export type PriceFeedSnapshot = PriceFeedCounts & { date: string; collectedAt: number };
 
@@ -15,6 +17,58 @@ export function validatePriceFeedCounts(counts: PriceFeedCounts): void {
 
 export function totalPriceFeeds(counts: PriceFeedCounts): number {
   return counts.stable + counts.comingSoon + counts.inactive;
+}
+
+export function priceFeedTotalDomain([min, max]: [number, number]): [number, number] {
+  // Keep small catalog changes visible without magnifying a single feed to the
+  // full chart height. Constant and single-snapshot histories still get room.
+  const padding = Math.max(Math.ceil((max - min) * 0.2), Math.ceil(max * 0.0025), 1);
+  const rounding = 10 ** Math.floor(Math.log10(padding));
+  return [
+    Math.max(0, Math.floor((min - padding) / rounding) * rounding),
+    Math.ceil((max + padding) / rounding) * rounding,
+  ];
+}
+
+export function priceFeedChangeDomain([min, max]: [number, number]): [number, number] {
+  const lower = Math.min(0, min);
+  const upper = Math.max(0, max);
+  const padding = Math.max(1, Math.ceil((upper - lower) * 0.2));
+  const rounding = 10 ** Math.floor(Math.log10(padding));
+  return [
+    Math.floor((lower - padding) / rounding) * rounding,
+    Math.ceil((upper + padding) / rounding) * rounding,
+  ];
+}
+
+export function priceFeedVisibleScale(
+  points: readonly Record<PriceFeedSeries, number | null>[],
+  keys: readonly PriceFeedSeries[],
+  view: "change" | "counts",
+): { domain: [number, number]; ticks: number[] } {
+  let min = Infinity;
+  let max = -Infinity;
+  for (const point of points) {
+    for (const key of keys) {
+      const value = point[key];
+      if (value !== null && Number.isFinite(value)) {
+        min = Math.min(min, value);
+        max = Math.max(max, value);
+      }
+    }
+  }
+  const [lower, upper] = !Number.isFinite(min)
+    ? view === "change" ? [-1, 1] : [0, 1]
+    : view === "change" ? priceFeedChangeDomain([min, max]) : priceFeedTotalDomain([min, max]);
+  const targetStep = Math.max(1, (upper - lower) / 4);
+  const magnitude = 10 ** Math.floor(Math.log10(targetStep));
+  const step = [1, 2, 5, 10].find(value => value * magnitude >= targetStep)! * magnitude;
+  const start = Math.floor(lower / step) * step;
+  const end = Math.ceil(upper / step) * step;
+  return {
+    domain: [start, end],
+    ticks: Array.from({ length: Math.round((end - start) / step) + 1 }, (_, index) => start + index * step),
+  };
 }
 
 export function parsePriceFeedCounts(payload: unknown): PriceFeedCounts {
@@ -71,4 +125,16 @@ export function buildPriceFeedChart(snapshots: PriceFeedSnapshot[]) {
       ? [{ time: time - PRICE_FEED_DAY_MS, stable: null, comingSoon: null, inactive: null, total: null }, point]
       : [point];
   });
+}
+
+export function buildPriceFeedChangeChart(snapshots: PriceFeedSnapshot[]) {
+  const first = snapshots[0];
+  return buildPriceFeedChart(snapshots).map(point => ({
+    ...point,
+    counts: { stable: point.stable, comingSoon: point.comingSoon, inactive: point.inactive, total: point.total },
+    stable: point.stable === null ? null : point.stable - first.stable,
+    comingSoon: point.comingSoon === null ? null : point.comingSoon - first.comingSoon,
+    inactive: point.inactive === null ? null : point.inactive - first.inactive,
+    total: point.total === null ? null : point.total - totalPriceFeeds(first),
+  }));
 }
