@@ -54,7 +54,16 @@ export const routeLeg = v.object({
   dexProgramId: nullableString,
   dexName: nullableString,
 });
+const confirmationStatus = v.union(
+  v.literal("CONFIRMED"),
+  v.literal("FINALIZED"),
+  v.literal("RETRACTED"),
+);
 export const tradeFields = {
+  confirmationStatus: v.optional(confirmationStatus),
+  ingestedAt: v.optional(v.number()),
+  publishedAt: v.optional(v.number()),
+  finalizedAt: v.optional(v.number()),
   router: v.optional(v.string()),
   tradeId: v.string(),
   signature: v.string(),
@@ -161,6 +170,15 @@ export const trackerTables = {
     ...trackerMetricsFields,
   }).index("by_bucketStart", ["bucketStart"]),
   trackerState: defineTable({
+    poolLimit: v.optional(v.number()),
+    minPoolLiquidityUsd: v.optional(v.number()),
+    pauseReason: v.optional(v.string()),
+    trialEndsAt: v.optional(v.number()),
+    subscriptionId: v.optional(v.string()),
+    subscriptionBaseAddresses: v.optional(v.array(v.string())),
+    subscriptionScope: v.optional(v.array(v.string())),
+    subscriptionActive: v.optional(v.boolean()),
+    subscriptionSyncedAt: v.optional(v.number()),
     key: v.string(),
     enabled: v.boolean(),
     webhookEnabled: v.optional(v.boolean()),
@@ -182,6 +200,17 @@ export const trackerTables = {
   }).index("by_programId", ["programId"]),
   chainTransactions: defineTable({
     signature: v.string(),
+    confirmationStatus: v.optional(confirmationStatus),
+    targetCommitment: v.optional(
+      v.union(v.literal("confirmed"), v.literal("finalized")),
+    ),
+    ingestionSource: v.optional(
+      v.union(v.literal("WEBHOOK"), v.literal("RECONCILIATION")),
+    ),
+    observedSlot: v.optional(v.number()),
+    priority: v.optional(v.number()),
+    publishedAt: v.optional(v.number()),
+    finalizedAt: v.optional(v.number()),
     status,
     source: v.union(
       v.literal("WEBHOOK"),
