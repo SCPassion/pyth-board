@@ -1,7 +1,7 @@
 import { HOLDER_EXCLUSIONS, HOLDER_EXCLUSION_KEY, EXCLUDED_HOLDER_OWNERS } from "../lib/growth/holderExclusions";
 import { v } from "convex/values";
 import { query, type MutationCtx } from "./_generated/server";
-import { holderComparison, holderLeaderboardEntry } from "./holderRankingModel";
+import { holderComparison, holderLeaderboardEntry, holderPeriod } from "./holderRankingModel";
 import { compareHolderRankings, daysBefore, HOLDER_PERIODS, type HolderBalance } from "../lib/growth/holderRankings";
 
 /** Called by the existing holder snapshot mutation, so counts and rankings commit atomically. */
@@ -42,5 +42,36 @@ export const latest = query({
   handler: async ctx => {
     const row = await ctx.db.query("pythHolderLeaderboard").withIndex("by_key", q => q.eq("key", "latest")).unique();
     return row?.exclusionKey === HOLDER_EXCLUSION_KEY ? { exclusions: HOLDER_EXCLUSIONS, date: row.date, collectedAt: row.collectedAt, firstDate: row.firstDate, periods: row.periods, entries: row.entries } : null;
+  },
+});
+
+/** A selected wallet's calendar-day history, anchored to the last successful scan. */
+export const history = query({
+  args: { owner: v.string(), days: holderPeriod },
+  returns: v.union(v.object({
+    owner: v.string(), days: holderPeriod, date: v.string(), collectedAt: v.number(),
+    points: v.array(v.object({
+      date: v.string(), amount: v.union(v.string(), v.null()), collectedAt: v.union(v.number(), v.null()),
+    })),
+  }), v.null()),
+  handler: async (ctx, { owner, days }) => {
+    if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(owner)) throw new Error("Invalid holder address");
+    const latest = await ctx.db.query("pythHolderLeaderboard").withIndex("by_key", q => q.eq("key", "latest")).unique();
+    if (!latest || latest.exclusionKey !== HOLDER_EXCLUSION_KEY) return null;
+    const since = daysBefore(latest.date, days);
+    // At most 31 daily documents, each containing at most 100 owners. No RPC calls.
+    const snapshots = await ctx.db.query("pythHolderRankingSnapshots")
+      .withIndex("by_date", q => q.gte("date", since).lte("date", latest.date)).take(days + 1);
+    const byDate = new Map(snapshots.map(snapshot => [snapshot.date, snapshot]));
+    const points = Array.from({ length: days + 1 }, (_, index) => {
+      const date = daysBefore(latest.date, days - index);
+      const snapshot = byDate.get(date);
+      if (date < latest.firstDate || snapshot?.exclusionKey !== HOLDER_EXCLUSION_KEY) {
+        return { date, amount: null, collectedAt: null };
+      }
+      // An owner outside that day's top 100 has an unknown balance, never zero.
+      return { date, amount: snapshot.entries.find(entry => entry.owner === owner)?.amount ?? null, collectedAt: snapshot.collectedAt };
+    });
+    return { owner, days, date: latest.date, collectedAt: latest.collectedAt, points };
   },
 });

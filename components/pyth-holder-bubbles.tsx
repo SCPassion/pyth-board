@@ -6,6 +6,8 @@ import { Pause, Play } from "lucide-react";
 import { HOLDER_ENTITY_BY_OWNER } from "@/lib/growth/holderEntities";
 import { layoutHolderBubbles } from "@/lib/growth/holderBubbles";
 import type { HolderPeriod } from "@/lib/growth/holderRankings";
+import { formatHolderTokens as tokens } from "@/lib/growth/holderHistory";
+import { PythHolderHistory } from "@/components/pyth-holder-history";
 import { useHolderBubbleMotion } from "@/components/use-holder-bubble-motion";
 import styles from "./pyth-holder-bubbles.module.css";
 import { growthActionClassName, growthSelectClassName } from "@/components/growth-controls";
@@ -16,12 +18,6 @@ type BubbleHolder = {
   viewRank: number;
   changes: { days: number; amountDelta: string | null; percentageDelta: string | null }[];
 };
-const integer = new Intl.NumberFormat("en-US");
-function tokens(value: string, signed = false) {
-  const raw = BigInt(value), absolute = raw < 0n ? -raw : raw;
-  const fraction = (absolute % 1_000_000n).toString().padStart(6, "0").replace(/0+$/, "");
-  return (raw < 0n ? "−" : signed && raw > 0n ? "+" : "") + integer.format(absolute / 1_000_000n) + (fraction ? `.${fraction}` : "");
-}
 function changeFor(row: BubbleHolder, days: HolderPeriod, ready: boolean) {
   return ready ? row.changes.find(change => change.days === days) : undefined;
 }
@@ -169,6 +165,7 @@ export function PythHolderBubbles({ entries, days, ready, selectedOwner, onSelec
           <div><dt className="text-xs text-white/55">Previous balance</dt><dd className="mt-1 text-sm tabular-nums text-white/80">{selectedChange?.amountDelta != null ? `${tokens((BigInt(selected.amount) - BigInt(selectedChange.amountDelta)).toString())} PYTH` : "Unknown"}</dd></div>
         </dl>
         <p className="mt-3 text-xs text-white/50">Net balance changes can include transfers and staking activity; they do not establish buys or sells.</p>
+        <PythHolderHistory key={`${selected.owner}-${days}`} owner={selected.owner} days={days} />
       </> : <p className="text-sm text-white/60">Choose a wallet bubble to see its full address, exact PYTH balance, and change over the selected period.</p>}
     </div>
   </div>;
