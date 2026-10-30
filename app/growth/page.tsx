@@ -64,7 +64,7 @@ export default async function GrowthPage({ searchParams }: { searchParams: Promi
                 <p>Both governance rankings track up to 100 addresses, with a shared control for showing the top 10, 50, or 100. The unstaking chart can group the selected addresses by cooldown finish date or rank them by owner. Full all-owner cooldown totals are shown separately for context. A cooldown finishing makes PYTH available to withdraw, but does not mean it was withdrawn or sold.</p>
               </section>
             </div>
-            <p className="border-t border-white/10 pt-4 text-xs leading-relaxed">Both metrics are collected independently through Helius RPC and displayed from stored daily snapshots. History starts with the first successful collection; earlier dates are not backfilled, and missed days remain gaps. Each scan spans a short collection window, not a single fixed Solana slot. Governance scans crossing a Pyth epoch or UTC day are rejected. Period changes compare available snapshots, and each chart uses its own count scale.</p>
+            <p className="border-t border-white/10 pt-4 text-xs leading-relaxed">Both metrics are collected independently through Helius RPC and displayed from stored daily snapshots. History starts with the first successful collection; earlier dates are not backfilled, and lines connect across missed days. Each scan spans a short collection window, not a single fixed Solana slot. Governance scans crossing a Pyth epoch or UTC day are rejected. Period changes compare available snapshots, and each chart uses its own count scale.</p>
           </div>
         </details>
       </section>

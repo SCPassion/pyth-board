@@ -201,7 +201,6 @@ export function PriceFeedsPanel({ compact = false, samples }: { compact?: boolea
               )
             }
             activeDot={{ r: 5 }}
-            connectNulls={false}
             isAnimationActive={false}
           />
         ))}
@@ -348,7 +347,7 @@ export function PriceFeedsPanel({ compact = false, samples }: { compact?: boolea
       {stale && <p role="status" className="mt-2 text-sm text-amber-300">Collection is overdue. Showing the last successful snapshot.</p>}
       {!compact && <details className="mt-3 text-xs leading-relaxed text-white/65">
         <summary className="cursor-pointer rounded focus-visible:outline-2 focus-visible:outline-cyan-300">About these counts</summary>
-        <p className="mt-2">{samples ? "These fictional counts demonstrate the chart after 90 daily snapshots. They are generated for this preview and are not stored in the database." : "Collected daily at 04:15 UTC. Total listed = stable + coming soon + inactive. History starts with the first collection, with gaps for missed days."}</p>
+        <p className="mt-2">{samples ? "These fictional counts demonstrate the chart after 90 daily snapshots. They are generated for this preview and are not stored in the database." : "Collected daily at 04:15 UTC. Total listed = stable + coming soon + inactive. History starts with the first collection. Lines connect across missed days."}</p>
         <dl className="mt-3 space-y-2">
           {PRICE_FEED_STATUSES.map(key => <div key={key}><dt className="inline font-medium" style={{ color: series[key].color }}>{series[key].label}: </dt><dd className="inline">{series[key].description}</dd></div>)}
         </dl>

@@ -18,12 +18,9 @@ describe("price-feed change history", () => {
     expect(snapshots[0].stable).toBe(1883);
   });
 
-  it("keeps missed collection days blank instead of inventing a change", () => {
-    const gap = buildPriceFeedChangeChart(snapshots)[2];
-    expect(gap).toEqual({
-      time: Date.UTC(2026, 9, 17), stable: null, comingSoon: null, inactive: null, total: null,
-      counts: { stable: null, comingSoon: null, inactive: null, total: null },
-    });
+  it("connects across missed collection days without inventing a point", () => {
+    expect(buildPriceFeedChangeChart(snapshots).map(point => point.time))
+      .toEqual([Date.UTC(2026, 9, 11), Date.UTC(2026, 9, 12), Date.UTC(2026, 9, 18)]);
   });
 
   it("resets the baseline to the first observation in the selected period", () => {

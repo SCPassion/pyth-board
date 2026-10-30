@@ -121,14 +121,11 @@ export function validatePriceFeedDate(date: string): void {
 }
 
 export function buildPriceFeedChart(snapshots: PriceFeedSnapshot[]) {
-  return snapshots.flatMap((row, index) => {
-    const time = Date.parse(`${row.date}T00:00:00Z`);
-    const point = { time, stable: row.stable, comingSoon: row.comingSoon, inactive: row.inactive, total: totalPriceFeeds(row) };
-    const previous = snapshots[index - 1];
-    return previous && time - Date.parse(`${previous.date}T00:00:00Z`) > PRICE_FEED_DAY_MS
-      ? [{ time: time - PRICE_FEED_DAY_MS, stable: null, comingSoon: null, inactive: null, total: null }, point]
-      : [point];
-  });
+  // Only real observations: lines run straight across missed days, spaced by the time axis.
+  return snapshots.map(row => ({
+    time: Date.parse(`${row.date}T00:00:00Z`),
+    stable: row.stable, comingSoon: row.comingSoon, inactive: row.inactive, total: totalPriceFeeds(row),
+  }));
 }
 
 export function buildPriceFeedChangeChart(snapshots: PriceFeedSnapshot[]) {
@@ -136,9 +133,9 @@ export function buildPriceFeedChangeChart(snapshots: PriceFeedSnapshot[]) {
   return buildPriceFeedChart(snapshots).map(point => ({
     ...point,
     counts: { stable: point.stable, comingSoon: point.comingSoon, inactive: point.inactive, total: point.total },
-    stable: point.stable === null ? null : point.stable - first.stable,
-    comingSoon: point.comingSoon === null ? null : point.comingSoon - first.comingSoon,
-    inactive: point.inactive === null ? null : point.inactive - first.inactive,
-    total: point.total === null ? null : point.total - totalPriceFeeds(first),
+    stable: point.stable - first.stable,
+    comingSoon: point.comingSoon - first.comingSoon,
+    inactive: point.inactive - first.inactive,
+    total: point.total - totalPriceFeeds(first),
   }));
 }

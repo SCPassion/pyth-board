@@ -98,14 +98,13 @@ describe("daily price-feed history", () => {
     expect(await t.query(api.pythPriceFeeds.latest, {})).toBeNull();
   });
 
-  it("breaks chart lines across missed days without creating zero counts", () => {
+  it("connects chart lines across missed days without creating points", () => {
     const chart = buildPriceFeedChart([
       { ...counts, date: "2026-10-11", collectedAt },
       { ...counts, stable: 1885, date: "2026-10-13", collectedAt: collectedAt + 2 * PRICE_FEED_DAY_MS },
     ]);
     expect(chart).toEqual([
       { time: day, ...counts, total: 3853 },
-      { time: day + PRICE_FEED_DAY_MS, stable: null, comingSoon: null, inactive: null, total: null },
       { time: day + 2 * PRICE_FEED_DAY_MS, ...counts, stable: 1885, total: 3855 },
     ]);
   });

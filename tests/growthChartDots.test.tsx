@@ -10,7 +10,7 @@ function renderHistory(dates: string[]) {
   return renderToStaticMarkup(<LineChart width={600} height={240} data={buildPriceFeedChart(snapshots)}>
     <XAxis dataKey="time" type="number" domain={["dataMin", "dataMax"]} />
     <YAxis />
-    <Line dataKey="stable" stroke="#67e8f9" dot={<IsolatedSnapshotDot times={isolatedSnapshotTimes(snapshots)} />} connectNulls={false} isAnimationActive={false} />
+    <Line dataKey="stable" stroke="#67e8f9" dot={<IsolatedSnapshotDot times={isolatedSnapshotTimes(snapshots)} />} isAnimationActive={false} />
   </LineChart>);
 }
 
