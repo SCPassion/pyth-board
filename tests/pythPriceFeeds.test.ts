@@ -10,35 +10,32 @@ import {
 
 const modules = import.meta.glob("../convex/**/*.ts");
 const counts = { stable: 1883, comingSoon: 1193, inactive: 777 };
-const state = [
-  { value: "coming_soon", count: counts.comingSoon },
-  { value: "inactive", count: counts.inactive },
-  { value: "stable", count: counts.stable },
+const symbols = (state: string, count: number) => Array.from({ length: count }, () => ({ state }));
+const catalog = [
+  ...symbols("coming_soon", counts.comingSoon),
+  ...symbols("inactive", counts.inactive),
+  ...symbols("stable", counts.stable),
 ];
 const day = Date.UTC(2026, 9, 11);
 const collectedAt = day + (4 * 60 + 15) * 60_000;
-const response = () => new Response(JSON.stringify({ state }), { headers: { "Content-Type": "application/json" } });
+const response = () => new Response(JSON.stringify(catalog), { headers: { "Content-Type": "application/json" } });
 afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
 describe("public Pyth feed counters", () => {
-  it("reads unordered public counters and derives the combined total", () => {
-    expect(parsePriceFeedCounts({ state, coverage: [] })).toEqual(counts);
+  it("counts unordered public symbols and derives the combined total", () => {
+    expect(parsePriceFeedCounts(catalog)).toEqual(counts);
     expect(totalPriceFeeds(counts)).toBe(3853);
   });
 
   it.each([
-    undefined, {}, { state: null }, { state: [] }, { state: state.slice(1) },
-    { state: [...state, state[0]] }, { state: [null] },
-    ...[-1, 1.5, Number.MAX_SAFE_INTEGER + 1, NaN, "1883"].map(count => ({ state: [...state.slice(0, 2), { value: "stable", count }] })),
-    { state: state.map(row => ({ ...row, count: 0 })) },
-    { state: [...state, { value: "expired", count: 1 }] },
-  ])("rejects incomplete, malformed, empty, or newly unsupported counters", payload => {
+    undefined, {}, { state: [] }, [], symbols("stable", 2), [...catalog, null], [...catalog, {}], [...catalog, { state: 1 }],
+    [...catalog, { state: "expired" }],
+  ])("rejects incomplete, malformed, empty, or newly unsupported catalogs", payload => {
     expect(() => parsePriceFeedCounts(payload)).toThrow();
   });
 
-  it("accepts a genuine zero for one status and unused additional statuses", () => {
-    expect(parsePriceFeedCounts({ state: [...state.slice(1), { value: "coming_soon", count: 0 }, { value: "expired", count: 0 }] }))
-      .toEqual({ ...counts, comingSoon: 0 });
+  it("leaves beta feeds out of the counts", () => {
+    expect(parsePriceFeedCounts([...catalog, ...symbols("beta", 36)])).toEqual(counts);
   });
 
   it("fetches JSON without a key or cookies", async () => {

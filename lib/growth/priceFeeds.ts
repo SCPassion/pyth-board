@@ -1,4 +1,6 @@
-export const PRICE_FEED_COUNTS_URL = "https://app.pyth.com/api/price-feeds/facets";
+// Pyth Pro's symbol catalog. app.pyth.com/api/price-feeds/facets reports the same
+// counts but has answered HTTP 403 to Convex actions since 2026-10-28.
+export const PRICE_FEED_COUNTS_URL = "https://history.pyth-lazer.dourolabs.app/history/v1/symbols";
 export const PRICE_FEED_DAY_MS = 86_400_000;
 
 export const PRICE_FEED_STATUSES = ["stable", "comingSoon", "inactive"] as const;
@@ -72,21 +74,23 @@ export function priceFeedVisibleScale(
 }
 
 export function parsePriceFeedCounts(payload: unknown): PriceFeedCounts {
-  if (!payload || typeof payload !== "object" || !("state" in payload) || !Array.isArray(payload.state)) {
-    throw new Error("Price-feed response is missing its state counters");
+  if (!Array.isArray(payload)) {
+    throw new Error("Price-feed response is not a symbol list");
   }
   const values = new Map<string, number>();
-  for (const entry of payload.state) {
-    if (!entry || typeof entry !== "object" || typeof entry.value !== "string" ||
-      typeof entry.count !== "number" || !Number.isSafeInteger(entry.count) || entry.count < 0 || values.has(entry.value)) {
-      throw new Error("Price-feed response contains invalid or duplicate state counters");
+  for (const entry of payload) {
+    if (!entry || typeof entry !== "object" || typeof entry.state !== "string") {
+      throw new Error("Price-feed response contains an invalid symbol");
     }
+    // Pyth Explore's counters leave out beta feeds, so the history excludes them too.
+    if (entry.state === "beta") continue;
     // A newly populated status needs an explicit counting/UI decision, not a silently incomplete total.
-    if (!["stable", "coming_soon", "inactive"].includes(entry.value) && entry.count !== 0) {
-      throw new Error(`Price-feed response contains an unsupported status: ${entry.value}`);
+    if (!["stable", "coming_soon", "inactive"].includes(entry.state)) {
+      throw new Error(`Price-feed response contains an unsupported status: ${entry.state}`);
     }
-    values.set(entry.value, entry.count);
+    values.set(entry.state, (values.get(entry.state) ?? 0) + 1);
   }
+  // Each status is only visible through its symbols, so an absent one suggests a truncated catalog.
   if (!["stable", "coming_soon", "inactive"].every(status => values.has(status))) {
     throw new Error("Price-feed response is missing a required status");
   }
