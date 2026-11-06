@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/chart";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { Loader2 } from "lucide-react";
+import { TokenIcon, TokenUnitLabel } from "@/components/token-icon";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -118,14 +119,15 @@ export function ReservePythHoldingChart() {
         </p>
       </div>
 
-      <dl className="grid grid-cols-2 gap-x-4 gap-y-5 border-t border-white/8 pt-5">
+      <dl className="grid grid-cols-1 gap-x-4 gap-y-5 border-t border-white/8 pt-5 sm:grid-cols-2">
         <div>
           <dt className="text-[11px] text-[#a8a1bf] sm:text-xs">
             Current Reserve Size
           </dt>
           <dd
-            className={`font-data mt-1 text-lg font-medium tabular-nums text-white sm:text-xl`}
+            className={`font-data mt-1 flex items-center gap-2 text-lg font-medium tabular-nums text-white sm:text-xl`}
           >
+            <TokenIcon symbol="PYTH" />
             {latestValue !== null ? latestValue.toLocaleString() : "-"}
           </dd>
         </div>
@@ -135,8 +137,9 @@ export function ReservePythHoldingChart() {
             Since Tracking
           </dt>
           <dd
-            className={`font-data mt-1 text-lg font-medium tabular-nums text-white sm:text-xl`}
+            className={`font-data mt-1 flex items-center gap-2 text-lg font-medium tabular-nums text-white sm:text-xl`}
           >
+            <TokenIcon symbol="PYTH" />
             {changeSinceTracking !== null
               ? `${changeSinceTracking >= 0 ? "+" : ""}${changeSinceTracking.toLocaleString()}`
               : "-"}
@@ -159,9 +162,10 @@ export function ReservePythHoldingChart() {
             data.
           </div>
         ) : (
-          <div className="aspect-[16/10] max-h-[320px] min-h-[220px] w-full">
+          <div className="flex aspect-[16/10] max-h-[320px] min-h-[220px] w-full flex-col">
+            <TokenUnitLabel symbol="PYTH" />
             <ChartContainer
-              className="!block h-full w-full min-w-0 aspect-auto"
+              className="!block min-h-0 w-full min-w-0 flex-1 aspect-auto"
               config={{
                 totalPythHeld: {
                   label: "PYTH",

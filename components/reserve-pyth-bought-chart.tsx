@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/chart";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { Loader2 } from "lucide-react";
+import { TokenIcon, TokenUnitLabel } from "@/components/token-icon";
 import {
   buildBuybackHistoryChartModel,
   type BuybackHistorySnapshot,
@@ -148,8 +149,9 @@ export function ReservePythBoughtChart({
               Total Bought
             </dt>
             <dd
-              className={`font-data mt-1 whitespace-nowrap text-lg font-medium tabular-nums text-white sm:text-xl`}
+              className={`font-data mt-1 flex items-center gap-2 whitespace-nowrap text-lg font-medium tabular-nums text-white sm:text-xl`}
             >
+              <TokenIcon symbol="PYTH" />
               {latestPythBought !== null
                 ? formatPythAmount(latestPythBought)
                 : "-"}
@@ -161,8 +163,9 @@ export function ReservePythBoughtChart({
               Since Tracking
             </dt>
             <dd
-              className={`font-data mt-1 whitespace-nowrap text-lg font-medium tabular-nums text-white sm:text-xl`}
+              className={`font-data mt-1 flex items-center gap-2 whitespace-nowrap text-lg font-medium tabular-nums text-white sm:text-xl`}
             >
+              <TokenIcon symbol="PYTH" />
               {pythBoughtSinceTracking !== null
                 ? formatPythAmount(pythBoughtSinceTracking)
                 : "-"}
@@ -177,31 +180,33 @@ export function ReservePythBoughtChart({
               USDC Spent
             </dt>
             <dd
-              className={`font-data mt-1 whitespace-nowrap text-lg font-medium tabular-nums text-white sm:text-xl`}
+              className={`font-data mt-1 flex items-center gap-2 whitespace-nowrap text-lg font-medium tabular-nums text-white sm:text-xl`}
               title={
                 latestPoint ? formatUsd(latestPoint.totalUsdcSpent) : undefined
               }
             >
+              <TokenIcon symbol="USDC" />
               {latestPoint
-                ? `${formatUsd(latestPoint.totalUsdcSpent / 1_000_000, 3)}M`
+                ? `${(latestPoint.totalUsdcSpent / 1_000_000).toFixed(3)}M`
                 : "-"}
             </dd>
           </div>
 
           <div className="min-w-0">
             <dt className="text-[11px] text-[#a8a1bf] sm:text-xs">
-              Avg. / PYTH
+              Avg. USDC / PYTH
             </dt>
             <dd
-              className={`font-data mt-1 whitespace-nowrap text-lg font-medium tabular-nums text-white sm:text-xl`}
+              className={`font-data mt-1 flex items-center gap-2 whitespace-nowrap text-lg font-medium tabular-nums text-white sm:text-xl`}
               title={
                 latestPoint && latestPoint.avgBuyPriceUsd > 0
                   ? formatUsdPerPyth(latestPoint.avgBuyPriceUsd)
                   : undefined
               }
             >
+              <TokenIcon symbol="USDC" />
               {latestPoint && latestPoint.avgBuyPriceUsd > 0
-                ? formatUsd(latestPoint.avgBuyPriceUsd, 5)
+                ? latestPoint.avgBuyPriceUsd.toFixed(5)
                 : "-"}
             </dd>
           </div>
@@ -227,12 +232,13 @@ export function ReservePythBoughtChart({
           <div
             className={
               compact
-                ? "h-[180px] min-h-[180px] w-full"
-                : "aspect-[16/10] max-h-[320px] min-h-[220px] w-full"
+                ? "flex h-[180px] min-h-[180px] w-full flex-col"
+                : "flex aspect-[16/10] max-h-[320px] min-h-[220px] w-full flex-col"
             }
           >
+            {!compact && <TokenUnitLabel symbol="PYTH" />}
             <ChartContainer
-              className="!block h-full w-full min-w-0 aspect-auto"
+              className="!block min-h-0 w-full min-w-0 flex-1 aspect-auto"
               aria-label="Cumulative on-chain PYTH bought over time"
               config={{
                 totalPythBought: {
