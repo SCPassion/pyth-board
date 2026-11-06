@@ -70,7 +70,7 @@ export function PriceFeedCountCharts({ snapshots, visibleKeys, config }: {
                   </div>
                 ) : null} />
                 <Line dataKey={key} name={label} type="linear" stroke={color} strokeWidth={2.5}
-                  dot={snapshots.length <= 31 ? { r: 2.5, fill: color, stroke: "#241b35", strokeWidth: 1.5 } : isolatedTimes.size ? <IsolatedSnapshotDot times={isolatedTimes} /> : false}
+                  dot={isolatedTimes.size ? <IsolatedSnapshotDot times={isolatedTimes} /> : false}
                   activeDot={{ r: 4 }} isAnimationActive={false}>
                   <LabelList dataKey={key} content={({ index, x, y, value }) => index === data.length - 1 && Number.isFinite(Number(x)) && Number.isFinite(Number(y)) ? (
                     <text x={Number(x) + 9} y={Number(y)} fill={color} dominantBaseline="middle" fontSize={12} fontWeight={600}>

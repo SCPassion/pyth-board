@@ -58,7 +58,7 @@ export function PriceFeedsPanel({ compact = false, samples }: { compact?: boolea
   const titleId = useId();
   const [period, setPeriod] = useState<keyof typeof periods>(samples ? "90D" : "30D");
   const [visible, setVisible] = useState<PriceFeedSeries[]>([...PRICE_FEED_SERIES]);
-  const [view, setView] = useState<"change" | "counts">("counts");
+  const [view, setView] = useState<"change" | "counts">("change");
   const changeView = !compact && view === "change";
   const availableSeries = changeView ? PRICE_FEED_STATUSES : PRICE_FEED_SERIES;
   const chartKeys: readonly PriceFeedSeries[] = compact ? ["total"] : visible.filter(key => availableSeries.some(option => option === key));
@@ -191,15 +191,7 @@ export function PriceFeedsPanel({ compact = false, samples }: { compact?: boolea
             name={series[key].label}
             stroke={chartSeries[key].color}
             strokeWidth={key === "total" ? 3 : 2.5}
-            dot={
-              compact || results.length <= 31 ? (
-                { r: 2.5, fill: chartSeries[key].color, stroke: "#241b35", strokeWidth: 1.5 }
-              ) : isolatedTimes.size ? (
-                <IsolatedSnapshotDot times={isolatedTimes} />
-              ) : (
-                false
-              )
-            }
+            dot={isolatedTimes.size ? <IsolatedSnapshotDot times={isolatedTimes} /> : false}
             activeDot={{ r: 5 }}
             isAnimationActive={false}
           />
