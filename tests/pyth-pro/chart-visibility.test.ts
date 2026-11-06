@@ -21,7 +21,7 @@ describe("revenue chart visibility", () => {
         primaryProduct: "Pyth Pro",
         products: ["Pyth Pro", "LaaS", "Marketplace", "Indices"],
       })
-    ).toEqual(["Pyth Pro", "LaaS", "Indices"]);
+    ).toEqual(["Pyth Pro", "Indices"]);
   });
 
   it("falls back to the first product when there is no primary revenue stream", () => {

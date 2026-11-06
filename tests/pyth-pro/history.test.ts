@@ -160,7 +160,8 @@ describe("buildProductRevenueSeries", () => {
 
     expect(series.products).toEqual(["Pyth Pro", "LaaS", "Indices"]);
     expect(series.primaryProduct).toBe("Pyth Pro");
-    expect(series.secondaryProducts).toEqual(["LaaS", "Indices"]);
+    expect(series.primaryAxisProducts).toEqual(["Pyth Pro", "Indices"]);
+    expect(series.secondaryProducts).toEqual(["LaaS"]);
     expect(series.points).toEqual([
       {
         label: "Apr 2026",

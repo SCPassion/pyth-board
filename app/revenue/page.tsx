@@ -119,11 +119,10 @@ function ProductLinesChart({
   }, [defaultVisibleKeys]);
 
   const isVisible = (key: string) => visibleKeys.includes(key);
-  const hasPrimaryAxis =
-    series.primaryProduct !== null && isVisible(series.primaryProduct);
-  const hasSecondaryAxis = series.products.some(
-    (product) => product !== series.primaryProduct && isVisible(product)
-  );
+  const isPrimaryAxis = (product: string) =>
+    series.primaryAxisProducts.includes(product);
+  const hasPrimaryAxis = series.primaryAxisProducts.some(isVisible);
+  const hasSecondaryAxis = series.secondaryProducts.some(isVisible);
   const toggleSeries = (key: string) => {
     setVisibleKeys((currentKeys) => toggleVisibleSeries(currentKeys, key));
   };
@@ -131,11 +130,14 @@ function ProductLinesChart({
     PRODUCT_COLORS[
       Math.max(series.products.indexOf(product), 0) % PRODUCT_COLORS.length
     ];
-  const legendItems = series.products.map((product) => ({
+  const legendItems = [
+    ...series.primaryAxisProducts,
+    ...series.secondaryProducts,
+  ].map((product) => ({
     key: product,
     label: product,
     color: productColor(product),
-    note: product === series.primaryProduct ? "left axis" : "right axis",
+    note: isPrimaryAxis(product) ? "left axis" : "right axis",
     active: isVisible(product),
     onToggle: () => toggleSeries(product),
   }));
@@ -204,9 +206,7 @@ function ProductLinesChart({
               isVisible(product) ? (
                 <Line
                   key={product}
-                  yAxisId={
-                    product === series.primaryProduct ? "primary" : "secondary"
-                  }
+                  yAxisId={isPrimaryAxis(product) ? "primary" : "secondary"}
                   type="monotone"
                   dataKey={product}
                   name={product}

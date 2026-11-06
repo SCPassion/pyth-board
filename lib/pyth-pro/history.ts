@@ -1,5 +1,8 @@
 import type { ParsedDouroReport } from "./forum";
 
+// Products whose revenue is close enough to the primary product to share its axis.
+const PRIMARY_AXIS_PRODUCTS = ["Indices"];
+
 export type DouroRevenuePoint = {
   label: string;
   reportTitle: string;
@@ -17,6 +20,7 @@ export type DouroRevenuePoint = {
 export type ProductRevenueSeries = {
   products: string[];
   primaryProduct: string | null;
+  primaryAxisProducts: string[];
   secondaryProducts: string[];
   points: Array<Record<string, number | string | null>>;
 };
@@ -99,11 +103,21 @@ export function buildProductRevenueSeries(
   });
 
   const primaryProduct = findPrimaryProduct(products, points);
+  const primaryAxisProducts = products.filter(
+    (product) =>
+      product === primaryProduct || PRIMARY_AXIS_PRODUCTS.includes(product)
+  );
   const secondaryProducts = products.filter(
-    (product) => product !== primaryProduct
+    (product) => !primaryAxisProducts.includes(product)
   );
 
-  return { products, primaryProduct, secondaryProducts, points };
+  return {
+    products,
+    primaryProduct,
+    primaryAxisProducts,
+    secondaryProducts,
+    points,
+  };
 }
 
 function findPrimaryProduct(

@@ -2,7 +2,7 @@ export const DEFAULT_REVENUE_TREND_KEYS = [
   "cumulativeGrossRevenueUsd",
 ] as const;
 
-const DEFAULT_PRODUCT_REVENUE_KEYS = ["Pyth Pro", "LaaS", "Indices"] as const;
+const DEFAULT_PRODUCT_REVENUE_KEYS = ["Pyth Pro", "Indices"] as const;
 const DEFAULT_DISTRIBUTION_KEY = "usdValue";
 
 export function getDefaultRevenueTrendKeys(): string[] {
