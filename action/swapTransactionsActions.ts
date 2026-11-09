@@ -12,13 +12,21 @@ const RPC_ENDPOINTS = [
   "https://api.mainnet-beta.solana.com",
 ];
 
+const RPC_TIMEOUT_MS = 10_000;
+
 const CONNECTION_CONFIG = {
   commitment: "confirmed" as const,
   confirmTransactionInitialTimeout: 60000,
-  disableRetryOnRateLimit: false,
+  // Fail fast on 429s so we move to the next endpoint instead of backing off
+  // for tens of seconds inside a single request.
+  disableRetryOnRateLimit: true,
   httpHeaders: {
     "User-Agent": "PythBoard/1.0",
   },
+  // Abort any single RPC call that hangs instead of waiting for the platform
+  // function timeout.
+  fetch: (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) =>
+    fetch(input, { ...init, signal: AbortSignal.timeout(RPC_TIMEOUT_MS) }),
 };
 
 function createConnection(retryCount: number = 0): Connection {
@@ -200,6 +208,9 @@ type CollectSwapTransactionsOptions = {
 
 const TRACKING_WINDOW_SECONDS = 365 * 24 * 60 * 60;
 const MAX_SIGNATURE_SCAN = 5000;
+// Stop scanning history after this long and return what we have, so a slow
+// RPC can't push the request past the serverless function timeout.
+const SCAN_TIME_BUDGET_MS = 20_000;
 
 async function collectSwapTransactions(
   connection: Connection,
@@ -211,8 +222,13 @@ async function collectSwapTransactions(
   let collected: SwapTransaction[] = [];
   let hasMore = false;
   let scannedSignatures = 0;
+  const deadline = Date.now() + SCAN_TIME_BUDGET_MS;
 
   while (true) {
+    if (Date.now() > deadline) {
+      hasMore = true;
+      break;
+    }
     if (options.targetCount && collected.length >= options.targetCount) {
       break;
     }
@@ -345,11 +361,8 @@ export async function getSwapTransactionsPage(
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";
     console.error("Error fetching swap transactions:", errorMessage);
-    return {
-      transactions: [],
-      hasMore: false,
-      page,
-      pageSize,
-    };
+    // Throw so the API route responds with an uncached error instead of
+    // caching an empty page.
+    throw new Error(`Failed to fetch swap transactions: ${errorMessage}`);
   }
 }

@@ -6,17 +6,13 @@ import { ReserveAccountCard } from "@/components/reserve-account-card";
 import { SwapTransactions } from "@/components/swap-transactions";
 import { ReservePythHoldingChart } from "@/components/reserve-pyth-holding-chart";
 import { ReservePythBoughtChart } from "@/components/reserve-pyth-bought-chart";
-import {
-  getPythReserveSummary,
-} from "@/action/pythReserveActions";
-import { getSwapTransactionsPage } from "@/action/swapTransactionsActions";
-import { getJupiterDcaCouncilOps } from "@/action/jupiterDcaActions";
 import { TOKEN_SYMBOLS } from "@/data/pythReserveAddresses";
 import type {
   PythReserveSummary,
   SwapTransaction,
   JupiterDcaCouncilOpsStatus,
 } from "@/types/pythTypes";
+import type { SwapTransactionsPage } from "@/action/swapTransactionsActions";
 import { Card, CardContent } from "@/components/ui/card";
 import { AlertCircle, RefreshCw } from "lucide-react";
 import { SectionRule } from "@/components/section-rule";
@@ -36,6 +32,63 @@ function getDcaVaultUsd(
     if (symbol === "USDC" || symbol === "USDT") return sum + remaining;
     return sum;
   }, 0);
+}
+
+// Plain GET requests rather than server actions: Next.js runs server actions
+// from the client one at a time, so the summary, DCA and swap fetches used to
+// queue behind each other (and behind the header's own actions). These
+// requests run in parallel and are cached at the CDN.
+async function fetchJson<T>(url: string, fresh: boolean): Promise<T> {
+  const target = fresh
+    ? `${url}${url.includes("?") ? "&" : "?"}fresh=${Date.now()}`
+    : url;
+  const res = await fetch(target, { cache: "no-store" });
+  const body = await res.json().catch(() => null);
+  if (!res.ok) {
+    throw new Error(
+      (body && typeof body.error === "string" && body.error) ||
+        `Request failed (${res.status})`
+    );
+  }
+  return body as T;
+}
+
+function SectionSkeleton({ className }: { className: string }) {
+  return (
+    <div
+      className={`animate-pulse rounded-[28px] border border-white/10 bg-[linear-gradient(148deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.02)_100%)] ${className}`}
+    />
+  );
+}
+
+function SectionError({
+  message,
+  onRetry,
+}: {
+  message: string;
+  onRetry: () => void;
+}) {
+  return (
+    <Card className="rounded-[28px] border-red-500/25 bg-[#39324a] py-0 shadow-[0_20px_55px_rgba(8,5,18,0.2)]">
+      <CardContent className="flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-3 text-red-400">
+          <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
+          <div className="min-w-0">
+            <h3 className="mb-1 font-semibold text-white">
+              Couldn&apos;t load reserve balances
+            </h3>
+            <p className="break-words text-sm text-[#b4aec8]">{message}</p>
+          </div>
+        </div>
+        <button
+          onClick={onRetry}
+          className="font-data shrink-0 rounded-full border border-white/15 px-4 py-2 text-[11px] uppercase tracking-[0.18em] text-white/80 transition-colors hover:border-white/35 hover:text-white"
+        >
+          Retry
+        </button>
+      </CardContent>
+    </Card>
+  );
 }
 
 export default function ReservePage() {
@@ -91,7 +144,10 @@ export default function ReservePage() {
         isFetchingSwapsRef.current = true;
         setSwapLoading(true);
         setSwapError(null);
-        const response = await getSwapTransactionsPage(page, swapPageSize);
+        const response = await fetchJson<SwapTransactionsPage>(
+          `/api/reserve/swaps?page=${page}&pageSize=${swapPageSize}`,
+          force
+        );
         swapCacheRef.current.set(page, response.transactions);
         swapHasMoreCacheRef.current.set(page, response.hasMore);
         setSwapTransactions(response.transactions);
@@ -120,34 +176,41 @@ export default function ReservePage() {
     return () => clearInterval(interval);
   }, [swapThrottleRemainingMs]);
 
-  const fetchReserveData = useCallback(async () => {
+  const fetchReserveData = useCallback(async (fresh: boolean = false) => {
     // Prevent multiple simultaneous fetches
     if (isFetchingReserveRef.current) {
       return;
     }
+    isFetchingReserveRef.current = true;
+    hasFetchedRef.current = true;
+    setLoading(true);
+    setReserveError(null);
+    setDcaLoading(true);
 
-    try {
-      isFetchingReserveRef.current = true;
-      setLoading(true);
-      setReserveError(null);
-      setDcaLoading(true);
-      const [data, dca] = await Promise.all([
-        getPythReserveSummary(),
-        getJupiterDcaCouncilOps(),
-      ]);
-      setReserveSummary(data);
-      setDcaStatus(dca);
-      hasFetchedRef.current = true;
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to fetch reserve data";
-      setReserveError(errorMessage);
-      console.error("Error fetching reserve summary:", err);
-    } finally {
-      setLoading(false);
-      setDcaLoading(false);
-      isFetchingReserveRef.current = false;
-    }
+    // Summary and DCA load independently so neither waits on the other.
+    const summaryTask = fetchJson<PythReserveSummary>(
+      "/api/reserve/summary",
+      fresh
+    )
+      .then((data) => setReserveSummary(data))
+      .catch((err) => {
+        const errorMessage =
+          err instanceof Error ? err.message : "Failed to fetch reserve data";
+        setReserveError(errorMessage);
+        console.error("Error fetching reserve summary:", err);
+      })
+      .finally(() => setLoading(false));
+
+    const dcaTask = fetchJson<JupiterDcaCouncilOpsStatus>(
+      "/api/reserve/dca",
+      fresh
+    )
+      .then((dca) => setDcaStatus(dca))
+      .catch((err) => console.error("Error fetching Jupiter DCA status:", err))
+      .finally(() => setDcaLoading(false));
+
+    await Promise.all([summaryTask, dcaTask]);
+    isFetchingReserveRef.current = false;
   }, []);
 
   useEffect(() => {
@@ -159,56 +222,7 @@ export default function ReservePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Intentionally empty - only run once on mount
 
-  if (loading) {
-    return (
-      <div className="w-full min-w-0 space-y-8 overflow-x-hidden">
-        <div className="space-y-4 border-b border-white/10 pb-6">
-          <div className="h-3 w-40 animate-pulse rounded-full bg-white/10" />
-          <div className="h-9 w-72 animate-pulse rounded-2xl bg-white/12" />
-          <div className="h-4 w-full max-w-2xl animate-pulse rounded-xl bg-white/8" />
-        </div>
-        <div className="grid gap-5 lg:grid-cols-2">
-          {[1, 2].map((index) => (
-            <div
-              key={index}
-              className="rounded-[28px] border border-white/10 bg-[linear-gradient(148deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.02)_100%)] p-5 shadow-[0_20px_50px_rgba(9,5,20,0.18)] sm:p-6"
-            >
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <div className="h-3 w-40 animate-pulse rounded-full bg-white/10" />
-                  <div className="h-6 w-52 animate-pulse rounded-2xl bg-white/12" />
-                </div>
-                <div className="h-16 animate-pulse rounded-[20px] bg-[#312940]" />
-                <div className="h-56 animate-pulse rounded-[22px] bg-[#312940]" />
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  if (reserveError) {
-    return (
-      <div className="flex min-h-[400px] items-center justify-center">
-        <Card className="max-w-md rounded-[28px] border-red-500/25 bg-[#39324a] py-0 shadow-[0_20px_55px_rgba(8,5,18,0.2)]">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-3 text-red-400">
-              <AlertCircle className="h-5 w-5" />
-              <div>
-                <h3 className="font-semibold text-white mb-1">Error</h3>
-                <p className="text-sm text-[#b4aec8]">{reserveError}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (!reserveSummary) {
-    return null;
-  }
+  const showSummaryError = reserveError && !reserveSummary;
 
   return (
     <div className="w-full min-w-0 space-y-10 overflow-x-hidden">
@@ -262,7 +276,7 @@ export default function ReservePage() {
               onClick={() => {
                 swapCacheRef.current.clear();
                 swapHasMoreCacheRef.current.clear();
-                fetchReserveData();
+                fetchReserveData(true);
                 fetchSwapPage(swapPage, true);
               }}
               disabled={loading}
@@ -280,13 +294,25 @@ export default function ReservePage() {
       {/* 01 — Reserve Summary */}
       <section className="space-y-5">
         <SectionRule index="01" title="Reserve Summary" />
-        <ReserveSummary
-          reserveSummary={reserveSummary}
-          dcaVaultUsd={getDcaVaultUsd(
-            dcaStatus,
-            reserveSummary.pythianCouncilOps.solPrice
-          )}
-        />
+        {reserveSummary ? (
+          <ReserveSummary
+            reserveSummary={reserveSummary}
+            dcaVaultUsd={getDcaVaultUsd(
+              dcaStatus,
+              reserveSummary.pythianCouncilOps.solPrice
+            )}
+          />
+        ) : showSummaryError ? (
+          <SectionError
+            message={reserveError ?? ""}
+            onRetry={() => fetchReserveData(true)}
+          />
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2">
+            <SectionSkeleton className="h-28" />
+            <SectionSkeleton className="h-28" />
+          </div>
+        )}
       </section>
 
       {/* 02 — Buyback & Holdings Trends */}
@@ -305,17 +331,28 @@ export default function ReservePage() {
       {/* 03 — Reserve Accounts */}
       <section className="space-y-5">
         <SectionRule index="03" title="Reserve Accounts" />
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 sm:gap-5">
-          <ReserveAccountCard accountInfo={reserveSummary.daoTreasury} />
-          <ReserveAccountCard
-            accountInfo={reserveSummary.pythianCouncilOps}
-            jupiterDca={{
-              usingDca: dcaStatus?.usingDca ?? false,
-              orders: dcaStatus?.orders ?? [],
-            }}
-            dcaLoading={dcaLoading}
-          />
-        </div>
+        {reserveSummary ? (
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 sm:gap-5">
+            <ReserveAccountCard accountInfo={reserveSummary.daoTreasury} />
+            <ReserveAccountCard
+              accountInfo={reserveSummary.pythianCouncilOps}
+              jupiterDca={{
+                usingDca: dcaStatus?.usingDca ?? false,
+                orders: dcaStatus?.orders ?? [],
+              }}
+              dcaLoading={dcaLoading}
+            />
+          </div>
+        ) : showSummaryError ? (
+          <p className="text-sm text-[#b4aec8]">
+            Account balances are unavailable until the reserve data loads.
+          </p>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 sm:gap-5">
+            <SectionSkeleton className="h-80" />
+            <SectionSkeleton className="h-80" />
+          </div>
+        )}
       </section>
 
       {/* 04 — Recent Swap Operations */}

@@ -22,13 +22,21 @@ const RPC_ENDPOINTS = [
 ];
 
 // Connection configuration for better performance
+const RPC_TIMEOUT_MS = 10_000;
+
 const CONNECTION_CONFIG = {
   commitment: "confirmed" as const,
   confirmTransactionInitialTimeout: 60000,
-  disableRetryOnRateLimit: false,
+  // Fail fast on 429s so we move to the next endpoint instead of backing off
+  // for tens of seconds inside a single request.
+  disableRetryOnRateLimit: true,
   httpHeaders: {
     "User-Agent": "PythBoard/1.0",
   },
+  // Abort any single RPC call that hangs instead of waiting for the platform
+  // function timeout.
+  fetch: (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) =>
+    fetch(input, { ...init, signal: AbortSignal.timeout(RPC_TIMEOUT_MS) }),
 };
 
 /**

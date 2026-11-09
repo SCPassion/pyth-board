@@ -48,6 +48,30 @@ type JupiterRecurringResponse = {
   }>;
 };
 
+// Jupiter's recurring-orders API answers in ~1s when healthy but regularly
+// hangs for 30s+. Short per-attempt timeouts with retries recover far faster
+// than one long wait.
+const ATTEMPT_TIMEOUT_MS = 5_000;
+const MAX_ATTEMPTS = 3;
+
+async function fetchRecurringOrders(url: string): Promise<Response> {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      const res = await fetch(url, {
+        headers: { "User-Agent": "PythBoard/1.0" },
+        cache: "no-store",
+        signal: AbortSignal.timeout(ATTEMPT_TIMEOUT_MS),
+      });
+      if (res.ok || attempt === MAX_ATTEMPTS) return res;
+      lastError = new Error(`HTTP ${res.status}`);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError;
+}
+
 /**
  * Fetches Jupiter DCA status for the Pythian Council Ops address.
  * Returns active Jupiter DCA orders that buy PYTH, plus the currently valued
@@ -63,14 +87,10 @@ export async function getJupiterDcaCouncilOps(): Promise<JupiterDcaCouncilOpsSta
   url.searchParams.set("includeFailedTx", "false");
 
   try {
-    const res = await fetch(url.toString(), {
-      headers: { "User-Agent": "PythBoard/1.0" },
-      cache: "no-store",
-    });
+    const res = await fetchRecurringOrders(url.toString());
 
     if (!res.ok) {
-      console.warn(`Jupiter DCA API error: ${res.status} ${res.statusText}`);
-      return { usingDca: false, usdcBalanceVault: 0, solBalanceVault: 0, orders: [] };
+      throw new Error(`Jupiter DCA API error: ${res.status} ${res.statusText}`);
     }
 
     const data = (await res.json()) as JupiterRecurringResponse;
@@ -109,6 +129,8 @@ export async function getJupiterDcaCouncilOps(): Promise<JupiterDcaCouncilOpsSta
     };
   } catch (error) {
     console.error("Jupiter DCA fetch error:", error);
-    return { usingDca: false, usdcBalanceVault: 0, solBalanceVault: 0, orders: [] };
+    // Throw rather than return an empty status so callers (and the CDN cache)
+    // don't mistake an outage for "no DCA orders".
+    throw error instanceof Error ? error : new Error("Jupiter DCA fetch failed");
   }
 }
