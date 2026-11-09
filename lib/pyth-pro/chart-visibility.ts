@@ -3,7 +3,6 @@ export const DEFAULT_REVENUE_TREND_KEYS = [
 ] as const;
 
 const DEFAULT_PRODUCT_REVENUE_KEYS = ["Pyth Pro", "Indices"] as const;
-const DEFAULT_DISTRIBUTION_KEY = "usdValue";
 
 export function getDefaultRevenueTrendKeys(): string[] {
   return [...DEFAULT_REVENUE_TREND_KEYS];
@@ -22,17 +21,6 @@ export function getDefaultProductRevenueKeys({
   if (defaultProducts.length > 0) return defaultProducts;
   if (primaryProduct) return [primaryProduct];
   return products.slice(0, 1);
-}
-
-export function getDefaultDistributionKey(): string {
-  return DEFAULT_DISTRIBUTION_KEY;
-}
-
-export function selectExclusiveSeries(
-  _currentKey: string,
-  selectedKey: string
-): string {
-  return selectedKey;
 }
 
 export function toggleVisibleSeries(currentKeys: string[], key: string): string[] {
