@@ -2,10 +2,10 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { usePythPriceHistory } from "@/hooks/use-pyth-price-history";
+import type { PriceChange, PythPriceHistoryPoint } from "@/lib/pyth-price-history";
 import { formatUsdPriceTick } from "@/lib/price-format";
 import { useWalletInfosStore } from "@/store/store";
-import { TrendingUp, PieChart as PieChartIcon } from "lucide-react";
+import { TrendingDown, TrendingUp, PieChart as PieChartIcon } from "lucide-react";
 import {
   PieChart,
   Pie,
@@ -22,14 +22,24 @@ import {
 type MetricCardsProps = {
   pythPrice: number | null;
   totalStaked: number | null;
+  priceHistory: PythPriceHistoryPoint[];
+  isRateLimited: boolean;
+  priceChange: PriceChange | null;
 };
 
 export function MetricCards({
   pythPrice,
   totalStaked,
+  priceHistory,
+  isRateLimited,
+  priceChange,
 }: MetricCardsProps) {
-  const { history: priceHistory, isRateLimited } = usePythPriceHistory();
+  const isPriceUp = (priceChange?.changePct ?? 0) >= 0;
+  const PriceTrendIcon = isPriceUp ? TrendingUp : TrendingDown;
   const wallets = useWalletInfosStore((state) => state.wallets);
+  // With no wallets the dashboard shows an add-wallet prompt instead, so the
+  // empty distribution card would only repeat it.
+  const hasWallets = wallets.length > 0;
 
   const walletData = wallets.map((wallet) => ({
     name: wallet.name,
@@ -63,7 +73,7 @@ export function MetricCards({
 
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <Card className="group rounded-[28px] border-white/10 bg-[linear-gradient(148deg,rgba(255,255,255,0.09)_0%,rgba(255,255,255,0.02)_100%)] py-0 shadow-[0_20px_55px_rgba(8,5,18,0.2)] sm:col-span-2">
+        <Card className={`group rounded-[28px] border-white/10 bg-[linear-gradient(148deg,rgba(255,255,255,0.09)_0%,rgba(255,255,255,0.02)_100%)] py-0 shadow-[0_20px_55px_rgba(8,5,18,0.2)] sm:col-span-2 ${hasWallets ? "" : "lg:col-span-3"}`}>
           <CardContent className="space-y-5 p-6 sm:p-7">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -82,9 +92,26 @@ export function MetricCards({
               </Badge>
             </div>
 
-            <p className="font-data text-3xl font-medium text-white sm:text-4xl">
-              ${pythPrice ? pythPrice.toFixed(4) : "..."} USD
-            </p>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              <p className="font-data text-3xl font-medium text-white sm:text-4xl">
+                ${pythPrice ? pythPrice.toFixed(4) : "..."} USD
+              </p>
+              {priceChange ? (
+                <span
+                  className={`font-data inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs tabular-nums ring-1 ${
+                    isPriceUp
+                      ? "bg-emerald-300/10 text-emerald-200 ring-emerald-200/20"
+                      : "bg-rose-300/10 text-rose-200 ring-rose-200/20"
+                  }`}
+                  title={`From $${priceChange.startPrice.toFixed(4)} 24 hours ago`}
+                >
+                  <PriceTrendIcon className="h-3.5 w-3.5" aria-hidden />
+                  {isPriceUp ? "+" : ""}
+                  {priceChange.changePct.toFixed(2)}%
+                  <span className="text-white/45">24h</span>
+                </span>
+              ) : null}
+            </div>
 
             <div className="space-y-4">
               <div className="h-40 rounded-[24px] bg-[rgba(23,16,36,0.42)] px-3 py-4 ring-1 ring-white/6 sm:h-44">
@@ -184,6 +211,7 @@ export function MetricCards({
           </CardContent>
         </Card>
 
+        {hasWallets ? (
         <Card className="rounded-[28px] border-white/10 bg-[#39324a] py-0 shadow-[0_20px_55px_rgba(8,5,18,0.2)]">
           <CardContent className="space-y-4 p-5 sm:p-6">
             <div className="flex items-center justify-between">
@@ -262,6 +290,7 @@ export function MetricCards({
             ) : null}
           </CardContent>
         </Card>
+        ) : null}
     </div>
   );
 }

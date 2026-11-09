@@ -8,16 +8,23 @@ interface PortfolioSummaryProps {
   connectedWallets: number;
   totalStaked: number | null;
   pythPrice: number | null;
+  /** PYTH price 24 hours ago, for the stake value's 24h change. */
+  pythPrice24hAgo?: number | null;
 }
 
 export function PortfolioSummary({
   connectedWallets,
   totalStaked,
   pythPrice,
+  pythPrice24hAgo = null,
 }: PortfolioSummaryProps) {
   const amountInUSD = pythPrice !== null && totalStaked !== null ? totalStaked * pythPrice : null;
   const exposureValueLabel = connectedWallets === 0 ? "$0"
     : amountInUSD === null ? "Unavailable" : `$${amountInUSD.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
+  const valueChangeUsd =
+    amountInUSD !== null && totalStaked !== null && totalStaked > 0 && pythPrice24hAgo !== null
+      ? amountInUSD - totalStaked * pythPrice24hAgo
+      : null;
 
   return (
     <Card className="group relative overflow-hidden rounded-[28px] border-white/10 bg-[linear-gradient(135deg,rgba(182,88,165,0.95)_0%,rgba(65,30,220,0.9)_100%)] py-0 shadow-[0_28px_80px_rgba(13,5,30,0.35)]">
@@ -61,6 +68,16 @@ export function PortfolioSummary({
               <p className="font-data mt-3 text-2xl font-medium text-white">
                 {exposureValueLabel}
               </p>
+              {valueChangeUsd !== null ? (
+                <p
+                  className={`font-data mt-2 text-sm tabular-nums ${valueChangeUsd >= 0 ? "text-emerald-200" : "text-rose-200"}`}
+                  title="Change in stake value from the PYTH price move over 24 hours"
+                >
+                  {valueChangeUsd >= 0 ? "+" : "−"}$
+                  {Math.abs(valueChangeUsd).toLocaleString("en-US", { maximumFractionDigits: 0 })}
+                  <span className="ml-1.5 text-white/55">24h</span>
+                </p>
+              ) : null}
               <p className="mt-3 text-xs leading-relaxed text-white/65">
                 Live value based on the current PYTH price
               </p>
