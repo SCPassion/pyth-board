@@ -62,12 +62,33 @@ export const SEO_PAGES = {
 
 export type SeoPath = keyof typeof SEO_PAGES;
 
+/** URL slug for a page's social preview image (`/og/<slug>`). */
+export function pathToOgSlug(path: SeoPath): string {
+  return path === "/" ? "home" : path.slice(1);
+}
+
+export function ogSlugToPath(slug: string): SeoPath | undefined {
+  const path = slug === "home" ? "/" : `/${slug}`;
+  return path in SEO_PAGES ? (path as SeoPath) : undefined;
+}
+
+export const OG_SLUGS = (Object.keys(SEO_PAGES) as SeoPath[]).map(
+  pathToOgSlug,
+);
+
 export function createPageMetadata(
   path: SeoPath,
   options: { index?: boolean } = {},
 ): Metadata {
   const page = SEO_PAGES[path];
   const url = new URL(path, SITE_URL).href;
+  const image = {
+    url: `${SITE_URL}/og/${pathToOgSlug(path)}`,
+    width: 1200,
+    height: 630,
+    alt: page.title,
+    type: "image/png",
+  };
 
   return {
     title: page.title,
@@ -83,11 +104,13 @@ export function createPageMetadata(
       title: page.title,
       description: page.description,
       url,
+      images: [image],
     },
     twitter: {
-      card: "summary",
+      card: "summary_large_image",
       title: page.title,
       description: page.description,
+      images: [image],
     },
   };
 }
